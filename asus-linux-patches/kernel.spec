@@ -759,7 +759,8 @@ Source4000: README.rst
 Patch1: patch-%{stableversion}-redhat.patch
 %endif
 
-Patch900: 0001-gpu-yeet-asus.patch
+Patch900: 0001-asus-wmi-Add-dgpu-disable-method.patch
+Patch901: 0001-asus-wmi-Add-panel-overdrive-functionality.patch
 # Keyboard
 Patch902: 0001-HID-asus-Filter-keyboard-EC-for-old-ROG-keyboard.patch
 Patch903: 0001-HID-asus-filter-G713-G733-key-event-to-prevent-shutd.patch
@@ -1295,9 +1296,11 @@ ApplyOptionalPatch patch-%{stableversion}-redhat.patch
 
 ApplyOptionalPatch linux-kernel-test.patch
 
-ApplyOptionalPatch 0001-gpu-yeet-asus.patch
+ApplyOptionalPatch 0001-asus-wmi-Add-panel-overdrive-functionality.patch
+ApplyOptionalPatch 0001-asus-wmi-Add-dgpu-disable-method.patch
 ApplyOptionalPatch 0001-HID-asus-Filter-keyboard-EC-for-old-ROG-keyboard.patch
 ApplyOptionalPatch 0001-HID-asus-filter-G713-G733-key-event-to-prevent-shutd.patch
+
 # Backlight patches
 ApplyOptionalPatch 0001-ACPI-video-use-native-backlight-for-GA401-GA502-GA50.patch
 ApplyOptionalPatch 0002-Revert-platform-x86-asus-nb-wmi-Drop-duplicate-DMI-q.patch
