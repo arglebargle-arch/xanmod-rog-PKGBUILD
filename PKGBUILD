@@ -181,7 +181,7 @@ prepare() {
   # Put the file "myconfig" at the package folder (this will take preference) or "${XDG_CONFIG_HOME}/linux-xanmod/myconfig"
   # If we detect partial file with scripts/config commands, we execute as a script
   # If not, it's a full config, will be replaced
-  for _myconfig in "${SRCDEST}/myconfig" "${XDG_CONFIG_HOME}/linux-xanmod/myconfig" ; do
+  for _myconfig in "${startdir}/myconfig" "${XDG_CONFIG_HOME}/linux-xanmod/myconfig" ; do
     if [ -f "${_myconfig}" ]; then
       if grep -q 'scripts/config' "${_myconfig}"; then
         # myconfig is a partial file. Executing as a script
