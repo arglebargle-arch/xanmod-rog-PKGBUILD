@@ -132,9 +132,9 @@ prepare() {
 
   # this will apply all enabled patches from the fedora-linux kernel.spec
   for src in $(awk -F ' ' '/^ApplyOptionalPatch.*patch$/{print $2}' ${startdir}/asus-linux-patches/kernel.spec \
+    # | grep -Ev '\-(redhat|test)\.patch'
+    # ^ this skips both redhat and test patches
     );
-    # insert the next line just above to filter out the redhat and test patches
-    #| grep -Ev '\-(redhat|test)\.patch' );
   do
     src="${src%%::*}"
     src="${src##*/}"
@@ -143,7 +143,11 @@ prepare() {
     # skip empty test patch
     [[ $src = "linux-kernel-test.patch" ]] && continue
     # fixup redhat patch version
-    [[ $src =~ "%{stableversion}-redhat.patch" ]] && src=${src/\%\{stableversion\}/$_major}
+    if [[ $src =~ "%{stableversion}-redhat.patch" ]]; then
+      src=${src/\%\{stableversion\}/$_major}
+      # skip redhat patch if we're chasing a kernel version asus-linux doesn't build yet
+      [[ -f "${startdir}/asus-linux-patches/$src" ]] || continue
+    fi
     echo "(asus-linux) Applying patch $src..."
     # TODO: this doesn't handle partially applied patches perfectly;
     # if a portion of the patch succeeds we'll proceed, but dump debug output.
