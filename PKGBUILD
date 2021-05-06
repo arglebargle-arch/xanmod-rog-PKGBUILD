@@ -54,11 +54,11 @@ _makenconfig=
 
 #_major="5.11"
 # curl -s "https://api.github.com/repos/xanmod/linux/releases" | jq -r '[.[] | select(.target_commitish == "$_major")][].tag_name' | sort -V | tail -n1
-xanmod=5.11.16-xanmod1
+xanmod=5.11.17-xanmod1
 pkgrel=1
 #asus_linux_commit="24c2a9ca9dd5a557641f5237e7a49b909531b01b"
 
-pkgbase=linux-xanmod-g14
+pkgbase=linux-xanmod-rog
 pkgver=${xanmod//-/+}
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -93,7 +93,7 @@ done
 
 sha256sums=('04f07b54f0d40adfab02ee6cbd2a942c96728d87c1ef9e120d0cb9ba3fe067b4'
             'SKIP'
-            '3ba2a77d4cd9ab5a63a137a8fb18a9d27e7e3172b2130ad34888ae24f13086b2'
+            'a7bc3993bd5cf3e4d6b3fc0f0fdc067c4cf8d81bb508cf1bf4b3e673c6aa8551'
             '03bb8b234a67b877a34a8212936ba69d8700c54c7877686cbd9742a536c87134'
             '34f4ae617a2407fed2ba347b663d31f39c1ec9b390e1ea5ea636c91a4cc6f875'
             'c384049787c8f0008accf9c4d053eb407b76242fe522e1aed1fe8a9c59f9d996'

@@ -1,6 +1,6 @@
-pkgbase = linux-xanmod-g14
+pkgbase = linux-xanmod-rog
 	pkgdesc = Linux Xanmod
-	pkgver = 5.11.16+xanmod1
+	pkgver = 5.11.17+xanmod1
 	pkgrel = 1
 	url = http://www.xanmod.org/
 	arch = x86_64
@@ -14,8 +14,8 @@ pkgbase = linux-xanmod-g14
 	options = !strip
 	source = https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.11.tar.xz
 	source = https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.11.tar.sign
-	source = https://github.com/xanmod/linux/releases/download/5.11.16-xanmod1/patch-5.11.16-xanmod1.xz
-	source = choose-gcc-optimization.sh::https://aur.archlinux.org/cgit/aur.git/plain/choose-gcc-optimization.sh?h=linux-xanmod&id=066807887c2f425bd42f14ef066c995bda97b24c
+	source = https://github.com/xanmod/linux/releases/download/5.11.17-xanmod1/patch-5.11.17-xanmod1.xz
+	source = choose-gcc-optimization.sh
 	source = https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-5.11.patch
 	source = sys-kernel_arch-sources-g14_files-6010-acpi_unused.patch::https://aur.archlinux.org/cgit/aur.git/plain/sys-kernel_arch-sources-g14_files-6010-acpi_unused.patch?h=linux-g14&id=71e5fa9a8459b8e7a49ed5c0b7fc74ba680dfe29
 	source = sphinx-workaround.patch::https://git.archlinux.org/svntogit/packages.git/plain/trunk/sphinx-workaround.patch?h=packages/linux&id=be7d4710850020de55bce930c83fa80347c02fc3
@@ -23,13 +23,13 @@ pkgbase = linux-xanmod-g14
 	validpgpkeys = 647F28654894E3BD457199BE38DBBDC86092693E
 	sha256sums = 04f07b54f0d40adfab02ee6cbd2a942c96728d87c1ef9e120d0cb9ba3fe067b4
 	sha256sums = SKIP
-	sha256sums = 3ba2a77d4cd9ab5a63a137a8fb18a9d27e7e3172b2130ad34888ae24f13086b2
+	sha256sums = a7bc3993bd5cf3e4d6b3fc0f0fdc067c4cf8d81bb508cf1bf4b3e673c6aa8551
 	sha256sums = 03bb8b234a67b877a34a8212936ba69d8700c54c7877686cbd9742a536c87134
 	sha256sums = 34f4ae617a2407fed2ba347b663d31f39c1ec9b390e1ea5ea636c91a4cc6f875
 	sha256sums = c384049787c8f0008accf9c4d053eb407b76242fe522e1aed1fe8a9c59f9d996
 	sha256sums = 52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb
 
-pkgname = linux-xanmod-g14
+pkgname = linux-xanmod-rog
 	pkgdesc = The Linux kernel and modules with Xanmod patches
 	depends = coreutils
 	depends = kmod
@@ -37,6 +37,7 @@ pkgname = linux-xanmod-g14
 	optdepends = crda: to set the correct wireless channels of your country
 	optdepends = linux-firmware: firmware images needed for some devices
 
-pkgname = linux-xanmod-g14-headers
-	pkgdesc = Header files and scripts for building modules for Xanmod Linux kernel
+pkgname = linux-xanmod-rog-headers
+	pkgdesc = Headers and scripts for building modules for the Linux Xanmod kernel
+	depends = pahole
 
