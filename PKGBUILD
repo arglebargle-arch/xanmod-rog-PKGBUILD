@@ -54,8 +54,8 @@ _makenconfig=
 
 #_major="5.11"
 # curl -s "https://api.github.com/repos/xanmod/linux/releases" | jq -r '[.[] | select(.target_commitish == "$_major")][].tag_name' | sort -V | tail -n1
-xanmod=5.11.18-xanmod1
-pkgrel=1
+xanmod=5.12.1-xanmod2
+pkgrel=0
 
 pkgbase=linux-xanmod-rog
 pkgver=${xanmod//-/+}
@@ -75,7 +75,7 @@ _patch=$(echo $xanmod | cut -d'.' -f3)
 source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
         "choose-gcc-optimization.sh"
-        "https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-5.11.patch"
+        "https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-5.12.patch"
         "sys-kernel_arch-sources-g14_files-6010-acpi_unused.patch"::"https://aur.archlinux.org/cgit/aur.git/plain/sys-kernel_arch-sources-g14_files-6010-acpi_unused.patch?h=linux-g14&id=71e5fa9a8459b8e7a49ed5c0b7fc74ba680dfe29"
         )
 validpgpkeys=(
@@ -90,11 +90,11 @@ for _patch in ${_patches[@]}; do
     source+=("${_patch}::https://git.archlinux.org/svntogit/packages.git/plain/trunk/${_patch}?h=packages/linux&id=${_commit}")
 done
 
-sha256sums=('04f07b54f0d40adfab02ee6cbd2a942c96728d87c1ef9e120d0cb9ba3fe067b4'
+sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
-            '7bd86c8f5fdf47fc5cc69bdf7e477dd4a7c9fd9dcc7fdee261b8be71c7e4c63b'
+            'e304fded229a9f3134fd20a96ae111ca9a68f0a872384511662bb36b83560d86'
             '51742dee57cd15bece152d6527f48af87cb7930f0f6a356d5282f778e7c35b39'
-            '34f4ae617a2407fed2ba347b663d31f39c1ec9b390e1ea5ea636c91a4cc6f875'
+            '8b2e476ae108255ae5dc6da43cda57620021a8e68da0e3c568eb44afd3d3254a'
             'c384049787c8f0008accf9c4d053eb407b76242fe522e1aed1fe8a9c59f9d996'
             '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb')
 
