@@ -1,0 +1,68 @@
+From f29716b1ccbda3b32ca5a1ac25218cc2c3db9ffc Mon Sep 17 00:00:00 2001
+From: "Prike.Liang" <Prike.Liang@amd.com>
+Date: Fri, 26 Feb 2021 16:44:04 +0800
+Subject: [PATCH 13/18] ACPI / idle: override and update c-state latency when
+ not conformance with s0ix
+
+Generally the C-state latency get by _CST method but some OEM platform set the
+C2 latency no less than C3's and that will block the core enter PC6. This issue
+can be workaround by override and update C-state latency.
+
+Signed-off-by: Prike.Liang <Prike.Liang@amd.com>
+Signed-off-by: Alex Deucher <alexander.deucher@amd.com>
+---
+ drivers/acpi/processor_idle.c | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/drivers/acpi/processor_idle.c b/drivers/acpi/processor_idle.c
+index 768a6b4d2..daaa87a12 100644
+--- a/drivers/acpi/processor_idle.c
++++ b/drivers/acpi/processor_idle.c
+@@ -388,10 +388,16 @@ static void acpi_processor_power_verify_c3(struct acpi_processor *pr,
+ 	return;
+ }
+ 
++static bool acpi_processor_vendor_amd(void)
++{
++	return boot_cpu_data.x86_vendor == X86_VENDOR_AMD;
++}
++
+ static int acpi_processor_power_verify(struct acpi_processor *pr)
+ {
+ 	unsigned int i;
+ 	unsigned int working = 0;
++	u32 latency2, latency3;
+ 
+ 	pr->power.timer_broadcast_on_state = INT_MAX;
+ 
+@@ -407,9 +413,11 @@ static int acpi_processor_power_verify(struct acpi_processor *pr)
+ 			if (!cx->address)
+ 				break;
+ 			cx->valid = 1;
++			latency2 = cx->latency;
+ 			break;
+ 
+ 		case ACPI_STATE_C3:
++			latency3 = cx->latency;
+ 			acpi_processor_power_verify_c3(pr, cx);
+ 			break;
+ 		}
+@@ -421,6 +429,15 @@ static int acpi_processor_power_verify(struct acpi_processor *pr)
+ 		working++;
+ 	}
+ 
++	/* Some AMD BIOSes mistakenly have higher C2 latencies than C3 latencies.
++	 * In order to properly support S0ix, the platform needs to not skip C states.
++	 * Correct the latencies here.
++	 */
++	if (acpi_processor_vendor_amd() && (latency2 >= latency3)) {
++		pr->power.states[2].latency = 18;
++		pr->power.states[3].latency = 350;
++	}
++
+ 	lapic_timer_propagate_broadcast(pr);
+ 
+ 	return (working);
+-- 
+2.31.1
+

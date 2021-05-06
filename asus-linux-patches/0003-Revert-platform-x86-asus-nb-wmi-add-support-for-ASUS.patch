@@ -1,0 +1,114 @@
+From 99c0c3cd2a3b2827c99bec193dc4d806ec4e90eb Mon Sep 17 00:00:00 2001
+From: "Luke D. Jones" <luke@ljones.dev>
+Date: Mon, 19 Apr 2021 19:26:03 +1200
+Subject: [PATCH 3/3] Revert "platform/x86: asus-nb-wmi: add support for ASUS
+ ROG Zephyrus G14 and G15"
+
+This reverts commit 13bceda68fb9ef388ad40d355ab8d03ee64d14c2.
+---
+ drivers/platform/x86/asus-nb-wmi.c | 82 ------------------------------
+ 1 file changed, 82 deletions(-)
+
+diff --git a/drivers/platform/x86/asus-nb-wmi.c b/drivers/platform/x86/asus-nb-wmi.c
+index b07b1288346e..0cb927f0f301 100644
+--- a/drivers/platform/x86/asus-nb-wmi.c
++++ b/drivers/platform/x86/asus-nb-wmi.c
+@@ -110,16 +110,6 @@ static struct quirk_entry quirk_asus_forceals = {
+ 	.wmi_force_als_set = true,
+ };
+ 
+-static struct quirk_entry quirk_asus_ga401i = {
+-	.wmi_backlight_power = true,
+-	.wmi_backlight_set_devstate = true,
+-};
+-
+-static struct quirk_entry quirk_asus_ga502i = {
+-	.wmi_backlight_power = true,
+-	.wmi_backlight_set_devstate = true,
+-};
+-
+ static struct quirk_entry quirk_asus_use_kbd_dock_devid = {
+ 	.use_kbd_dock_devid = true,
+ };
+@@ -430,78 +420,6 @@ static const struct dmi_system_id asus_quirks[] = {
+ 		},
+ 		.driver_data = &quirk_asus_forceals,
+ 	},
+-	{
+-		.callback = dmi_matched,
+-		.ident = "ASUSTeK COMPUTER INC. GA401IH",
+-		.matches = {
+-			DMI_MATCH(DMI_SYS_VENDOR, "ASUSTeK COMPUTER INC."),
+-			DMI_MATCH(DMI_PRODUCT_NAME, "GA401IH"),
+-		},
+-		.driver_data = &quirk_asus_ga401i,
+-	},
+-	{
+-		.callback = dmi_matched,
+-		.ident = "ASUSTeK COMPUTER INC. GA401II",
+-		.matches = {
+-			DMI_MATCH(DMI_SYS_VENDOR, "ASUSTeK COMPUTER INC."),
+-			DMI_MATCH(DMI_PRODUCT_NAME, "GA401II"),
+-		},
+-		.driver_data = &quirk_asus_ga401i,
+-	},
+-	{
+-		.callback = dmi_matched,
+-		.ident = "ASUSTeK COMPUTER INC. GA401IU",
+-		.matches = {
+-			DMI_MATCH(DMI_SYS_VENDOR, "ASUSTeK COMPUTER INC."),
+-			DMI_MATCH(DMI_PRODUCT_NAME, "GA401IU"),
+-		},
+-		.driver_data = &quirk_asus_ga401i,
+-	},
+-	{
+-		.callback = dmi_matched,
+-		.ident = "ASUSTeK COMPUTER INC. GA401IV",
+-		.matches = {
+-			DMI_MATCH(DMI_SYS_VENDOR, "ASUSTeK COMPUTER INC."),
+-			DMI_MATCH(DMI_PRODUCT_NAME, "GA401IV"),
+-		},
+-		.driver_data = &quirk_asus_ga401i,
+-	},
+-	{
+-		.callback = dmi_matched,
+-		.ident = "ASUSTeK COMPUTER INC. GA401IVC",
+-		.matches = {
+-			DMI_MATCH(DMI_SYS_VENDOR, "ASUSTeK COMPUTER INC."),
+-			DMI_MATCH(DMI_PRODUCT_NAME, "GA401IVC"),
+-		},
+-		.driver_data = &quirk_asus_ga401i,
+-	},
+-		{
+-		.callback = dmi_matched,
+-		.ident = "ASUSTeK COMPUTER INC. GA502II",
+-		.matches = {
+-			DMI_MATCH(DMI_SYS_VENDOR, "ASUSTeK COMPUTER INC."),
+-			DMI_MATCH(DMI_PRODUCT_NAME, "GA502II"),
+-		},
+-		.driver_data = &quirk_asus_ga502i,
+-	},
+-	{
+-		.callback = dmi_matched,
+-		.ident = "ASUSTeK COMPUTER INC. GA502IU",
+-		.matches = {
+-			DMI_MATCH(DMI_SYS_VENDOR, "ASUSTeK COMPUTER INC."),
+-			DMI_MATCH(DMI_PRODUCT_NAME, "GA502IU"),
+-		},
+-		.driver_data = &quirk_asus_ga502i,
+-	},
+-	{
+-		.callback = dmi_matched,
+-		.ident = "ASUSTeK COMPUTER INC. GA502IV",
+-		.matches = {
+-			DMI_MATCH(DMI_SYS_VENDOR, "ASUSTeK COMPUTER INC."),
+-			DMI_MATCH(DMI_PRODUCT_NAME, "GA502IV"),
+-		},
+-		.driver_data = &quirk_asus_ga502i,
+-	},
+ 	{
+ 		.callback = dmi_matched,
+ 		.ident = "Asus Transformer T100TA / T100HA / T100CHI",
+-- 
+2.31.1
+

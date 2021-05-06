@@ -1,0 +1,4198 @@
+ Documentation/ABI/testing/sysfs-platform_profile   |  24 +
+ Documentation/admin-guide/kdump/kdump.rst          |  11 +
+ .../admin-guide/laptops/thinkpad-acpi.rst          |  25 +
+ .../bindings/display/panel/xingbangda,xbd599.yaml  |  50 ++
+ Documentation/userspace-api/index.rst              |   1 +
+ .../userspace-api/sysfs-platform_profile.rst       |  42 ++
+ Makefile                                           |   1 +
+ arch/arm/Kconfig                                   |   4 +-
+ arch/arm/include/asm/uaccess.h                     |   8 +-
+ arch/arm64/Kconfig                                 |   3 +-
+ .../boot/dts/rockchip/rk3399-pinebook-pro.dts      |   2 +-
+ arch/powerpc/kvm/book3s_hv.c                       |   4 +
+ arch/s390/include/asm/ipl.h                        |   1 +
+ arch/s390/kernel/ipl.c                             |   5 +
+ arch/s390/kernel/setup.c                           |   4 +
+ arch/x86/kernel/setup.c                            |  22 +-
+ arch/x86/kvm/hyperv.c                              |   2 +-
+ drivers/acpi/Kconfig                               |   3 +
+ drivers/acpi/Makefile                              |   1 +
+ drivers/acpi/apei/hest.c                           |   8 +
+ drivers/acpi/irq.c                                 |  17 +-
+ drivers/acpi/pci_mcfg.c                            |   7 +
+ drivers/acpi/platform_profile.c                    | 177 +++++++
+ drivers/acpi/scan.c                                |   9 +
+ drivers/ata/libahci.c                              |  18 +
+ drivers/char/ipmi/ipmi_dmi.c                       |  15 +
+ drivers/char/ipmi/ipmi_msghandler.c                |  16 +-
+ drivers/firmware/efi/Makefile                      |   1 +
+ drivers/firmware/efi/efi.c                         | 124 +++--
+ drivers/firmware/efi/secureboot.c                  |  38 ++
+ drivers/gpu/drm/i915/display/intel_bw.c            |  80 +---
+ drivers/gpu/drm/i915/display/intel_dp.c            |  11 +-
+ .../gpu/drm/i915/display/intel_dp_link_training.c  |  91 ++--
+ .../gpu/drm/i915/display/intel_dp_link_training.h  |   2 +-
+ drivers/gpu/drm/i915/display/intel_psr.c           |  14 +
+ drivers/gpu/drm/i915/i915_drv.c                    |   5 +-
+ drivers/gpu/drm/i915/i915_drv.h                    |   1 +
+ drivers/gpu/drm/i915/intel_dram.c                  |  82 +++-
+ drivers/gpu/drm/panel/Kconfig                      |   9 +
+ drivers/gpu/drm/panel/Makefile                     |   1 +
+ drivers/gpu/drm/panel/panel-xingbangda-xbd599.c    | 366 +++++++++++++++
+ drivers/gpu/drm/sun4i/sun6i_mipi_dsi.c             |  10 +-
+ drivers/hid/hid-rmi.c                              |  64 ---
+ drivers/input/rmi4/rmi_driver.c                    | 124 +++--
+ drivers/iommu/iommu.c                              |  22 +
+ drivers/pci/controller/dwc/Kconfig                 |  10 +-
+ drivers/pci/controller/dwc/Makefile                |   2 +-
+ drivers/pci/controller/dwc/pcie-tegra194.c         | 102 +++++
+ drivers/pci/controller/pcie-brcmstb.c              |   1 +
+ drivers/pci/quirks.c                               |  24 +
+ drivers/platform/x86/Kconfig                       |   2 +
+ drivers/platform/x86/ideapad-laptop.c              | 289 ++++++++++++
+ drivers/platform/x86/thinkpad_acpi.c               | 510 ++++++++++++++++++++-
+ drivers/scsi/smartpqi/smartpqi_init.c              |  16 +
+ drivers/usb/core/hub.c                             |   7 +
+ include/linux/efi.h                                |  22 +-
+ include/linux/lsm_hook_defs.h                      |   2 +
+ include/linux/lsm_hooks.h                          |   6 +
+ include/linux/pci-ecam.h                           |   1 +
+ include/linux/platform_profile.h                   |  41 ++
+ include/linux/rmi.h                                |   1 +
+ include/linux/security.h                           |   5 +
+ kernel/crash_core.c                                |  28 +-
+ kernel/module_signing.c                            |   9 +-
+ mm/kmemleak.c                                      |   5 +
+ security/integrity/platform_certs/load_uefi.c      |   6 +-
+ security/lockdown/Kconfig                          |  13 +
+ security/lockdown/lockdown.c                       |   1 +
+ security/security.c                                |   6 +
+ sound/hda/Kconfig                                  |  14 +
+ sound/hda/intel-dsp-config.c                       |  29 +-
+ sound/soc/sof/intel/apl.c                          |   3 +-
+ sound/soc/sof/intel/cnl.c                          |   3 +-
+ sound/soc/sof/intel/hda-dsp.c                      |   6 +
+ sound/soc/sof/intel/hda.h                          |   1 +
+ sound/soc/sof/intel/icl.c                          |   3 +-
+ sound/soc/sof/intel/tgl.c                          |   1 +
+ sound/soc/sof/ops.h                                |   8 +
+ sound/soc/sof/sof-pci-dev.c                        |   2 +-
+ sound/soc/sof/sof-priv.h                           |   4 +-
+ 80 files changed, 2378 insertions(+), 330 deletions(-)
+
+diff --git a/Documentation/ABI/testing/sysfs-platform_profile b/Documentation/ABI/testing/sysfs-platform_profile
+new file mode 100644
+index 000000000000..9d6b89b66cca
+--- /dev/null
++++ b/Documentation/ABI/testing/sysfs-platform_profile
+@@ -0,0 +1,24 @@
++What:		/sys/firmware/acpi/platform_profile_choices
++Date:		October 2020
++Contact:	Hans de Goede <hdegoede@redhat.com>
++Description:	This file contains a space-separated list of profiles supported for this device.
++
++		Drivers must use the following standard profile-names:
++
++		============	============================================
++		low-power	Low power consumption
++		cool		Cooler operation
++		quiet		Quieter operation
++		balanced	Balance between low power consumption and performance
++		performance	High performance operation
++		============	============================================
++
++		Userspace may expect drivers to offer more than one of these
++		standard profile names.
++
++What:		/sys/firmware/acpi/platform_profile
++Date:		October 2020
++Contact:	Hans de Goede <hdegoede@redhat.com>
++Description:	Reading this file gives the current selected profile for this
++		device. Writing this file with one of the strings from
++		platform_profile_choices changes the profile to the new value.
+diff --git a/Documentation/admin-guide/kdump/kdump.rst b/Documentation/admin-guide/kdump/kdump.rst
+index 75a9dd98e76e..3ff3291551f9 100644
+--- a/Documentation/admin-guide/kdump/kdump.rst
++++ b/Documentation/admin-guide/kdump/kdump.rst
+@@ -285,6 +285,17 @@ This would mean:
+     2) if the RAM size is between 512M and 2G (exclusive), then reserve 64M
+     3) if the RAM size is larger than 2G, then reserve 128M
+
++Or you can use crashkernel=auto if you have enough memory.  The threshold
++is 2G on x86_64, arm64, ppc64 and ppc64le. The threshold is 4G for s390x.
++If your system memory is less than the threshold crashkernel=auto will not
++reserve memory.
++
++The automatically reserved memory size varies based on architecture.
++The size changes according to system memory size like below:
++    x86_64: 1G-64G:160M,64G-1T:256M,1T-:512M
++    s390x:  4G-64G:160M,64G-1T:256M,1T-:512M
++    arm64:  2G-:512M
++    ppc64:  2G-4G:384M,4G-16G:512M,16G-64G:1G,64G-128G:2G,128G-:4G
+
+
+ Boot into System Kernel
+diff --git a/Documentation/admin-guide/laptops/thinkpad-acpi.rst b/Documentation/admin-guide/laptops/thinkpad-acpi.rst
+index 5fe1ade88c17..3b225ae47f1a 100644
+--- a/Documentation/admin-guide/laptops/thinkpad-acpi.rst
++++ b/Documentation/admin-guide/laptops/thinkpad-acpi.rst
+@@ -51,6 +51,7 @@ detailed description):
+ 	- UWB enable and disable
+ 	- LCD Shadow (PrivacyGuard) enable and disable
+ 	- Lap mode sensor
++	- Setting keyboard language
+
+ A compatibility table by model and feature is maintained on the web
+ site, http://ibm-acpi.sf.net/. I appreciate any success or failure
+@@ -1466,6 +1467,30 @@ Sysfs notes
+ 	rfkill controller switch "tpacpi_uwb_sw": refer to
+ 	Documentation/driver-api/rfkill.rst for details.
+
++
++Setting keyboard language
++-------------------
++
++sysfs: keyboard_lang
++
++This feature is used to set keyboard language to ECFW using ASL interface.
++Fewer thinkpads models like T580 , T590 , T15 Gen 1 etc.. has "=", "(',
++")" numeric keys, which are not displaying correctly, when keyboard language
++is other than "english". This is because the default keyboard language in ECFW
++is set as "english". Hence using this sysfs, user can set the correct keyboard
++language to ECFW and then these key's will work correctly.
++
++Example of command to set keyboard language is mentioned below::
++
++        echo jp > /sys/devices/platform/thinkpad_acpi/keyboard_lang
++
++Text corresponding to keyboard layout to be set in sysfs are: be(Belgian),
++cz(Czech), da(Danish), de(German), en(English), es(Spain), et(Estonian),
++fr(French), fr-ch(French(Switzerland)), hu(Hungarian), it(Italy), jp (Japan),
++nl(Dutch), nn(Norway), pl(Polish), pt(portugese), sl(Slovenian), sv(Sweden),
++tr(Turkey)
++
++
+ Adaptive keyboard
+ -----------------
+
+diff --git a/Documentation/devicetree/bindings/display/panel/xingbangda,xbd599.yaml b/Documentation/devicetree/bindings/display/panel/xingbangda,xbd599.yaml
+new file mode 100644
+index 000000000000..b27bcf11198f
+--- /dev/null
++++ b/Documentation/devicetree/bindings/display/panel/xingbangda,xbd599.yaml
+@@ -0,0 +1,50 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/display/panel/xingbangda,xbd599.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: Xingbangda XBD599 5.99in MIPI-DSI LCD panel
++
++maintainers:
++  - Icenowy Zheng <icenowy@aosc.io>
++
++allOf:
++  - $ref: panel-common.yaml#
++
++properties:
++  compatible:
++    const: xingbangda,xbd599
++  reg: true
++  backlight: true
++  reset-gpios: true
++  vcc-supply:
++    description: regulator that supplies the VCC voltage
++  iovcc-supply:
++    description: regulator that supplies the IOVCC voltage
++
++required:
++  - compatible
++  - reg
++  - backlight
++  - vcc-supply
++  - iovcc-supply
++
++additionalProperties: false
++
++examples:
++  - |
++    dsi {
++        #address-cells = <1>;
++        #size-cells = <0>;
++
++        panel@0 {
++            compatible = "xingbangda,xbd599";
++            reg = <0>;
++            backlight = <&backlight>;
++            iovcc-supply = <&reg_dldo2>;
++            vcc-supply = <&reg_ldo_io0>;
++        };
++    };
++
++...
+diff --git a/Documentation/userspace-api/index.rst b/Documentation/userspace-api/index.rst
+index acd2cc2a538d..d29b020e5622 100644
+--- a/Documentation/userspace-api/index.rst
++++ b/Documentation/userspace-api/index.rst
+@@ -24,6 +24,7 @@ place where this information is gathered.
+    ioctl/index
+    iommu
+    media/index
++   sysfs-platform_profile
+
+ .. only::  subproject and html
+
+diff --git a/Documentation/userspace-api/sysfs-platform_profile.rst b/Documentation/userspace-api/sysfs-platform_profile.rst
+new file mode 100644
+index 000000000000..c33a71263d9e
+--- /dev/null
++++ b/Documentation/userspace-api/sysfs-platform_profile.rst
+@@ -0,0 +1,42 @@
++=====================================================================
++Platform Profile Selection (e.g. /sys/firmware/acpi/platform_profile)
++=====================================================================
++
++On modern systems the platform performance, temperature, fan and other
++hardware related characteristics are often dynamically configurable. The
++platform configuration is often automatically adjusted to the current
++conditions by some automatic mechanism (which may very well live outside
++the kernel).
++
++These auto platform adjustment mechanisms often can be configured with
++one of several platform profiles, with either a bias towards low power
++operation or towards performance.
++
++The purpose of the platform_profile attribute is to offer a generic sysfs
++API for selecting the platform profile of these automatic mechanisms.
++
++Note that this API is only for selecting the platform profile, it is
++NOT a goal of this API to allow monitoring the resulting performance
++characteristics. Monitoring performance is best done with device/vendor
++specific tools such as e.g. turbostat.
++
++Specifically when selecting a high performance profile the actual achieved
++performance may be limited by various factors such as: the heat generated
++by other components, room temperature, free air flow at the bottom of a
++laptop, etc. It is explicitly NOT a goal of this API to let userspace know
++about any sub-optimal conditions which are impeding reaching the requested
++performance level.
++
++Since numbers on their own cannot represent the multiple variables that a
++profile will adjust (power consumption, heat generation, etc) this API
++uses strings to describe the various profiles. To make sure that userspace
++gets a consistent experience the sysfs-platform_profile ABI document defines
++a fixed set of profile names. Drivers *must* map their internal profile
++representation onto this fixed set.
++
++If there is no good match when mapping then a new profile name may be
++added. Drivers which wish to introduce new profile names must:
++
++ 1. Explain why the existing profile names canot be used.
++ 2. Add the new profile name, along with a clear description of the
++    expected behaviour, to the sysfs-platform_profile ABI documentation.
+diff --git a/Makefile b/Makefile
+index 124d8e200776..17d54943a569 100644
+--- a/Makefile
++++ b/Makefile
+@@ -495,6 +495,7 @@ KBUILD_AFLAGS   := -D__ASSEMBLY__ -fno-PIE
+ KBUILD_CFLAGS   := -Wall -Wundef -Werror=strict-prototypes -Wno-trigraphs \
+ 		   -fno-strict-aliasing -fno-common -fshort-wchar -fno-PIE \
+ 		   -Werror=implicit-function-declaration -Werror=implicit-int \
++		   -Wno-address-of-packed-member \
+ 		   -Werror=return-type -Wno-format-security \
+ 		   -std=gnu89
+ KBUILD_CPPFLAGS := -D__KERNEL__
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 3d2c684eab77..7a26e2e735d1 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -1498,9 +1498,9 @@ config HIGHMEM
+ 	  If unsure, say n.
+
+ config HIGHPTE
+-	bool "Allocate 2nd-level pagetables from highmem" if EXPERT
++	bool "Allocate 2nd-level pagetables from highmem"
+ 	depends on HIGHMEM
+-	default y
++	default n
+ 	help
+ 	  The VM uses one page of physical memory for each page table.
+ 	  For systems with a lot of processes, this can use a lot of
+diff --git a/arch/arm/include/asm/uaccess.h b/arch/arm/include/asm/uaccess.h
+index a13d90206472..6a6aae01755b 100644
+--- a/arch/arm/include/asm/uaccess.h
++++ b/arch/arm/include/asm/uaccess.h
+@@ -195,11 +195,12 @@ extern int __get_user_64t_4(void *);
+ #define __get_user_check(x, p)						\
+ 	({								\
+ 		unsigned long __limit = current_thread_info()->addr_limit - 1; \
++		unsigned int __ua_flags = uaccess_save_and_enable();	\
+ 		register typeof(*(p)) __user *__p asm("r0") = (p);	\
+ 		register __inttype(x) __r2 asm("r2");			\
+ 		register unsigned long __l asm("r1") = __limit;		\
+ 		register int __e asm("r0");				\
+-		unsigned int __ua_flags = uaccess_save_and_enable();	\
++		unsigned int __err;					\
+ 		switch (sizeof(*(__p))) {				\
+ 		case 1:							\
+ 			if (sizeof((x)) >= 8)				\
+@@ -227,9 +228,10 @@ extern int __get_user_64t_4(void *);
+ 			break;						\
+ 		default: __e = __get_user_bad(); break;			\
+ 		}							\
+-		uaccess_restore(__ua_flags);				\
++		__err = __e;						\
+ 		x = (typeof(*(p))) __r2;				\
+-		__e;							\
++		uaccess_restore(__ua_flags);				\
++		__err;							\
+ 	})
+
+ #define get_user(x, p)							\
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index cd7f725b80d4..63ff09fffd7d 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -904,7 +904,7 @@ endchoice
+
+ config ARM64_FORCE_52BIT
+ 	bool "Force 52-bit virtual addresses for userspace"
+-	depends on ARM64_VA_BITS_52 && EXPERT
++	depends on ARM64_VA_BITS_52
+ 	help
+ 	  For systems with 52-bit userspace VAs enabled, the kernel will attempt
+ 	  to maintain compatibility with older software by providing 48-bit VAs
+@@ -1158,6 +1158,7 @@ config XEN
+ config FORCE_MAX_ZONEORDER
+ 	int
+ 	default "14" if (ARM64_64K_PAGES && TRANSPARENT_HUGEPAGE)
++	default "13" if (ARCH_THUNDER && !ARM64_64K_PAGES && !RHEL_DIFFERENCES)
+ 	default "12" if (ARM64_16K_PAGES && TRANSPARENT_HUGEPAGE)
+ 	default "11"
+ 	help
+diff --git a/arch/arm64/boot/dts/rockchip/rk3399-pinebook-pro.dts b/arch/arm64/boot/dts/rockchip/rk3399-pinebook-pro.dts
+index 219b7507a10f..45769764425d 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3399-pinebook-pro.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3399-pinebook-pro.dts
+@@ -380,7 +380,7 @@ mains_charger: dc-charger {
+ };
+
+ &cdn_dp {
+-	status = "okay";
++	status = "disabled";
+ };
+
+ &cpu_b0 {
+diff --git a/arch/powerpc/kvm/book3s_hv.c b/arch/powerpc/kvm/book3s_hv.c
+index 6f612d240392..f2ddf7139a2a 100644
+--- a/arch/powerpc/kvm/book3s_hv.c
++++ b/arch/powerpc/kvm/book3s_hv.c
+@@ -3595,6 +3595,7 @@ static int kvmhv_p9_guest_entry(struct kvm_vcpu *vcpu, u64 time_limit,
+ 	unsigned long host_tidr = mfspr(SPRN_TIDR);
+ 	unsigned long host_iamr = mfspr(SPRN_IAMR);
+ 	unsigned long host_amr = mfspr(SPRN_AMR);
++	unsigned long host_fscr = mfspr(SPRN_FSCR);
+ 	s64 dec;
+ 	u64 tb;
+ 	int trap, save_pmu;
+@@ -3735,6 +3736,9 @@ static int kvmhv_p9_guest_entry(struct kvm_vcpu *vcpu, u64 time_limit,
+ 	if (host_amr != vcpu->arch.amr)
+ 		mtspr(SPRN_AMR, host_amr);
+
++	if (host_fscr != vcpu->arch.fscr)
++		mtspr(SPRN_FSCR, host_fscr);
++
+ 	msr_check_and_set(MSR_FP | MSR_VEC | MSR_VSX);
+ 	store_fp_state(&vcpu->arch.fp);
+ #ifdef CONFIG_ALTIVEC
+diff --git a/arch/s390/include/asm/ipl.h b/arch/s390/include/asm/ipl.h
+index a9e2c7295b35..6ff11f3a2d47 100644
+--- a/arch/s390/include/asm/ipl.h
++++ b/arch/s390/include/asm/ipl.h
+@@ -127,6 +127,7 @@ int ipl_report_add_component(struct ipl_report *report, struct kexec_buf *kbuf,
+ 			     unsigned char flags, unsigned short cert);
+ int ipl_report_add_certificate(struct ipl_report *report, void *key,
+ 			       unsigned long addr, unsigned long len);
++bool ipl_get_secureboot(void);
+
+ /*
+  * DIAG 308 support
+diff --git a/arch/s390/kernel/ipl.c b/arch/s390/kernel/ipl.c
+index 7a21eca498aa..565f143c9858 100644
+--- a/arch/s390/kernel/ipl.c
++++ b/arch/s390/kernel/ipl.c
+@@ -2215,3 +2215,8 @@ int ipl_report_free(struct ipl_report *report)
+ }
+
+ #endif
++
++bool ipl_get_secureboot(void)
++{
++	return !!ipl_secure_flag;
++}
+diff --git a/arch/s390/kernel/setup.c b/arch/s390/kernel/setup.c
+index 1fbed91c73bc..73f5724342b1 100644
+--- a/arch/s390/kernel/setup.c
++++ b/arch/s390/kernel/setup.c
+@@ -49,6 +49,7 @@
+ #include <linux/memory.h>
+ #include <linux/compat.h>
+ #include <linux/start_kernel.h>
++#include <linux/security.h>
+ #include <linux/hugetlb.h>
+
+ #include <asm/boot_data.h>
+@@ -1100,6 +1101,9 @@ void __init setup_arch(char **cmdline_p)
+
+ 	log_component_list();
+
++	if (ipl_get_secureboot())
++		security_lock_kernel_down("Secure IPL mode", LOCKDOWN_INTEGRITY_MAX);
++
+ 	/* Have one command line that is parsed and saved in /proc/cmdline */
+ 	/* boot_command_line has been already set up in early.c */
+ 	*cmdline_p = boot_command_line;
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index 54a3048ebc5b..45dabcea1f22 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -19,6 +19,7 @@
+ #include <linux/sfi.h>
+ #include <linux/hugetlb.h>
+ #include <linux/tboot.h>
++#include <linux/security.h>
+ #include <linux/usb/xhci-dbgp.h>
+ #include <linux/static_call.h>
+ #include <linux/swiotlb.h>
+@@ -955,6 +956,13 @@ void __init setup_arch(char **cmdline_p)
+ 	if (efi_enabled(EFI_BOOT))
+ 		efi_init();
+
++	efi_set_secure_boot(boot_params.secure_boot);
++
++#ifdef CONFIG_LOCK_DOWN_IN_EFI_SECURE_BOOT
++	if (efi_enabled(EFI_SECURE_BOOT))
++		security_lock_kernel_down("EFI Secure Boot mode", LOCKDOWN_INTEGRITY_MAX);
++#endif
++
+ 	dmi_setup();
+
+ 	/*
+@@ -1113,19 +1121,7 @@ void __init setup_arch(char **cmdline_p)
+ 	/* Allocate bigger log buffer */
+ 	setup_log_buf(1);
+
+-	if (efi_enabled(EFI_BOOT)) {
+-		switch (boot_params.secure_boot) {
+-		case efi_secureboot_mode_disabled:
+-			pr_info("Secure boot disabled\n");
+-			break;
+-		case efi_secureboot_mode_enabled:
+-			pr_info("Secure boot enabled\n");
+-			break;
+-		default:
+-			pr_info("Secure boot could not be determined\n");
+-			break;
+-		}
+-	}
++	efi_set_secure_boot(boot_params.secure_boot);
+
+ 	reserve_initrd();
+
+diff --git a/arch/x86/kvm/hyperv.c b/arch/x86/kvm/hyperv.c
+index 922c69dcca4d..cee2cb0f6e5f 100644
+--- a/arch/x86/kvm/hyperv.c
++++ b/arch/x86/kvm/hyperv.c
+@@ -155,7 +155,7 @@ static struct kvm_vcpu_hv_synic *synic_get(struct kvm *kvm, u32 vpidx)
+ 	struct kvm_vcpu_hv_synic *synic;
+
+ 	vcpu = get_vcpu_by_vpidx(kvm, vpidx);
+-	if (!vcpu)
++	if (!vcpu || !vcpu_to_hv_vcpu(vcpu))
+ 		return NULL;
+ 	synic = vcpu_to_synic(vcpu);
+ 	return (synic->active) ? synic : NULL;
+diff --git a/drivers/acpi/Kconfig b/drivers/acpi/Kconfig
+index ebcf534514be..7265173689ce 100644
+--- a/drivers/acpi/Kconfig
++++ b/drivers/acpi/Kconfig
+@@ -326,6 +326,9 @@ config ACPI_THERMAL
+ 	  To compile this driver as a module, choose M here:
+ 	  the module will be called thermal.
+
++config ACPI_PLATFORM_PROFILE
++	tristate
++
+ config ACPI_CUSTOM_DSDT_FILE
+ 	string "Custom DSDT Table file to include"
+ 	default ""
+diff --git a/drivers/acpi/Makefile b/drivers/acpi/Makefile
+index 076894a3330f..52b627c7f977 100644
+--- a/drivers/acpi/Makefile
++++ b/drivers/acpi/Makefile
+@@ -79,6 +79,7 @@ obj-$(CONFIG_ACPI_PCI_SLOT)	+= pci_slot.o
+ obj-$(CONFIG_ACPI_PROCESSOR)	+= processor.o
+ obj-$(CONFIG_ACPI)		+= container.o
+ obj-$(CONFIG_ACPI_THERMAL)	+= thermal.o
++obj-$(CONFIG_ACPI_PLATFORM_PROFILE) 	+= platform_profile.o
+ obj-$(CONFIG_ACPI_NFIT)		+= nfit/
+ obj-$(CONFIG_ACPI_NUMA)		+= numa/
+ obj-$(CONFIG_ACPI)		+= acpi_memhotplug.o
+diff --git a/drivers/acpi/apei/hest.c b/drivers/acpi/apei/hest.c
+index 6e980fe16772..37bc003e7a83 100644
+--- a/drivers/acpi/apei/hest.c
++++ b/drivers/acpi/apei/hest.c
+@@ -88,6 +88,14 @@ int apei_hest_parse(apei_hest_func_t func, void *data)
+ 	if (hest_disable || !hest_tab)
+ 		return -EINVAL;
+
++#ifdef CONFIG_ARM64
++	/* Ignore broken firmware */
++	if (!strncmp(hest_tab->header.oem_id, "HPE   ", 6) &&
++	    !strncmp(hest_tab->header.oem_table_id, "ProLiant", 8) &&
++	    MIDR_IMPLEMENTOR(read_cpuid_id()) == ARM_CPU_IMP_APM)
++		return -EINVAL;
++#endif
++
+ 	hest_hdr = (struct acpi_hest_header *)(hest_tab + 1);
+ 	for (i = 0; i < hest_tab->error_source_count; i++) {
+ 		len = hest_esrc_len(hest_hdr);
+diff --git a/drivers/acpi/irq.c b/drivers/acpi/irq.c
+index e209081d644b..7484bcf59a1b 100644
+--- a/drivers/acpi/irq.c
++++ b/drivers/acpi/irq.c
+@@ -126,6 +126,7 @@ struct acpi_irq_parse_one_ctx {
+ 	unsigned int index;
+ 	unsigned long *res_flags;
+ 	struct irq_fwspec *fwspec;
++	bool skip_producer_check;
+ };
+
+ /**
+@@ -197,7 +198,8 @@ static acpi_status acpi_irq_parse_one_cb(struct acpi_resource *ares,
+ 		return AE_CTRL_TERMINATE;
+ 	case ACPI_RESOURCE_TYPE_EXTENDED_IRQ:
+ 		eirq = &ares->data.extended_irq;
+-		if (eirq->producer_consumer == ACPI_PRODUCER)
++		if (!ctx->skip_producer_check &&
++		    eirq->producer_consumer == ACPI_PRODUCER)
+ 			return AE_OK;
+ 		if (ctx->index >= eirq->interrupt_count) {
+ 			ctx->index -= eirq->interrupt_count;
+@@ -232,8 +234,19 @@ static acpi_status acpi_irq_parse_one_cb(struct acpi_resource *ares,
+ static int acpi_irq_parse_one(acpi_handle handle, unsigned int index,
+ 			      struct irq_fwspec *fwspec, unsigned long *flags)
+ {
+-	struct acpi_irq_parse_one_ctx ctx = { -EINVAL, index, flags, fwspec };
++	struct acpi_irq_parse_one_ctx ctx = { -EINVAL, index, flags, fwspec, false };
+
++	/*
++	 * Firmware on arm64-based HPE m400 platform incorrectly marks
++	 * its UART interrupt as ACPI_PRODUCER rather than ACPI_CONSUMER.
++	 * Don't do the producer/consumer check for that device.
++	 */
++	if (IS_ENABLED(CONFIG_ARM64)) {
++		struct acpi_device *adev = acpi_bus_get_acpi_device(handle);
++
++		if (adev && !strcmp(acpi_device_hid(adev), "APMC0D08"))
++			ctx.skip_producer_check = true;
++	}
+ 	acpi_walk_resources(handle, METHOD_NAME__CRS, acpi_irq_parse_one_cb, &ctx);
+ 	return ctx.rc;
+ }
+diff --git a/drivers/acpi/pci_mcfg.c b/drivers/acpi/pci_mcfg.c
+index 95f23acd5b80..53cab975f612 100644
+--- a/drivers/acpi/pci_mcfg.c
++++ b/drivers/acpi/pci_mcfg.c
+@@ -116,6 +116,13 @@ static struct mcfg_fixup mcfg_quirks[] = {
+ 	THUNDER_ECAM_QUIRK(2, 12),
+ 	THUNDER_ECAM_QUIRK(2, 13),
+
++	{ "NVIDIA", "TEGRA194", 1, 0, MCFG_BUS_ANY, &tegra194_pcie_ops},
++	{ "NVIDIA", "TEGRA194", 1, 1, MCFG_BUS_ANY, &tegra194_pcie_ops},
++	{ "NVIDIA", "TEGRA194", 1, 2, MCFG_BUS_ANY, &tegra194_pcie_ops},
++	{ "NVIDIA", "TEGRA194", 1, 3, MCFG_BUS_ANY, &tegra194_pcie_ops},
++	{ "NVIDIA", "TEGRA194", 1, 4, MCFG_BUS_ANY, &tegra194_pcie_ops},
++	{ "NVIDIA", "TEGRA194", 1, 5, MCFG_BUS_ANY, &tegra194_pcie_ops},
++
+ #define XGENE_V1_ECAM_MCFG(rev, seg) \
+ 	{"APM   ", "XGENE   ", rev, seg, MCFG_BUS_ANY, \
+ 		&xgene_v1_pcie_ecam_ops }
+diff --git a/drivers/acpi/platform_profile.c b/drivers/acpi/platform_profile.c
+new file mode 100644
+index 000000000000..4a59c5993bde
+--- /dev/null
++++ b/drivers/acpi/platform_profile.c
+@@ -0,0 +1,177 @@
++// SPDX-License-Identifier: GPL-2.0-or-later
++
++/* Platform profile sysfs interface */
++
++#include <linux/acpi.h>
++#include <linux/bits.h>
++#include <linux/init.h>
++#include <linux/mutex.h>
++#include <linux/platform_profile.h>
++#include <linux/sysfs.h>
++
++static struct platform_profile_handler *cur_profile;
++static DEFINE_MUTEX(profile_lock);
++
++static const char * const profile_names[] = {
++	[PLATFORM_PROFILE_LOW_POWER] = "low-power",
++	[PLATFORM_PROFILE_COOL] = "cool",
++	[PLATFORM_PROFILE_QUIET] = "quiet",
++	[PLATFORM_PROFILE_BALANCED] = "balanced",
++	[PLATFORM_PROFILE_PERFORMANCE] = "performance",
++};
++static_assert(ARRAY_SIZE(profile_names) == PLATFORM_PROFILE_LAST);
++
++static ssize_t platform_profile_choices_show(struct device *dev,
++					struct device_attribute *attr,
++					char *buf)
++{
++	int len = 0;
++	int err, i;
++
++	err = mutex_lock_interruptible(&profile_lock);
++	if (err)
++		return err;
++
++	if (!cur_profile) {
++		mutex_unlock(&profile_lock);
++		return -ENODEV;
++	}
++
++	for_each_set_bit(i, cur_profile->choices, PLATFORM_PROFILE_LAST) {
++		if (len == 0)
++			len += sysfs_emit_at(buf, len, "%s", profile_names[i]);
++		else
++			len += sysfs_emit_at(buf, len, " %s", profile_names[i]);
++	}
++	len += sysfs_emit_at(buf, len, "\n");
++	mutex_unlock(&profile_lock);
++	return len;
++}
++
++static ssize_t platform_profile_show(struct device *dev,
++					struct device_attribute *attr,
++					char *buf)
++{
++	enum platform_profile_option profile = PLATFORM_PROFILE_BALANCED;
++	int err;
++
++	err = mutex_lock_interruptible(&profile_lock);
++	if (err)
++		return err;
++
++	if (!cur_profile) {
++		mutex_unlock(&profile_lock);
++		return -ENODEV;
++	}
++
++	err = cur_profile->profile_get(cur_profile, &profile);
++	mutex_unlock(&profile_lock);
++	if (err)
++		return err;
++
++	/* Check that profile is valid index */
++	if (WARN_ON((profile < 0) || (profile >= ARRAY_SIZE(profile_names))))
++		return -EIO;
++
++	return sysfs_emit(buf, "%s\n", profile_names[profile]);
++}
++
++static ssize_t platform_profile_store(struct device *dev,
++			    struct device_attribute *attr,
++			    const char *buf, size_t count)
++{
++	int err, i;
++
++	err = mutex_lock_interruptible(&profile_lock);
++	if (err)
++		return err;
++
++	if (!cur_profile) {
++		mutex_unlock(&profile_lock);
++		return -ENODEV;
++	}
++
++	/* Scan for a matching profile */
++	i = sysfs_match_string(profile_names, buf);
++	if (i < 0) {
++		mutex_unlock(&profile_lock);
++		return -EINVAL;
++	}
++
++	/* Check that platform supports this profile choice */
++	if (!test_bit(i, cur_profile->choices)) {
++		mutex_unlock(&profile_lock);
++		return -EOPNOTSUPP;
++	}
++
++	err = cur_profile->profile_set(cur_profile, i);
++	mutex_unlock(&profile_lock);
++	if (err)
++		return err;
++	return count;
++}
++
++static DEVICE_ATTR_RO(platform_profile_choices);
++static DEVICE_ATTR_RW(platform_profile);
++
++static struct attribute *platform_profile_attrs[] = {
++	&dev_attr_platform_profile_choices.attr,
++	&dev_attr_platform_profile.attr,
++	NULL
++};
++
++static const struct attribute_group platform_profile_group = {
++	.attrs = platform_profile_attrs
++};
++
++void platform_profile_notify(void)
++{
++	if (!cur_profile)
++		return;
++	sysfs_notify(acpi_kobj, NULL, "platform_profile");
++}
++EXPORT_SYMBOL_GPL(platform_profile_notify);
++
++int platform_profile_register(struct platform_profile_handler *pprof)
++{
++	int err;
++
++	mutex_lock(&profile_lock);
++	/* We can only have one active profile */
++	if (cur_profile) {
++		mutex_unlock(&profile_lock);
++		return -EEXIST;
++	}
++
++	/* Sanity check the profile handler field are set */
++	if (!pprof || bitmap_empty(pprof->choices, PLATFORM_PROFILE_LAST) ||
++		!pprof->profile_set || !pprof->profile_get) {
++		mutex_unlock(&profile_lock);
++		return -EINVAL;
++	}
++
++	err = sysfs_create_group(acpi_kobj, &platform_profile_group);
++	if (err) {
++		mutex_unlock(&profile_lock);
++		return err;
++	}
++
++	cur_profile = pprof;
++	mutex_unlock(&profile_lock);
++	return 0;
++}
++EXPORT_SYMBOL_GPL(platform_profile_register);
++
++int platform_profile_remove(void)
++{
++	sysfs_remove_group(acpi_kobj, &platform_profile_group);
++
++	mutex_lock(&profile_lock);
++	cur_profile = NULL;
++	mutex_unlock(&profile_lock);
++	return 0;
++}
++EXPORT_SYMBOL_GPL(platform_profile_remove);
++
++MODULE_AUTHOR("Mark Pearson <markpearson@lenovo.com>");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
+index 239eeeafc62f..bb8c046fc4cb 100644
+--- a/drivers/acpi/scan.c
++++ b/drivers/acpi/scan.c
+@@ -1638,6 +1638,15 @@ static bool acpi_device_enumeration_by_parent(struct acpi_device *device)
+ 	if (!acpi_match_device_ids(device, i2c_multi_instantiate_ids))
+ 		return false;
+
++	/*
++	 * Firmware on some arm64 X-Gene platforms will make the UART
++	 * device appear as both a UART and a slave of that UART. Just
++	 * bail out here for X-Gene UARTs.
++	 */
++	if (IS_ENABLED(CONFIG_ARM64) &&
++	    !strcmp(acpi_device_hid(device), "APMC0D08"))
++		return false;
++
+ 	INIT_LIST_HEAD(&resource_list);
+ 	acpi_dev_get_resources(device, &resource_list,
+ 			       acpi_check_serial_bus_slave,
+diff --git a/drivers/ata/libahci.c b/drivers/ata/libahci.c
+index ea5bf5f4cbed..71c55cae27ac 100644
+--- a/drivers/ata/libahci.c
++++ b/drivers/ata/libahci.c
+@@ -666,6 +666,24 @@ int ahci_stop_engine(struct ata_port *ap)
+ 	tmp &= ~PORT_CMD_START;
+ 	writel(tmp, port_mmio + PORT_CMD);
+
++#ifdef CONFIG_ARM64
++	/* Rev Ax of Cavium CN99XX needs a hack for port stop */
++	if (dev_is_pci(ap->host->dev) &&
++	    to_pci_dev(ap->host->dev)->vendor == 0x14e4 &&
++	    to_pci_dev(ap->host->dev)->device == 0x9027 &&
++	    midr_is_cpu_model_range(read_cpuid_id(),
++			MIDR_CPU_MODEL(ARM_CPU_IMP_BRCM, BRCM_CPU_PART_VULCAN),
++			MIDR_CPU_VAR_REV(0, 0),
++			MIDR_CPU_VAR_REV(0, MIDR_REVISION_MASK))) {
++		tmp = readl(hpriv->mmio + 0x8000);
++		udelay(100);
++		writel(tmp | (1 << 26), hpriv->mmio + 0x8000);
++		udelay(100);
++		writel(tmp & ~(1 << 26), hpriv->mmio + 0x8000);
++		dev_warn(ap->host->dev, "CN99XX SATA reset workaround applied\n");
++	}
++#endif
++
+ 	/* wait for engine to stop. This could be as long as 500 msec */
+ 	tmp = ata_wait_register(ap, port_mmio + PORT_CMD,
+ 				PORT_CMD_LIST_ON, PORT_CMD_LIST_ON, 1, 500);
+diff --git a/drivers/char/ipmi/ipmi_dmi.c b/drivers/char/ipmi/ipmi_dmi.c
+index bbf7029e224b..cf7faa970dd6 100644
+--- a/drivers/char/ipmi/ipmi_dmi.c
++++ b/drivers/char/ipmi/ipmi_dmi.c
+@@ -215,6 +215,21 @@ static int __init scan_for_dmi_ipmi(void)
+ {
+ 	const struct dmi_device *dev = NULL;
+
++#ifdef CONFIG_ARM64
++	/* RHEL-only
++	 * If this is ARM-based HPE m400, return now, because that platform
++	 * reports the host-side ipmi address as intel port-io space, which
++	 * does not exist in the ARM architecture.
++	 */
++	const char *dmistr = dmi_get_system_info(DMI_PRODUCT_NAME);
++
++	if (dmistr && (strcmp("ProLiant m400 Server", dmistr) == 0)) {
++		pr_debug("%s does not support host ipmi\n", dmistr);
++		return 0;
++	}
++	/* END RHEL-only */
++#endif
++
+ 	while ((dev = dmi_find_device(DMI_DEV_TYPE_IPMI, NULL, dev)))
+ 		dmi_decode_ipmi((const struct dmi_header *) dev->device_data);
+
+diff --git a/drivers/char/ipmi/ipmi_msghandler.c b/drivers/char/ipmi/ipmi_msghandler.c
+index c44ad18464f1..3ec1db4cbbc3 100644
+--- a/drivers/char/ipmi/ipmi_msghandler.c
++++ b/drivers/char/ipmi/ipmi_msghandler.c
+@@ -34,6 +34,7 @@
+ #include <linux/uuid.h>
+ #include <linux/nospec.h>
+ #include <linux/vmalloc.h>
++#include <linux/dmi.h>
+ #include <linux/delay.h>
+
+ #define IPMI_DRIVER_VERSION "39.2"
+@@ -5174,8 +5175,21 @@ static int __init ipmi_init_msghandler_mod(void)
+ {
+ 	int rv;
+
+-	pr_info("version " IPMI_DRIVER_VERSION "\n");
++#ifdef CONFIG_ARM64
++	/* RHEL-only
++	 * If this is ARM-based HPE m400, return now, because that platform
++	 * reports the host-side ipmi address as intel port-io space, which
++	 * does not exist in the ARM architecture.
++	 */
++	const char *dmistr = dmi_get_system_info(DMI_PRODUCT_NAME);
+
++	if (dmistr && (strcmp("ProLiant m400 Server", dmistr) == 0)) {
++		pr_debug("%s does not support host ipmi\n", dmistr);
++		return -ENOSYS;
++	}
++	/* END RHEL-only */
++#endif
++	pr_info("version " IPMI_DRIVER_VERSION "\n");
+ 	mutex_lock(&ipmi_interfaces_mutex);
+ 	rv = ipmi_register_driver();
+ 	mutex_unlock(&ipmi_interfaces_mutex);
+diff --git a/drivers/firmware/efi/Makefile b/drivers/firmware/efi/Makefile
+index 467e94259679..9b6f5b8e5397 100644
+--- a/drivers/firmware/efi/Makefile
++++ b/drivers/firmware/efi/Makefile
+@@ -28,6 +28,7 @@ obj-$(CONFIG_EFI_FAKE_MEMMAP)		+= fake_map.o
+ obj-$(CONFIG_EFI_BOOTLOADER_CONTROL)	+= efibc.o
+ obj-$(CONFIG_EFI_TEST)			+= test/
+ obj-$(CONFIG_EFI_DEV_PATH_PARSER)	+= dev-path-parser.o
++obj-$(CONFIG_EFI)			+= secureboot.o
+ obj-$(CONFIG_APPLE_PROPERTIES)		+= apple-properties.o
+ obj-$(CONFIG_EFI_RCI2_TABLE)		+= rci2-table.o
+ obj-$(CONFIG_EFI_EMBEDDED_FIRMWARE)	+= embedded-firmware.o
+diff --git a/drivers/firmware/efi/efi.c b/drivers/firmware/efi/efi.c
+index 4b7ee3fa9224..64b31d852d20 100644
+--- a/drivers/firmware/efi/efi.c
++++ b/drivers/firmware/efi/efi.c
+@@ -31,6 +31,7 @@
+ #include <linux/ucs2_string.h>
+ #include <linux/memblock.h>
+ #include <linux/security.h>
++#include <linux/bsearch.h>
+
+ #include <asm/early_ioremap.h>
+
+@@ -841,40 +842,101 @@ int efi_mem_type(unsigned long phys_addr)
+ }
+ #endif
+
++struct efi_error_code {
++	efi_status_t status;
++	int errno;
++	const char *description;
++};
++
++static const struct efi_error_code efi_error_codes[] = {
++	{ EFI_SUCCESS, 0, "Success"},
++#if 0
++	{ EFI_LOAD_ERROR, -EPICK_AN_ERRNO, "Load Error"},
++#endif
++	{ EFI_INVALID_PARAMETER, -EINVAL, "Invalid Parameter"},
++	{ EFI_UNSUPPORTED, -ENOSYS, "Unsupported"},
++	{ EFI_BAD_BUFFER_SIZE, -ENOSPC, "Bad Buffer Size"},
++	{ EFI_BUFFER_TOO_SMALL, -ENOSPC, "Buffer Too Small"},
++	{ EFI_NOT_READY, -EAGAIN, "Not Ready"},
++	{ EFI_DEVICE_ERROR, -EIO, "Device Error"},
++	{ EFI_WRITE_PROTECTED, -EROFS, "Write Protected"},
++	{ EFI_OUT_OF_RESOURCES, -ENOMEM, "Out of Resources"},
++#if 0
++	{ EFI_VOLUME_CORRUPTED, -EPICK_AN_ERRNO, "Volume Corrupt"},
++	{ EFI_VOLUME_FULL, -EPICK_AN_ERRNO, "Volume Full"},
++	{ EFI_NO_MEDIA, -EPICK_AN_ERRNO, "No Media"},
++	{ EFI_MEDIA_CHANGED, -EPICK_AN_ERRNO, "Media changed"},
++#endif
++	{ EFI_NOT_FOUND, -ENOENT, "Not Found"},
++#if 0
++	{ EFI_ACCESS_DENIED, -EPICK_AN_ERRNO, "Access Denied"},
++	{ EFI_NO_RESPONSE, -EPICK_AN_ERRNO, "No Response"},
++	{ EFI_NO_MAPPING, -EPICK_AN_ERRNO, "No mapping"},
++	{ EFI_TIMEOUT, -EPICK_AN_ERRNO, "Time out"},
++	{ EFI_NOT_STARTED, -EPICK_AN_ERRNO, "Not started"},
++	{ EFI_ALREADY_STARTED, -EPICK_AN_ERRNO, "Already started"},
++#endif
++	{ EFI_ABORTED, -EINTR, "Aborted"},
++#if 0
++	{ EFI_ICMP_ERROR, -EPICK_AN_ERRNO, "ICMP Error"},
++	{ EFI_TFTP_ERROR, -EPICK_AN_ERRNO, "TFTP Error"},
++	{ EFI_PROTOCOL_ERROR, -EPICK_AN_ERRNO, "Protocol Error"},
++	{ EFI_INCOMPATIBLE_VERSION, -EPICK_AN_ERRNO, "Incompatible Version"},
++#endif
++	{ EFI_SECURITY_VIOLATION, -EACCES, "Security Policy Violation"},
++#if 0
++	{ EFI_CRC_ERROR, -EPICK_AN_ERRNO, "CRC Error"},
++	{ EFI_END_OF_MEDIA, -EPICK_AN_ERRNO, "End of Media"},
++	{ EFI_END_OF_FILE, -EPICK_AN_ERRNO, "End of File"},
++	{ EFI_INVALID_LANGUAGE, -EPICK_AN_ERRNO, "Invalid Languages"},
++	{ EFI_COMPROMISED_DATA, -EPICK_AN_ERRNO, "Compromised Data"},
++
++	// warnings
++	{ EFI_WARN_UNKOWN_GLYPH, -EPICK_AN_ERRNO, "Warning Unknown Glyph"},
++	{ EFI_WARN_DELETE_FAILURE, -EPICK_AN_ERRNO, "Warning Delete Failure"},
++	{ EFI_WARN_WRITE_FAILURE, -EPICK_AN_ERRNO, "Warning Write Failure"},
++	{ EFI_WARN_BUFFER_TOO_SMALL, -EPICK_AN_ERRNO, "Warning Buffer Too Small"},
++#endif
++};
++
++static int
++efi_status_cmp_bsearch(const void *key, const void *item)
++{
++	u64 status = (u64)(uintptr_t)key;
++	struct efi_error_code *code = (struct efi_error_code *)item;
++
++	if (status < code->status)
++		return -1;
++	if (status > code->status)
++		return 1;
++	return 0;
++}
++
+ int efi_status_to_err(efi_status_t status)
+ {
+-	int err;
+-
+-	switch (status) {
+-	case EFI_SUCCESS:
+-		err = 0;
+-		break;
+-	case EFI_INVALID_PARAMETER:
+-		err = -EINVAL;
+-		break;
+-	case EFI_OUT_OF_RESOURCES:
+-		err = -ENOSPC;
+-		break;
+-	case EFI_DEVICE_ERROR:
+-		err = -EIO;
+-		break;
+-	case EFI_WRITE_PROTECTED:
+-		err = -EROFS;
+-		break;
+-	case EFI_SECURITY_VIOLATION:
+-		err = -EACCES;
+-		break;
+-	case EFI_NOT_FOUND:
+-		err = -ENOENT;
+-		break;
+-	case EFI_ABORTED:
+-		err = -EINTR;
+-		break;
+-	default:
+-		err = -EINVAL;
+-	}
++	struct efi_error_code *found;
++	size_t num = sizeof(efi_error_codes) / sizeof(struct efi_error_code);
+
+-	return err;
++	found = bsearch((void *)(uintptr_t)status, efi_error_codes,
++			sizeof(struct efi_error_code), num,
++			efi_status_cmp_bsearch);
++	if (!found)
++		return -EINVAL;
++	return found->errno;
++}
++
++const char *
++efi_status_to_str(efi_status_t status)
++{
++	struct efi_error_code *found;
++	size_t num = sizeof(efi_error_codes) / sizeof(struct efi_error_code);
++
++	found = bsearch((void *)(uintptr_t)status, efi_error_codes,
++			sizeof(struct efi_error_code), num,
++			efi_status_cmp_bsearch);
++	if (!found)
++		return "Unknown error code";
++	return found->description;
+ }
+
+ static DEFINE_SPINLOCK(efi_mem_reserve_persistent_lock);
+diff --git a/drivers/firmware/efi/secureboot.c b/drivers/firmware/efi/secureboot.c
+new file mode 100644
+index 000000000000..de0a3714a5d4
+--- /dev/null
++++ b/drivers/firmware/efi/secureboot.c
+@@ -0,0 +1,38 @@
++/* Core kernel secure boot support.
++ *
++ * Copyright (C) 2017 Red Hat, Inc. All Rights Reserved.
++ * Written by David Howells (dhowells@redhat.com)
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public Licence
++ * as published by the Free Software Foundation; either version
++ * 2 of the Licence, or (at your option) any later version.
++ */
++
++#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
++
++#include <linux/efi.h>
++#include <linux/kernel.h>
++#include <linux/printk.h>
++
++/*
++ * Decide what to do when UEFI secure boot mode is enabled.
++ */
++void __init efi_set_secure_boot(enum efi_secureboot_mode mode)
++{
++	if (efi_enabled(EFI_BOOT)) {
++		switch (mode) {
++		case efi_secureboot_mode_disabled:
++			pr_info("Secure boot disabled\n");
++			break;
++		case efi_secureboot_mode_enabled:
++			set_bit(EFI_SECURE_BOOT, &efi.flags);
++			pr_info("Secure boot enabled\n");
++			break;
++		default:
++			pr_warn("Secure boot could not be determined (mode %u)\n",
++				   mode);
++			break;
++		}
++	}
++}
+diff --git a/drivers/gpu/drm/i915/display/intel_bw.c b/drivers/gpu/drm/i915/display/intel_bw.c
+index bd060404d249..4b5a30ac84bc 100644
+--- a/drivers/gpu/drm/i915/display/intel_bw.c
++++ b/drivers/gpu/drm/i915/display/intel_bw.c
+@@ -20,76 +20,9 @@ struct intel_qgv_point {
+ struct intel_qgv_info {
+ 	struct intel_qgv_point points[I915_NUM_QGV_POINTS];
+ 	u8 num_points;
+-	u8 num_channels;
+ 	u8 t_bl;
+-	enum intel_dram_type dram_type;
+ };
+
+-static int icl_pcode_read_mem_global_info(struct drm_i915_private *dev_priv,
+-					  struct intel_qgv_info *qi)
+-{
+-	u32 val = 0;
+-	int ret;
+-
+-	ret = sandybridge_pcode_read(dev_priv,
+-				     ICL_PCODE_MEM_SUBSYSYSTEM_INFO |
+-				     ICL_PCODE_MEM_SS_READ_GLOBAL_INFO,
+-				     &val, NULL);
+-	if (ret)
+-		return ret;
+-
+-	if (IS_GEN(dev_priv, 12)) {
+-		switch (val & 0xf) {
+-		case 0:
+-			qi->dram_type = INTEL_DRAM_DDR4;
+-			break;
+-		case 3:
+-			qi->dram_type = INTEL_DRAM_LPDDR4;
+-			break;
+-		case 4:
+-			qi->dram_type = INTEL_DRAM_DDR3;
+-			break;
+-		case 5:
+-			qi->dram_type = INTEL_DRAM_LPDDR3;
+-			break;
+-		default:
+-			MISSING_CASE(val & 0xf);
+-			break;
+-		}
+-	} else if (IS_GEN(dev_priv, 11)) {
+-		switch (val & 0xf) {
+-		case 0:
+-			qi->dram_type = INTEL_DRAM_DDR4;
+-			break;
+-		case 1:
+-			qi->dram_type = INTEL_DRAM_DDR3;
+-			break;
+-		case 2:
+-			qi->dram_type = INTEL_DRAM_LPDDR3;
+-			break;
+-		case 3:
+-			qi->dram_type = INTEL_DRAM_LPDDR4;
+-			break;
+-		default:
+-			MISSING_CASE(val & 0xf);
+-			break;
+-		}
+-	} else {
+-		MISSING_CASE(INTEL_GEN(dev_priv));
+-		qi->dram_type = INTEL_DRAM_LPDDR3; /* Conservative default */
+-	}
+-
+-	qi->num_channels = (val & 0xf0) >> 4;
+-	qi->num_points = (val & 0xf00) >> 8;
+-
+-	if (IS_GEN(dev_priv, 12))
+-		qi->t_bl = qi->dram_type == INTEL_DRAM_DDR4 ? 4 : 16;
+-	else if (IS_GEN(dev_priv, 11))
+-		qi->t_bl = qi->dram_type == INTEL_DRAM_DDR4 ? 4 : 8;
+-
+-	return 0;
+-}
+-
+ static int icl_pcode_read_qgv_point_info(struct drm_i915_private *dev_priv,
+ 					 struct intel_qgv_point *sp,
+ 					 int point)
+@@ -139,11 +72,15 @@ int icl_pcode_restrict_qgv_points(struct drm_i915_private *dev_priv,
+ static int icl_get_qgv_points(struct drm_i915_private *dev_priv,
+ 			      struct intel_qgv_info *qi)
+ {
++	const struct dram_info *dram_info = &dev_priv->dram_info;
+ 	int i, ret;
+
+-	ret = icl_pcode_read_mem_global_info(dev_priv, qi);
+-	if (ret)
+-		return ret;
++	qi->num_points = dram_info->num_qgv_points;
++
++	if (IS_GEN(dev_priv, 12))
++		qi->t_bl = dev_priv->dram_info.type == INTEL_DRAM_DDR4 ? 4 : 16;
++	else if (IS_GEN(dev_priv, 11))
++		qi->t_bl = dev_priv->dram_info.type == INTEL_DRAM_DDR4 ? 4 : 8;
+
+ 	if (drm_WARN_ON(&dev_priv->drm,
+ 			qi->num_points > ARRAY_SIZE(qi->points)))
+@@ -209,7 +146,7 @@ static int icl_get_bw_info(struct drm_i915_private *dev_priv, const struct intel
+ {
+ 	struct intel_qgv_info qi = {};
+ 	bool is_y_tile = true; /* assume y tile may be used */
+-	int num_channels;
++	int num_channels = dev_priv->dram_info.num_channels;
+ 	int deinterleave;
+ 	int ipqdepth, ipqdepthpch;
+ 	int dclk_max;
+@@ -222,7 +159,6 @@ static int icl_get_bw_info(struct drm_i915_private *dev_priv, const struct intel
+ 			    "Failed to get memory subsystem information, ignoring bandwidth limits");
+ 		return ret;
+ 	}
+-	num_channels = qi.num_channels;
+
+ 	deinterleave = DIV_ROUND_UP(num_channels, is_y_tile ? 4 : 2);
+ 	dclk_max = icl_sagv_max_dclk(&qi);
+diff --git a/drivers/gpu/drm/i915/display/intel_dp.c b/drivers/gpu/drm/i915/display/intel_dp.c
+index 8a26307c4896..bc2aae63fe40 100644
+--- a/drivers/gpu/drm/i915/display/intel_dp.c
++++ b/drivers/gpu/drm/i915/display/intel_dp.c
+@@ -1400,6 +1400,7 @@ static u32 g4x_get_aux_send_ctl(struct intel_dp *intel_dp,
+ 	else
+ 		precharge = 5;
+
++	/* Max timeout value on G4x-BDW: 1.6ms */
+ 	if (IS_BROADWELL(dev_priv))
+ 		timeout = DP_AUX_CH_CTL_TIME_OUT_600us;
+ 	else
+@@ -1426,6 +1427,12 @@ static u32 skl_get_aux_send_ctl(struct intel_dp *intel_dp,
+ 	enum phy phy = intel_port_to_phy(i915, dig_port->base.port);
+ 	u32 ret;
+
++	/*
++	 * Max timeout values:
++	 * SKL-GLK: 1.6ms
++	 * CNL: 3.2ms
++	 * ICL+: 4ms
++	 */
+ 	ret = DP_AUX_CH_CTL_SEND_BUSY |
+ 	      DP_AUX_CH_CTL_DONE |
+ 	      DP_AUX_CH_CTL_INTERRUPT |
+@@ -4871,9 +4878,7 @@ intel_dp_get_dpcd(struct intel_dp *intel_dp)
+ {
+ 	int ret;
+
+-	intel_dp_lttpr_init(intel_dp);
+-
+-	if (drm_dp_read_dpcd_caps(&intel_dp->aux, intel_dp->dpcd))
++	if (intel_dp_init_lttpr_and_dprx_caps(intel_dp) < 0)
+ 		return false;
+
+ 	/*
+diff --git a/drivers/gpu/drm/i915/display/intel_dp_link_training.c b/drivers/gpu/drm/i915/display/intel_dp_link_training.c
+index d8c6d7054d11..e6532ea5757b 100644
+--- a/drivers/gpu/drm/i915/display/intel_dp_link_training.c
++++ b/drivers/gpu/drm/i915/display/intel_dp_link_training.c
+@@ -34,16 +34,9 @@ intel_dp_dump_link_status(const u8 link_status[DP_LINK_STATUS_SIZE])
+ 		      link_status[3], link_status[4], link_status[5]);
+ }
+
+-static int intel_dp_lttpr_count(struct intel_dp *intel_dp)
++static void intel_dp_reset_lttpr_common_caps(struct intel_dp *intel_dp)
+ {
+-	int count = drm_dp_lttpr_count(intel_dp->lttpr_common_caps);
+-
+-	/*
+-	 * Pretend no LTTPRs in case of LTTPR detection error, or
+-	 * if too many (>8) LTTPRs are detected. This translates to link
+-	 * training in transparent mode.
+-	 */
+-	return count <= 0 ? 0 : count;
++	memset(&intel_dp->lttpr_common_caps, 0, sizeof(intel_dp->lttpr_common_caps));
+ }
+
+ static void intel_dp_reset_lttpr_count(struct intel_dp *intel_dp)
+@@ -93,10 +86,21 @@ static void intel_dp_read_lttpr_phy_caps(struct intel_dp *intel_dp,
+
+ static bool intel_dp_read_lttpr_common_caps(struct intel_dp *intel_dp)
+ {
++	struct drm_i915_private *i915 = dp_to_i915(intel_dp);
++
++	if (intel_dp_is_edp(intel_dp))
++		return false;
++
++	/*
++	 * Detecting LTTPRs must be avoided on platforms with an AUX timeout
++	 * period < 3.2ms. (see DP Standard v2.0, 2.11.2, 3.6.6.1).
++	 */
++	if (INTEL_GEN(i915) < 10)
++		return false;
++
+ 	if (drm_dp_read_lttpr_common_caps(&intel_dp->aux,
+ 					  intel_dp->lttpr_common_caps) < 0) {
+-		memset(intel_dp->lttpr_common_caps, 0,
+-		       sizeof(intel_dp->lttpr_common_caps));
++		intel_dp_reset_lttpr_common_caps(intel_dp);
+ 		return false;
+ 	}
+
+@@ -118,30 +122,57 @@ intel_dp_set_lttpr_transparent_mode(struct intel_dp *intel_dp, bool enable)
+ }
+
+ /**
+- * intel_dp_lttpr_init - detect LTTPRs and init the LTTPR link training mode
++ * intel_dp_init_lttpr_and_dprx_caps - detect LTTPR and DPRX caps, init the LTTPR link training mode
+  * @intel_dp: Intel DP struct
+  *
+- * Read the LTTPR common capabilities, switch to non-transparent link training
+- * mode if any is detected and read the PHY capabilities for all detected
+- * LTTPRs. In case of an LTTPR detection error or if the number of
++ * Read the LTTPR common and DPRX capabilities and switch to non-transparent
++ * link training mode if any is detected and read the PHY capabilities for all
++ * detected LTTPRs. In case of an LTTPR detection error or if the number of
+  * LTTPRs is more than is supported (8), fall back to the no-LTTPR,
+  * transparent mode link training mode.
+  *
+  * Returns:
+- *   >0  if LTTPRs were detected and the non-transparent LT mode was set
++ *   >0  if LTTPRs were detected and the non-transparent LT mode was set. The
++ *       DPRX capabilities are read out.
+  *    0  if no LTTPRs or more than 8 LTTPRs were detected or in case of a
+- *       detection failure and the transparent LT mode was set
++ *       detection failure and the transparent LT mode was set. The DPRX
++ *       capabilities are read out.
++ *   <0  Reading out the DPRX capabilities failed.
+  */
+-int intel_dp_lttpr_init(struct intel_dp *intel_dp)
++int intel_dp_init_lttpr_and_dprx_caps(struct intel_dp *intel_dp)
+ {
+ 	int lttpr_count;
+ 	bool ret;
+ 	int i;
+
+-	if (intel_dp_is_edp(intel_dp))
++	ret = intel_dp_read_lttpr_common_caps(intel_dp);
++
++	/* The DPTX shall read the DPRX caps after LTTPR detection. */
++	if (drm_dp_read_dpcd_caps(&intel_dp->aux, intel_dp->dpcd)) {
++		intel_dp_reset_lttpr_common_caps(intel_dp);
++		return -EIO;
++	}
++
++	if (!ret)
+ 		return 0;
+
+-	ret = intel_dp_read_lttpr_common_caps(intel_dp);
++	/*
++	 * The 0xF0000-0xF02FF range is only valid if the DPCD revision is
++	 * at least 1.4.
++	 */
++	if (intel_dp->dpcd[DP_DPCD_REV] < 0x14) {
++		intel_dp_reset_lttpr_common_caps(intel_dp);
++		return 0;
++	}
++
++	lttpr_count = drm_dp_lttpr_count(intel_dp->lttpr_common_caps);
++	/*
++	 * Prevent setting LTTPR transparent mode explicitly if no LTTPRs are
++	 * detected as this breaks link training at least on the Dell WD19TB
++	 * dock.
++	 */
++	if (lttpr_count == 0)
++		return 0;
+
+ 	/*
+ 	 * See DP Standard v2.0 3.6.6.1. about the explicit disabling of
+@@ -150,17 +181,12 @@ int intel_dp_lttpr_init(struct intel_dp *intel_dp)
+ 	 */
+ 	intel_dp_set_lttpr_transparent_mode(intel_dp, true);
+
+-	if (!ret)
+-		return 0;
+-
+-	lttpr_count = intel_dp_lttpr_count(intel_dp);
+-
+ 	/*
+ 	 * In case of unsupported number of LTTPRs or failing to switch to
+ 	 * non-transparent mode fall-back to transparent link training mode,
+ 	 * still taking into account any LTTPR common lane- rate/count limits.
+ 	 */
+-	if (lttpr_count == 0)
++	if (lttpr_count < 0)
+ 		return 0;
+
+ 	if (!intel_dp_set_lttpr_transparent_mode(intel_dp, false)) {
+@@ -178,7 +204,7 @@ int intel_dp_lttpr_init(struct intel_dp *intel_dp)
+
+ 	return lttpr_count;
+ }
+-EXPORT_SYMBOL(intel_dp_lttpr_init);
++EXPORT_SYMBOL(intel_dp_init_lttpr_and_dprx_caps);
+
+ static u8 dp_voltage_max(u8 preemph)
+ {
+@@ -222,11 +248,11 @@ intel_dp_phy_is_downstream_of_source(struct intel_dp *intel_dp,
+ 				     enum drm_dp_phy dp_phy)
+ {
+ 	struct drm_i915_private *i915 = dp_to_i915(intel_dp);
+-	int lttpr_count = intel_dp_lttpr_count(intel_dp);
++	int lttpr_count = drm_dp_lttpr_count(intel_dp->lttpr_common_caps);
+
+-	drm_WARN_ON_ONCE(&i915->drm, lttpr_count == 0 && dp_phy != DP_PHY_DPRX);
++	drm_WARN_ON_ONCE(&i915->drm, lttpr_count <= 0 && dp_phy != DP_PHY_DPRX);
+
+-	return lttpr_count == 0 || dp_phy == DP_PHY_LTTPR(lttpr_count - 1);
++	return lttpr_count <= 0 || dp_phy == DP_PHY_LTTPR(lttpr_count - 1);
+ }
+
+ static u8 intel_dp_phy_voltage_max(struct intel_dp *intel_dp,
+@@ -814,7 +840,10 @@ void intel_dp_start_link_train(struct intel_dp *intel_dp,
+ 	 * TODO: Reiniting LTTPRs here won't be needed once proper connector
+ 	 * HW state readout is added.
+ 	 */
+-	int lttpr_count = intel_dp_lttpr_init(intel_dp);
++	int lttpr_count = intel_dp_init_lttpr_and_dprx_caps(intel_dp);
++
++	if (lttpr_count < 0)
++		return;
+
+ 	if (!intel_dp_link_train_all_phys(intel_dp, crtc_state, lttpr_count))
+ 		intel_dp_schedule_fallback_link_training(intel_dp, crtc_state);
+diff --git a/drivers/gpu/drm/i915/display/intel_dp_link_training.h b/drivers/gpu/drm/i915/display/intel_dp_link_training.h
+index 6a1f76bd8c75..9cb7c28027f0 100644
+--- a/drivers/gpu/drm/i915/display/intel_dp_link_training.h
++++ b/drivers/gpu/drm/i915/display/intel_dp_link_training.h
+@@ -11,7 +11,7 @@
+ struct intel_crtc_state;
+ struct intel_dp;
+
+-int intel_dp_lttpr_init(struct intel_dp *intel_dp);
++int intel_dp_init_lttpr_and_dprx_caps(struct intel_dp *intel_dp);
+
+ void intel_dp_get_adjust_train(struct intel_dp *intel_dp,
+ 			       const struct intel_crtc_state *crtc_state,
+diff --git a/drivers/gpu/drm/i915/display/intel_psr.c b/drivers/gpu/drm/i915/display/intel_psr.c
+index b3631b722de3..5089dbd240f4 100644
+--- a/drivers/gpu/drm/i915/display/intel_psr.c
++++ b/drivers/gpu/drm/i915/display/intel_psr.c
+@@ -653,6 +653,20 @@ tgl_dc3co_exitline_compute_config(struct intel_dp *intel_dp,
+ 	struct drm_i915_private *dev_priv = dp_to_i915(intel_dp);
+ 	u32 exit_scanlines;
+
++	/*
++	 * FIXME: Due to the changed sequence of activating/deactivating DC3CO,
++	 * disable DC3CO until the changed dc3co activating/deactivating sequence
++	 * is applied. B.Specs:49196
++	 */
++	return;
++
++	/*
++	 * DMC's DC3CO exit mechanism has an issue with Selective Fecth
++	 * TODO: when the issue is addressed, this restriction should be removed.
++	 */
++	if (crtc_state->enable_psr2_sel_fetch)
++		return;
++
+ 	if (!(dev_priv->csr.allowed_dc_mask & DC_STATE_EN_DC3CO))
+ 		return;
+
+diff --git a/drivers/gpu/drm/i915/i915_drv.c b/drivers/gpu/drm/i915/i915_drv.c
+index 99eb0d7bbc44..85feb5742296 100644
+--- a/drivers/gpu/drm/i915/i915_drv.c
++++ b/drivers/gpu/drm/i915/i915_drv.c
+@@ -609,14 +609,15 @@ static int i915_driver_hw_probe(struct drm_i915_private *dev_priv)
+ 		goto err_msi;
+
+ 	intel_opregion_setup(dev_priv);
++
++	intel_pcode_init(dev_priv);
++
+ 	/*
+ 	 * Fill the dram structure to get the system raw bandwidth and
+ 	 * dram info. This will be used for memory latency calculation.
+ 	 */
+ 	intel_dram_detect(dev_priv);
+
+-	intel_pcode_init(dev_priv);
+-
+ 	intel_bw_init_hw(dev_priv);
+
+ 	return 0;
+diff --git a/drivers/gpu/drm/i915/i915_drv.h b/drivers/gpu/drm/i915/i915_drv.h
+index bd5f76a28d68..a0464f73710a 100644
+--- a/drivers/gpu/drm/i915/i915_drv.h
++++ b/drivers/gpu/drm/i915/i915_drv.h
+@@ -1147,6 +1147,7 @@ struct drm_i915_private {
+ 			INTEL_DRAM_LPDDR3,
+ 			INTEL_DRAM_LPDDR4
+ 		} type;
++		u8 num_qgv_points;
+ 	} dram_info;
+
+ 	struct intel_bw_info {
+diff --git a/drivers/gpu/drm/i915/intel_dram.c b/drivers/gpu/drm/i915/intel_dram.c
+index 4754296a250e..a68be91a1140 100644
+--- a/drivers/gpu/drm/i915/intel_dram.c
++++ b/drivers/gpu/drm/i915/intel_dram.c
+@@ -5,6 +5,7 @@
+
+ #include "i915_drv.h"
+ #include "intel_dram.h"
++#include "intel_sideband.h"
+
+ struct dram_dimm_info {
+ 	u16 size;
+@@ -434,6 +435,81 @@ static int bxt_get_dram_info(struct drm_i915_private *i915)
+ 	return 0;
+ }
+
++static int icl_pcode_read_mem_global_info(struct drm_i915_private *dev_priv)
++{
++	struct dram_info *dram_info = &dev_priv->dram_info;
++	u32 val = 0;
++	int ret;
++
++	ret = sandybridge_pcode_read(dev_priv,
++				     ICL_PCODE_MEM_SUBSYSYSTEM_INFO |
++				     ICL_PCODE_MEM_SS_READ_GLOBAL_INFO,
++				     &val, NULL);
++	if (ret)
++		return ret;
++
++	if (IS_GEN(dev_priv, 12)) {
++		switch (val & 0xf) {
++		case 0:
++			dram_info->type = INTEL_DRAM_DDR4;
++			break;
++		case 3:
++			dram_info->type = INTEL_DRAM_LPDDR4;
++			break;
++		case 4:
++			dram_info->type = INTEL_DRAM_DDR3;
++			break;
++		case 5:
++			dram_info->type = INTEL_DRAM_LPDDR3;
++			break;
++		default:
++			MISSING_CASE(val & 0xf);
++			return -1;
++		}
++	} else {
++		switch (val & 0xf) {
++		case 0:
++			dram_info->type = INTEL_DRAM_DDR4;
++			break;
++		case 1:
++			dram_info->type = INTEL_DRAM_DDR3;
++			break;
++		case 2:
++			dram_info->type = INTEL_DRAM_LPDDR3;
++			break;
++		case 3:
++			dram_info->type = INTEL_DRAM_LPDDR4;
++			break;
++		default:
++			MISSING_CASE(val & 0xf);
++			return -1;
++		}
++	}
++
++	dram_info->num_channels = (val & 0xf0) >> 4;
++	dram_info->num_qgv_points = (val & 0xf00) >> 8;
++
++	return 0;
++}
++
++static int gen11_get_dram_info(struct drm_i915_private *i915)
++{
++	int ret = skl_get_dram_info(i915);
++
++	if (ret)
++		return ret;
++
++	return icl_pcode_read_mem_global_info(i915);
++}
++
++static int gen12_get_dram_info(struct drm_i915_private *i915)
++{
++	/* Always needed for GEN12+ */
++	i915->dram_info.is_16gb_dimm = true;
++
++	return icl_pcode_read_mem_global_info(i915);
++}
++
+ void intel_dram_detect(struct drm_i915_private *i915)
+ {
+ 	struct dram_info *dram_info = &i915->dram_info;
+@@ -449,7 +525,11 @@ void intel_dram_detect(struct drm_i915_private *i915)
+ 	if (INTEL_GEN(i915) < 9 || !HAS_DISPLAY(i915))
+ 		return;
+
+-	if (IS_GEN9_LP(i915))
++	if (INTEL_GEN(i915) >= 12)
++		ret = gen12_get_dram_info(i915);
++	else if (INTEL_GEN(i915) >= 11)
++		ret = gen11_get_dram_info(i915);
++	else if (IS_GEN9_LP(i915))
+ 		ret = bxt_get_dram_info(i915);
+ 	else
+ 		ret = skl_get_dram_info(i915);
+diff --git a/drivers/gpu/drm/panel/Kconfig b/drivers/gpu/drm/panel/Kconfig
+index b4e021ea30f9..5687b745ebe2 100644
+--- a/drivers/gpu/drm/panel/Kconfig
++++ b/drivers/gpu/drm/panel/Kconfig
+@@ -532,6 +532,15 @@ config DRM_PANEL_VISIONOX_RM69299
+ 	  Say Y here if you want to enable support for Visionox
+ 	  RM69299  DSI Video Mode panel.
+
++config DRM_PANEL_XINGBANGDA_XBD599
++	tristate "Xingbangda XBD599 panel"
++	depends on OF
++	depends on DRM_MIPI_DSI
++	depends on BACKLIGHT_CLASS_DEVICE
++	help
++	  Say Y here if you want to enable support for the Xingbangda XBD599
++	  MIPI DSI Video Mode panel.
++
+ config DRM_PANEL_XINPENG_XPP055C272
+ 	tristate "Xinpeng XPP055C272 panel driver"
+ 	depends on OF
+diff --git a/drivers/gpu/drm/panel/Makefile b/drivers/gpu/drm/panel/Makefile
+index ebbf488c7eac..cc539a167f40 100644
+--- a/drivers/gpu/drm/panel/Makefile
++++ b/drivers/gpu/drm/panel/Makefile
+@@ -56,4 +56,5 @@ obj-$(CONFIG_DRM_PANEL_TPO_TD043MTEA1) += panel-tpo-td043mtea1.o
+ obj-$(CONFIG_DRM_PANEL_TPO_TPG110) += panel-tpo-tpg110.o
+ obj-$(CONFIG_DRM_PANEL_TRULY_NT35597_WQXGA) += panel-truly-nt35597.o
+ obj-$(CONFIG_DRM_PANEL_VISIONOX_RM69299) += panel-visionox-rm69299.o
++obj-$(CONFIG_DRM_PANEL_XINGBANGDA_XBD599) += panel-xingbangda-xbd599.o
+ obj-$(CONFIG_DRM_PANEL_XINPENG_XPP055C272) += panel-xinpeng-xpp055c272.o
+diff --git a/drivers/gpu/drm/panel/panel-xingbangda-xbd599.c b/drivers/gpu/drm/panel/panel-xingbangda-xbd599.c
+new file mode 100644
+index 000000000000..b483f96ee1db
+--- /dev/null
++++ b/drivers/gpu/drm/panel/panel-xingbangda-xbd599.c
+@@ -0,0 +1,366 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Xingbangda XBD599 MIPI-DSI panel driver
++ *
++ * Copyright (C) 2019-2020 Icenowy Zheng <icenowy@aosc.io>
++ *
++ * Based on panel-rocktech-jh057n00900.c, which is:
++ *   Copyright (C) Purism SPC 2019
++ */
++
++#include <linux/delay.h>
++#include <linux/gpio/consumer.h>
++#include <linux/mod_devicetable.h>
++#include <linux/module.h>
++#include <linux/of_device.h>
++#include <linux/regulator/consumer.h>
++
++#include <drm/drm_mipi_dsi.h>
++#include <drm/drm_modes.h>
++#include <drm/drm_panel.h>
++#include <drm/drm_print.h>
++
++/* Manufacturer specific Commands send via DSI */
++#define ST7703_CMD_ALL_PIXEL_OFF 0x22
++#define ST7703_CMD_ALL_PIXEL_ON	 0x23
++#define ST7703_CMD_SETDISP	 0xB2
++#define ST7703_CMD_SETRGBIF	 0xB3
++#define ST7703_CMD_SETCYC	 0xB4
++#define ST7703_CMD_SETBGP	 0xB5
++#define ST7703_CMD_SETVCOM	 0xB6
++#define ST7703_CMD_SETOTP	 0xB7
++#define ST7703_CMD_SETPOWER_EXT	 0xB8
++#define ST7703_CMD_SETEXTC	 0xB9
++#define ST7703_CMD_SETMIPI	 0xBA
++#define ST7703_CMD_SETVDC	 0xBC
++#define ST7703_CMD_SETSCR	 0xC0
++#define ST7703_CMD_SETPOWER	 0xC1
++#define ST7703_CMD_UNK_C6	 0xC6
++#define ST7703_CMD_SETPANEL	 0xCC
++#define ST7703_CMD_SETGAMMA	 0xE0
++#define ST7703_CMD_SETEQ	 0xE3
++#define ST7703_CMD_SETGIP1	 0xE9
++#define ST7703_CMD_SETGIP2	 0xEA
++
++static const char * const regulator_names[] = {
++	"iovcc",
++	"vcc",
++};
++
++struct xbd599 {
++	struct device *dev;
++	struct drm_panel panel;
++	struct gpio_desc *reset_gpio;
++	struct regulator_bulk_data supplies[ARRAY_SIZE(regulator_names)];
++	bool prepared;
++};
++
++static inline struct xbd599 *panel_to_xbd599(struct drm_panel *panel)
++{
++	return container_of(panel, struct xbd599, panel);
++}
++
++#define dsi_dcs_write_seq(dsi, cmd, seq...) do {			\
++		static const u8 d[] = { seq };				\
++		int ret;						\
++		ret = mipi_dsi_dcs_write(dsi, cmd, d, ARRAY_SIZE(d));	\
++		if (ret < 0)						\
++			return ret;					\
++	} while (0)
++
++static int xbd599_init_sequence(struct xbd599 *ctx)
++{
++	struct mipi_dsi_device *dsi = to_mipi_dsi_device(ctx->dev);
++	struct device *dev = ctx->dev;
++	int ret;
++
++	/*
++	 * Init sequence was supplied by the panel vendor.
++	 */
++	dsi_dcs_write_seq(dsi, ST7703_CMD_SETEXTC,
++			  0xF1, 0x12, 0x83);
++	dsi_dcs_write_seq(dsi, ST7703_CMD_SETMIPI,
++			  0x33, 0x81, 0x05, 0xF9, 0x0E, 0x0E, 0x20, 0x00,
++			  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x44, 0x25,
++			  0x00, 0x91, 0x0a, 0x00, 0x00, 0x02, 0x4F, 0x11,
++			  0x00, 0x00, 0x37);
++	dsi_dcs_write_seq(dsi, ST7703_CMD_SETPOWER_EXT,
++			  0x25, 0x22, 0x20, 0x03);
++	dsi_dcs_write_seq(dsi, ST7703_CMD_SETRGBIF,
++			  0x10, 0x10, 0x05, 0x05, 0x03, 0xFF, 0x00, 0x00,
++			  0x00, 0x00);
++	dsi_dcs_write_seq(dsi, ST7703_CMD_SETSCR,
++			  0x73, 0x73, 0x50, 0x50, 0x00, 0xC0, 0x08, 0x70,
++			  0x00);
++	dsi_dcs_write_seq(dsi, ST7703_CMD_SETVDC, 0x4E);
++	dsi_dcs_write_seq(dsi, ST7703_CMD_SETPANEL, 0x0B);
++	dsi_dcs_write_seq(dsi, ST7703_CMD_SETCYC, 0x80);
++	dsi_dcs_write_seq(dsi, ST7703_CMD_SETDISP, 0xF0, 0x12, 0xF0);
++	dsi_dcs_write_seq(dsi, ST7703_CMD_SETEQ,
++			  0x00, 0x00, 0x0B, 0x0B, 0x10, 0x10, 0x00, 0x00,
++			  0x00, 0x00, 0xFF, 0x00, 0xC0, 0x10);
++	dsi_dcs_write_seq(dsi, 0xC6, 0x01, 0x00, 0xFF, 0xFF, 0x00);
++	dsi_dcs_write_seq(dsi, ST7703_CMD_SETPOWER,
++			  0x74, 0x00, 0x32, 0x32, 0x77, 0xF1, 0xFF, 0xFF,
++			  0xCC, 0xCC, 0x77, 0x77);
++	dsi_dcs_write_seq(dsi, ST7703_CMD_SETBGP, 0x07, 0x07);
++	dsi_dcs_write_seq(dsi, ST7703_CMD_SETVCOM, 0x2C, 0x2C);
++	dsi_dcs_write_seq(dsi, 0xBF, 0x02, 0x11, 0x00);
++
++	dsi_dcs_write_seq(dsi, ST7703_CMD_SETGIP1,
++			  0x82, 0x10, 0x06, 0x05, 0xA2, 0x0A, 0xA5, 0x12,
++			  0x31, 0x23, 0x37, 0x83, 0x04, 0xBC, 0x27, 0x38,
++			  0x0C, 0x00, 0x03, 0x00, 0x00, 0x00, 0x0C, 0x00,
++			  0x03, 0x00, 0x00, 0x00, 0x75, 0x75, 0x31, 0x88,
++			  0x88, 0x88, 0x88, 0x88, 0x88, 0x13, 0x88, 0x64,
++			  0x64, 0x20, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88,
++			  0x02, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++			  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
++	dsi_dcs_write_seq(dsi, ST7703_CMD_SETGIP2,
++			  0x02, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++			  0x00, 0x00, 0x00, 0x00, 0x02, 0x46, 0x02, 0x88,
++			  0x88, 0x88, 0x88, 0x88, 0x88, 0x64, 0x88, 0x13,
++			  0x57, 0x13, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88,
++			  0x75, 0x88, 0x23, 0x14, 0x00, 0x00, 0x02, 0x00,
++			  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++			  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x0A,
++			  0xA5, 0x00, 0x00, 0x00, 0x00);
++	dsi_dcs_write_seq(dsi, ST7703_CMD_SETGAMMA,
++			  0x00, 0x09, 0x0D, 0x23, 0x27, 0x3C, 0x41, 0x35,
++			  0x07, 0x0D, 0x0E, 0x12, 0x13, 0x10, 0x12, 0x12,
++			  0x18, 0x00, 0x09, 0x0D, 0x23, 0x27, 0x3C, 0x41,
++			  0x35, 0x07, 0x0D, 0x0E, 0x12, 0x13, 0x10, 0x12,
++			  0x12, 0x18);
++	msleep(20);
++
++	ret = mipi_dsi_dcs_exit_sleep_mode(dsi);
++	if (ret < 0) {
++		DRM_DEV_ERROR(dev, "Failed to exit sleep mode\n");
++		return ret;
++	}
++	msleep(250);
++
++	ret = mipi_dsi_dcs_set_display_on(dsi);
++	if (ret)
++		return ret;
++	msleep(50);
++
++	DRM_DEV_DEBUG_DRIVER(dev, "Panel init sequence done\n");
++	return 0;
++}
++
++static int xbd599_prepare(struct drm_panel *panel)
++{
++	struct xbd599 *ctx = panel_to_xbd599(panel);
++	int ret;
++
++	if (ctx->prepared)
++		return 0;
++
++	ret = regulator_bulk_enable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
++	if (ret)
++		return ret;
++
++	DRM_DEV_DEBUG_DRIVER(ctx->dev, "Resetting the panel\n");
++	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
++	usleep_range(20, 40);
++	gpiod_set_value_cansleep(ctx->reset_gpio, 0);
++	msleep(20);
++
++	ctx->prepared = true;
++
++	return 0;
++}
++
++static int xbd599_enable(struct drm_panel *panel)
++{
++	struct xbd599 *ctx = panel_to_xbd599(panel);
++	int ret;
++
++	ret = xbd599_init_sequence(ctx);
++	if (ret < 0) {
++		DRM_DEV_ERROR(ctx->dev, "Panel init sequence failed: %d\n",
++			      ret);
++		return ret;
++	}
++
++	return 0;
++}
++
++static int xbd599_disable(struct drm_panel *panel)
++{
++	struct xbd599 *ctx = panel_to_xbd599(panel);
++	struct mipi_dsi_device *dsi = to_mipi_dsi_device(ctx->dev);
++
++	return mipi_dsi_dcs_set_display_off(dsi);
++}
++
++static int xbd599_unprepare(struct drm_panel *panel)
++{
++	struct xbd599 *ctx = panel_to_xbd599(panel);
++
++	if (!ctx->prepared)
++		return 0;
++
++	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
++	regulator_bulk_disable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
++	ctx->prepared = false;
++
++	return 0;
++}
++
++static const struct drm_display_mode xbd599_default_mode = {
++	.hdisplay    = 720,
++	.hsync_start = 720 + 40,
++	.hsync_end   = 720 + 40 + 40,
++	.htotal	     = 720 + 40 + 40 + 40,
++	.vdisplay    = 1440,
++	.vsync_start = 1440 + 18,
++	.vsync_end   = 1440 + 18 + 10,
++	.vtotal	     = 1440 + 18 + 10 + 17,
++	.vrefresh    = 60,
++	.clock	     = 69000,
++	.flags	     = DRM_MODE_FLAG_NHSYNC | DRM_MODE_FLAG_NVSYNC,
++
++	.width_mm    = 68,
++	.height_mm   = 136,
++	.type        = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED,
++};
++
++static int xbd599_get_modes(struct drm_panel *panel,
++			    struct drm_connector *connector)
++{
++	struct xbd599 *ctx = panel_to_xbd599(panel);
++	struct drm_display_mode *mode;
++
++	mode = drm_mode_duplicate(connector->dev, &xbd599_default_mode);
++	if (!mode) {
++		DRM_DEV_ERROR(ctx->dev, "Failed to add mode\n");
++		return -ENOMEM;
++	}
++
++	drm_mode_set_name(mode);
++
++	mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
++	connector->display_info.width_mm = mode->width_mm;
++	connector->display_info.height_mm = mode->height_mm;
++	drm_mode_probed_add(connector, mode);
++
++	return 1;
++}
++
++static const struct drm_panel_funcs xbd599_drm_funcs = {
++	.prepare   = xbd599_prepare,
++	.enable    = xbd599_enable,
++	.disable   = xbd599_disable,
++	.unprepare = xbd599_unprepare,
++	.get_modes = xbd599_get_modes,
++};
++
++static int xbd599_probe(struct mipi_dsi_device *dsi)
++{
++	struct device *dev = &dsi->dev;
++	struct xbd599 *ctx;
++	int i, ret;
++
++	ctx = devm_kzalloc(dev, sizeof(*ctx), GFP_KERNEL);
++	if (!ctx)
++		return -ENOMEM;
++
++	for (i = 0; i < ARRAY_SIZE(ctx->supplies); i++)
++		ctx->supplies[i].supply = regulator_names[i];
++
++	ret = devm_regulator_bulk_get(dev, ARRAY_SIZE(ctx->supplies),
++				      ctx->supplies);
++	if (ret < 0) {
++		DRM_DEV_ERROR(&dsi->dev, "cannot get regulators\n");
++		return ret;
++	}
++
++	ctx->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_LOW);
++	if (IS_ERR(ctx->reset_gpio)) {
++		DRM_DEV_ERROR(dev, "cannot get reset gpio\n");
++		return PTR_ERR(ctx->reset_gpio);
++	}
++
++	mipi_dsi_set_drvdata(dsi, ctx);
++
++	ctx->dev = dev;
++
++	dsi->lanes = 4;
++	dsi->format = MIPI_DSI_FMT_RGB888;
++	dsi->mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_SYNC_PULSE;
++
++	drm_panel_init(&ctx->panel, &dsi->dev, &xbd599_drm_funcs,
++		       DRM_MODE_CONNECTOR_DSI);
++
++	ret = drm_panel_of_backlight(&ctx->panel);
++	if (ret)
++		return ret;
++
++	drm_panel_add(&ctx->panel);
++
++	ret = mipi_dsi_attach(dsi);
++	if (ret < 0) {
++		DRM_DEV_ERROR(dev, "mipi_dsi_attach failed. Is host ready?\n");
++		drm_panel_remove(&ctx->panel);
++		return ret;
++	}
++
++	DRM_DEV_INFO(dev, "%ux%u@%u %ubpp dsi %udl - ready\n",
++		     xbd599_default_mode.hdisplay,
++		     xbd599_default_mode.vdisplay,
++		     xbd599_default_mode.vrefresh,
++		     mipi_dsi_pixel_format_to_bpp(dsi->format), dsi->lanes);
++
++	return 0;
++}
++
++static void xbd599_shutdown(struct mipi_dsi_device *dsi)
++{
++	struct xbd599 *ctx = mipi_dsi_get_drvdata(dsi);
++	int ret;
++
++	ret = drm_panel_unprepare(&ctx->panel);
++	if (ret < 0)
++		DRM_DEV_ERROR(&dsi->dev, "Failed to unprepare panel: %d\n",
++			      ret);
++}
++
++static int xbd599_remove(struct mipi_dsi_device *dsi)
++{
++	struct xbd599 *ctx = mipi_dsi_get_drvdata(dsi);
++	int ret;
++
++	xbd599_shutdown(dsi);
++
++	ret = mipi_dsi_detach(dsi);
++	if (ret < 0)
++		DRM_DEV_ERROR(&dsi->dev, "Failed to detach from DSI host: %d\n",
++			      ret);
++
++	drm_panel_remove(&ctx->panel);
++
++	return 0;
++}
++
++static const struct of_device_id xbd599_of_match[] = {
++	{ .compatible = "xingbangda,xbd599", },
++	{ /* sentinel */ }
++};
++MODULE_DEVICE_TABLE(of, xbd599_of_match);
++
++static struct mipi_dsi_driver xbd599_driver = {
++	.probe	= xbd599_probe,
++	.remove = xbd599_remove,
++	.shutdown = xbd599_shutdown,
++	.driver = {
++		.name = "panel-xingbangda-xbd599",
++		.of_match_table = xbd599_of_match,
++	},
++};
++module_mipi_dsi_driver(xbd599_driver);
++
++MODULE_AUTHOR("Icenowy Zheng <icenowy@aosc.io>");
++MODULE_DESCRIPTION("DRM driver for Xingbangda XBD599 MIPI DSI panel");
++MODULE_LICENSE("GPL v2");
+diff --git a/drivers/gpu/drm/sun4i/sun6i_mipi_dsi.c b/drivers/gpu/drm/sun4i/sun6i_mipi_dsi.c
+index 4f5efcace68e..5af808078efd 100644
+--- a/drivers/gpu/drm/sun4i/sun6i_mipi_dsi.c
++++ b/drivers/gpu/drm/sun4i/sun6i_mipi_dsi.c
+@@ -556,7 +556,7 @@ static void sun6i_dsi_setup_timings(struct sun6i_dsi *dsi,
+ 		 */
+ #define HSA_PACKET_OVERHEAD	10
+ 		hsa = max((unsigned int)HSA_PACKET_OVERHEAD,
+-			  (mode->hsync_end - mode->hsync_start) * Bpp - HSA_PACKET_OVERHEAD);
++			  (mode->hsync_end - mode->hsync_start) * Bpp) - HSA_PACKET_OVERHEAD;
+
+ 		/*
+ 		 * The backporch is set using a blanking packet (4
+@@ -565,7 +565,7 @@ static void sun6i_dsi_setup_timings(struct sun6i_dsi *dsi,
+ 		 */
+ #define HBP_PACKET_OVERHEAD	6
+ 		hbp = max((unsigned int)HBP_PACKET_OVERHEAD,
+-			  (mode->htotal - mode->hsync_end) * Bpp - HBP_PACKET_OVERHEAD);
++			  (mode->htotal - mode->hsync_end) * Bpp) - HBP_PACKET_OVERHEAD;
+
+ 		/*
+ 		 * The frontporch is set using a sync event (4 bytes)
+@@ -575,7 +575,7 @@ static void sun6i_dsi_setup_timings(struct sun6i_dsi *dsi,
+ 		 */
+ #define HFP_PACKET_OVERHEAD	16
+ 		hfp = max((unsigned int)HFP_PACKET_OVERHEAD,
+-			  (mode->hsync_start - mode->hdisplay) * Bpp - HFP_PACKET_OVERHEAD);
++			  (mode->hsync_start - mode->hdisplay) * Bpp) - HFP_PACKET_OVERHEAD;
+
+ 		/*
+ 		 * The blanking is set using a sync event (4 bytes)
+@@ -584,8 +584,8 @@ static void sun6i_dsi_setup_timings(struct sun6i_dsi *dsi,
+ 		 */
+ #define HBLK_PACKET_OVERHEAD	10
+ 		hblk = max((unsigned int)HBLK_PACKET_OVERHEAD,
+-			   (mode->htotal - (mode->hsync_end - mode->hsync_start)) * Bpp -
+-			   HBLK_PACKET_OVERHEAD);
++			   (mode->htotal - (mode->hsync_end - mode->hsync_start)) * Bpp) -
++			   HBLK_PACKET_OVERHEAD;
+
+ 		/*
+ 		 * And I'm not entirely sure what vblk is about. The driver in
+diff --git a/drivers/hid/hid-rmi.c b/drivers/hid/hid-rmi.c
+index 311eee599ce9..2460c6bd46f8 100644
+--- a/drivers/hid/hid-rmi.c
++++ b/drivers/hid/hid-rmi.c
+@@ -322,19 +322,12 @@ static int rmi_input_event(struct hid_device *hdev, u8 *data, int size)
+ {
+ 	struct rmi_data *hdata = hid_get_drvdata(hdev);
+ 	struct rmi_device *rmi_dev = hdata->xport.rmi_dev;
+-	unsigned long flags;
+
+ 	if (!(test_bit(RMI_STARTED, &hdata->flags)))
+ 		return 0;
+
+-	local_irq_save(flags);
+-
+ 	rmi_set_attn_data(rmi_dev, data[1], &data[2], size - 2);
+
+-	generic_handle_irq(hdata->rmi_irq);
+-
+-	local_irq_restore(flags);
+-
+ 	return 1;
+ }
+
+@@ -591,56 +584,6 @@ static const struct rmi_transport_ops hid_rmi_ops = {
+ 	.reset		= rmi_hid_reset,
+ };
+
+-static void rmi_irq_teardown(void *data)
+-{
+-	struct rmi_data *hdata = data;
+-	struct irq_domain *domain = hdata->domain;
+-
+-	if (!domain)
+-		return;
+-
+-	irq_dispose_mapping(irq_find_mapping(domain, 0));
+-
+-	irq_domain_remove(domain);
+-	hdata->domain = NULL;
+-	hdata->rmi_irq = 0;
+-}
+-
+-static int rmi_irq_map(struct irq_domain *h, unsigned int virq,
+-		       irq_hw_number_t hw_irq_num)
+-{
+-	irq_set_chip_and_handler(virq, &dummy_irq_chip, handle_simple_irq);
+-
+-	return 0;
+-}
+-
+-static const struct irq_domain_ops rmi_irq_ops = {
+-	.map = rmi_irq_map,
+-};
+-
+-static int rmi_setup_irq_domain(struct hid_device *hdev)
+-{
+-	struct rmi_data *hdata = hid_get_drvdata(hdev);
+-	int ret;
+-
+-	hdata->domain = irq_domain_create_linear(hdev->dev.fwnode, 1,
+-						 &rmi_irq_ops, hdata);
+-	if (!hdata->domain)
+-		return -ENOMEM;
+-
+-	ret = devm_add_action_or_reset(&hdev->dev, &rmi_irq_teardown, hdata);
+-	if (ret)
+-		return ret;
+-
+-	hdata->rmi_irq = irq_create_mapping(hdata->domain, 0);
+-	if (hdata->rmi_irq <= 0) {
+-		hid_err(hdev, "Can't allocate an IRQ\n");
+-		return hdata->rmi_irq < 0 ? hdata->rmi_irq : -ENXIO;
+-	}
+-
+-	return 0;
+-}
+-
+ static int rmi_probe(struct hid_device *hdev, const struct hid_device_id *id)
+ {
+ 	struct rmi_data *data = NULL;
+@@ -713,18 +656,11 @@ static int rmi_probe(struct hid_device *hdev, const struct hid_device_id *id)
+
+ 	mutex_init(&data->page_mutex);
+
+-	ret = rmi_setup_irq_domain(hdev);
+-	if (ret) {
+-		hid_err(hdev, "failed to allocate IRQ domain\n");
+-		return ret;
+-	}
+-
+ 	if (data->device_flags & RMI_DEVICE_HAS_PHYS_BUTTONS)
+ 		rmi_hid_pdata.gpio_data.disable = true;
+
+ 	data->xport.dev = hdev->dev.parent;
+ 	data->xport.pdata = rmi_hid_pdata;
+-	data->xport.pdata.irq = data->rmi_irq;
+ 	data->xport.proto_name = "hid";
+ 	data->xport.ops = &hid_rmi_ops;
+
+diff --git a/drivers/input/rmi4/rmi_driver.c b/drivers/input/rmi4/rmi_driver.c
+index 258d5fe3d395..f7298e3dc8f3 100644
+--- a/drivers/input/rmi4/rmi_driver.c
++++ b/drivers/input/rmi4/rmi_driver.c
+@@ -182,34 +182,47 @@ void rmi_set_attn_data(struct rmi_device *rmi_dev, unsigned long irq_status,
+ 	attn_data.data = fifo_data;
+
+ 	kfifo_put(&drvdata->attn_fifo, attn_data);
++
++	schedule_work(&drvdata->attn_work);
+ }
+ EXPORT_SYMBOL_GPL(rmi_set_attn_data);
+
+-static irqreturn_t rmi_irq_fn(int irq, void *dev_id)
++static void attn_callback(struct work_struct *work)
+ {
+-	struct rmi_device *rmi_dev = dev_id;
+-	struct rmi_driver_data *drvdata = dev_get_drvdata(&rmi_dev->dev);
++	struct rmi_driver_data *drvdata = container_of(work,
++							struct rmi_driver_data,
++							attn_work);
+ 	struct rmi4_attn_data attn_data = {0};
+ 	int ret, count;
+
+ 	count = kfifo_get(&drvdata->attn_fifo, &attn_data);
+-	if (count) {
+-		*(drvdata->irq_status) = attn_data.irq_status;
+-		drvdata->attn_data = attn_data;
+-	}
++	if (!count)
++		return;
+
+-	ret = rmi_process_interrupt_requests(rmi_dev);
++	*(drvdata->irq_status) = attn_data.irq_status;
++	drvdata->attn_data = attn_data;
++
++	ret = rmi_process_interrupt_requests(drvdata->rmi_dev);
+ 	if (ret)
+-		rmi_dbg(RMI_DEBUG_CORE, &rmi_dev->dev,
++		rmi_dbg(RMI_DEBUG_CORE, &drvdata->rmi_dev->dev,
+ 			"Failed to process interrupt request: %d\n", ret);
+
+-	if (count) {
+-		kfree(attn_data.data);
+-		drvdata->attn_data.data = NULL;
+-	}
++	kfree(attn_data.data);
++	drvdata->attn_data.data = NULL;
+
+ 	if (!kfifo_is_empty(&drvdata->attn_fifo))
+-		return rmi_irq_fn(irq, dev_id);
++		schedule_work(&drvdata->attn_work);
++}
++
++static irqreturn_t rmi_irq_fn(int irq, void *dev_id)
++{
++	struct rmi_device *rmi_dev = dev_id;
++	int ret;
++
++	ret = rmi_process_interrupt_requests(rmi_dev);
++	if (ret)
++		rmi_dbg(RMI_DEBUG_CORE, &rmi_dev->dev,
++			"Failed to process interrupt request: %d\n", ret);
+
+ 	return IRQ_HANDLED;
+ }
+@@ -217,7 +230,6 @@ static irqreturn_t rmi_irq_fn(int irq, void *dev_id)
+ static int rmi_irq_init(struct rmi_device *rmi_dev)
+ {
+ 	struct rmi_device_platform_data *pdata = rmi_get_platform_data(rmi_dev);
+-	struct rmi_driver_data *data = dev_get_drvdata(&rmi_dev->dev);
+ 	int irq_flags = irq_get_trigger_type(pdata->irq);
+ 	int ret;
+
+@@ -235,8 +247,6 @@ static int rmi_irq_init(struct rmi_device *rmi_dev)
+ 		return ret;
+ 	}
+
+-	data->enabled = true;
+-
+ 	return 0;
+ }
+
+@@ -886,23 +896,27 @@ void rmi_enable_irq(struct rmi_device *rmi_dev, bool clear_wake)
+ 	if (data->enabled)
+ 		goto out;
+
+-	enable_irq(irq);
+-	data->enabled = true;
+-	if (clear_wake && device_may_wakeup(rmi_dev->xport->dev)) {
+-		retval = disable_irq_wake(irq);
+-		if (retval)
+-			dev_warn(&rmi_dev->dev,
+-				 "Failed to disable irq for wake: %d\n",
+-				 retval);
+-	}
++	if (irq) {
++		enable_irq(irq);
++		data->enabled = true;
++		if (clear_wake && device_may_wakeup(rmi_dev->xport->dev)) {
++			retval = disable_irq_wake(irq);
++			if (retval)
++				dev_warn(&rmi_dev->dev,
++					 "Failed to disable irq for wake: %d\n",
++					 retval);
++		}
+
+-	/*
+-	 * Call rmi_process_interrupt_requests() after enabling irq,
+-	 * otherwise we may lose interrupt on edge-triggered systems.
+-	 */
+-	irq_flags = irq_get_trigger_type(pdata->irq);
+-	if (irq_flags & IRQ_TYPE_EDGE_BOTH)
+-		rmi_process_interrupt_requests(rmi_dev);
++		/*
++		 * Call rmi_process_interrupt_requests() after enabling irq,
++		 * otherwise we may lose interrupt on edge-triggered systems.
++		 */
++		irq_flags = irq_get_trigger_type(pdata->irq);
++		if (irq_flags & IRQ_TYPE_EDGE_BOTH)
++			rmi_process_interrupt_requests(rmi_dev);
++	} else {
++		data->enabled = true;
++	}
+
+ out:
+ 	mutex_unlock(&data->enabled_mutex);
+@@ -922,20 +936,22 @@ void rmi_disable_irq(struct rmi_device *rmi_dev, bool enable_wake)
+ 		goto out;
+
+ 	data->enabled = false;
+-	disable_irq(irq);
+-	if (enable_wake && device_may_wakeup(rmi_dev->xport->dev)) {
+-		retval = enable_irq_wake(irq);
+-		if (retval)
+-			dev_warn(&rmi_dev->dev,
+-				 "Failed to enable irq for wake: %d\n",
+-				 retval);
+-	}
+-
+-	/* make sure the fifo is clean */
+-	while (!kfifo_is_empty(&data->attn_fifo)) {
+-		count = kfifo_get(&data->attn_fifo, &attn_data);
+-		if (count)
+-			kfree(attn_data.data);
++	if (irq) {
++		disable_irq(irq);
++		if (enable_wake && device_may_wakeup(rmi_dev->xport->dev)) {
++			retval = enable_irq_wake(irq);
++			if (retval)
++				dev_warn(&rmi_dev->dev,
++					 "Failed to enable irq for wake: %d\n",
++					 retval);
++		}
++	} else {
++		/* make sure the fifo is clean */
++		while (!kfifo_is_empty(&data->attn_fifo)) {
++			count = kfifo_get(&data->attn_fifo, &attn_data);
++			if (count)
++				kfree(attn_data.data);
++		}
+ 	}
+
+ out:
+@@ -981,6 +997,8 @@ static int rmi_driver_remove(struct device *dev)
+ 	irq_domain_remove(data->irqdomain);
+ 	data->irqdomain = NULL;
+
++	cancel_work_sync(&data->attn_work);
++
+ 	rmi_f34_remove_sysfs(rmi_dev);
+ 	rmi_free_function_list(rmi_dev);
+
+@@ -1219,9 +1237,15 @@ static int rmi_driver_probe(struct device *dev)
+ 		}
+ 	}
+
+-	retval = rmi_irq_init(rmi_dev);
+-	if (retval < 0)
+-		goto err_destroy_functions;
++	if (pdata->irq) {
++		retval = rmi_irq_init(rmi_dev);
++		if (retval < 0)
++			goto err_destroy_functions;
++	}
++
++	data->enabled = true;
++
++	INIT_WORK(&data->attn_work, attn_callback);
+
+ 	if (data->f01_container->dev.driver) {
+ 		/* Driver already bound, so enable ATTN now. */
+diff --git a/drivers/iommu/iommu.c b/drivers/iommu/iommu.c
+index fd5f59373fc6..8a11aa9e0318 100644
+--- a/drivers/iommu/iommu.c
++++ b/drivers/iommu/iommu.c
+@@ -7,6 +7,7 @@
+ #define pr_fmt(fmt)    "iommu: " fmt
+
+ #include <linux/device.h>
++#include <linux/dmi.h>
+ #include <linux/kernel.h>
+ #include <linux/bug.h>
+ #include <linux/types.h>
+@@ -3060,6 +3061,27 @@ u32 iommu_sva_get_pasid(struct iommu_sva *handle)
+ }
+ EXPORT_SYMBOL_GPL(iommu_sva_get_pasid);
+
++#ifdef CONFIG_ARM64
++static int __init iommu_quirks(void)
++{
++	const char *vendor, *name;
++
++	vendor = dmi_get_system_info(DMI_SYS_VENDOR);
++	name = dmi_get_system_info(DMI_PRODUCT_NAME);
++
++	if (vendor &&
++	    (strncmp(vendor, "GIGABYTE", 8) == 0 && name &&
++	     (strncmp(name, "R120", 4) == 0 ||
++	      strncmp(name, "R270", 4) == 0))) {
++		pr_warn("Gigabyte %s detected, force iommu passthrough mode", name);
++		iommu_def_domain_type = IOMMU_DOMAIN_IDENTITY;
++	}
++
++	return 0;
++}
++arch_initcall(iommu_quirks);
++#endif
++
+ /*
+  * Changes the default domain of an iommu group that has *only* one device
+  *
+diff --git a/drivers/pci/controller/dwc/Kconfig b/drivers/pci/controller/dwc/Kconfig
+index 22c5529e9a65..259ff5ff3f24 100644
+--- a/drivers/pci/controller/dwc/Kconfig
++++ b/drivers/pci/controller/dwc/Kconfig
+@@ -254,25 +254,27 @@ config PCI_MESON
+ 	  implement the driver.
+
+ config PCIE_TEGRA194
+-	tristate
++	bool
+
+ config PCIE_TEGRA194_HOST
+-	tristate "NVIDIA Tegra194 (and later) PCIe controller - Host Mode"
++	bool "NVIDIA Tegra194 (and later) PCIe controller - Host Mode"
+ 	depends on ARCH_TEGRA_194_SOC || COMPILE_TEST
+ 	depends on PCI_MSI_IRQ_DOMAIN
+ 	select PCIE_DW_HOST
+ 	select PHY_TEGRA194_P2U
+ 	select PCIE_TEGRA194
++	default y if ARCH_TEGRA_194_SOC
+ 	help
+ 	  Enables support for the PCIe controller in the NVIDIA Tegra194 SoC to
+ 	  work in host mode. There are two instances of PCIe controllers in
+ 	  Tegra194. This controller can work either as EP or RC. In order to
+ 	  enable host-specific features PCIE_TEGRA194_HOST must be selected and
+ 	  in order to enable device-specific features PCIE_TEGRA194_EP must be
+-	  selected. This uses the DesignWare core.
++	  selected. This uses the DesignWare core. ACPI platforms with Tegra194
++	  don't need to enable this.
+
+ config PCIE_TEGRA194_EP
+-	tristate "NVIDIA Tegra194 (and later) PCIe controller - Endpoint Mode"
++	bool "NVIDIA Tegra194 (and later) PCIe controller - Endpoint Mode"
+ 	depends on ARCH_TEGRA_194_SOC || COMPILE_TEST
+ 	depends on PCI_ENDPOINT
+ 	select PCIE_DW_EP
+diff --git a/drivers/pci/controller/dwc/Makefile b/drivers/pci/controller/dwc/Makefile
+index a751553fa0db..dbb981876556 100644
+--- a/drivers/pci/controller/dwc/Makefile
++++ b/drivers/pci/controller/dwc/Makefile
+@@ -17,7 +17,6 @@ obj-$(CONFIG_PCIE_INTEL_GW) += pcie-intel-gw.o
+ obj-$(CONFIG_PCIE_KIRIN) += pcie-kirin.o
+ obj-$(CONFIG_PCIE_HISI_STB) += pcie-histb.o
+ obj-$(CONFIG_PCI_MESON) += pci-meson.o
+-obj-$(CONFIG_PCIE_TEGRA194) += pcie-tegra194.o
+ obj-$(CONFIG_PCIE_UNIPHIER) += pcie-uniphier.o
+ obj-$(CONFIG_PCIE_UNIPHIER_EP) += pcie-uniphier-ep.o
+
+@@ -34,4 +33,5 @@ obj-$(CONFIG_PCIE_UNIPHIER_EP) += pcie-uniphier-ep.o
+ ifdef CONFIG_PCI
+ obj-$(CONFIG_ARM64) += pcie-al.o
+ obj-$(CONFIG_ARM64) += pcie-hisi.o
++obj-$(CONFIG_ARM64) += pcie-tegra194.o
+ endif
+diff --git a/drivers/pci/controller/dwc/pcie-tegra194.c b/drivers/pci/controller/dwc/pcie-tegra194.c
+index 6fa216e52d14..1090a9cfe4f0 100644
+--- a/drivers/pci/controller/dwc/pcie-tegra194.c
++++ b/drivers/pci/controller/dwc/pcie-tegra194.c
+@@ -22,6 +22,8 @@
+ #include <linux/of_irq.h>
+ #include <linux/of_pci.h>
+ #include <linux/pci.h>
++#include <linux/pci-acpi.h>
++#include <linux/pci-ecam.h>
+ #include <linux/phy/phy.h>
+ #include <linux/pinctrl/consumer.h>
+ #include <linux/platform_device.h>
+@@ -311,6 +313,103 @@ struct tegra_pcie_dw_of_data {
+ 	enum dw_pcie_device_mode mode;
+ };
+
++#if defined(CONFIG_ACPI) && defined(CONFIG_PCI_QUIRKS)
++struct tegra194_pcie_acpi  {
++	void __iomem *config_base;
++	void __iomem *iatu_base;
++	void __iomem *dbi_base;
++};
++
++static int tegra194_acpi_init(struct pci_config_window *cfg)
++{
++	struct device *dev = cfg->parent;
++	struct tegra194_pcie_acpi *pcie;
++
++	pcie = devm_kzalloc(dev, sizeof(*pcie), GFP_KERNEL);
++	if (!pcie)
++		return -ENOMEM;
++
++	pcie->config_base = cfg->win;
++	pcie->iatu_base = cfg->win + SZ_256K;
++	pcie->dbi_base = cfg->win + SZ_512K;
++	cfg->priv = pcie;
++
++	return 0;
++}
++
++static inline void atu_reg_write(struct tegra194_pcie_acpi *pcie, int index,
++				 u32 val, u32 reg)
++{
++	u32 offset = PCIE_GET_ATU_OUTB_UNR_REG_OFFSET(index);
++
++	writel(val, pcie->iatu_base + offset + reg);
++}
++
++static void program_outbound_atu(struct tegra194_pcie_acpi *pcie, int index,
++				 int type, u64 cpu_addr, u64 pci_addr, u64 size)
++{
++	atu_reg_write(pcie, index, lower_32_bits(cpu_addr),
++		      PCIE_ATU_LOWER_BASE);
++	atu_reg_write(pcie, index, upper_32_bits(cpu_addr),
++		      PCIE_ATU_UPPER_BASE);
++	atu_reg_write(pcie, index, lower_32_bits(pci_addr),
++		      PCIE_ATU_LOWER_TARGET);
++	atu_reg_write(pcie, index, lower_32_bits(cpu_addr + size - 1),
++		      PCIE_ATU_LIMIT);
++	atu_reg_write(pcie, index, upper_32_bits(pci_addr),
++		      PCIE_ATU_UPPER_TARGET);
++	atu_reg_write(pcie, index, type, PCIE_ATU_CR1);
++	atu_reg_write(pcie, index, PCIE_ATU_ENABLE, PCIE_ATU_CR2);
++}
++
++static void __iomem *tegra194_map_bus(struct pci_bus *bus,
++				      unsigned int devfn, int where)
++{
++	struct pci_config_window *cfg = bus->sysdata;
++	struct tegra194_pcie_acpi *pcie = cfg->priv;
++	u32 busdev;
++	int type;
++
++	if (bus->number < cfg->busr.start || bus->number > cfg->busr.end)
++		return NULL;
++
++	if (bus->number == cfg->busr.start) {
++		if (PCI_SLOT(devfn) == 0)
++			return pcie->dbi_base + where;
++		else
++			return NULL;
++	}
++
++	busdev = PCIE_ATU_BUS(bus->number) | PCIE_ATU_DEV(PCI_SLOT(devfn)) |
++		 PCIE_ATU_FUNC(PCI_FUNC(devfn));
++
++	if (bus->parent->number == cfg->busr.start) {
++		if (PCI_SLOT(devfn) == 0)
++			type = PCIE_ATU_TYPE_CFG0;
++		else
++			return NULL;
++	} else {
++		type = PCIE_ATU_TYPE_CFG1;
++	}
++
++	program_outbound_atu(pcie, 0, type, cfg->res.start, busdev, SZ_256K);
++
++	return (void __iomem *)(pcie->config_base + where);
++}
++
++const struct pci_ecam_ops tegra194_pcie_ops = {
++	.bus_shift	= 20,
++	.init		= tegra194_acpi_init,
++	.pci_ops	= {
++		.map_bus	= tegra194_map_bus,
++		.read		= pci_generic_config_read,
++		.write		= pci_generic_config_write,
++	}
++};
++#endif /* defined(CONFIG_ACPI) && defined(CONFIG_PCI_QUIRKS) */
++
++#ifdef CONFIG_PCIE_TEGRA194
++
+ static inline struct tegra_pcie_dw *to_tegra_pcie(struct dw_pcie *pci)
+ {
+ 	return container_of(pci, struct tegra_pcie_dw, pci);
+@@ -2311,3 +2410,6 @@ MODULE_DEVICE_TABLE(of, tegra_pcie_dw_of_match);
+ MODULE_AUTHOR("Vidya Sagar <vidyas@nvidia.com>");
+ MODULE_DESCRIPTION("NVIDIA PCIe host controller driver");
+ MODULE_LICENSE("GPL v2");
++
++#endif /* CONFIG_PCIE_TEGRA194 */
++
+diff --git a/drivers/pci/controller/pcie-brcmstb.c b/drivers/pci/controller/pcie-brcmstb.c
+index d41257f43a8f..e3456b058106 100644
+--- a/drivers/pci/controller/pcie-brcmstb.c
++++ b/drivers/pci/controller/pcie-brcmstb.c
+@@ -857,6 +857,7 @@ static int brcm_pcie_setup(struct brcm_pcie *pcie)
+
+ 	/* Reset the bridge */
+ 	pcie->bridge_sw_init_set(pcie, 1);
++	pcie->perst_set(pcie, 1);
+ 	usleep_range(100, 200);
+
+ 	/* Take the bridge out of reset */
+diff --git a/drivers/pci/quirks.c b/drivers/pci/quirks.c
+index 653660e3ba9e..98851d00dc4d 100644
+--- a/drivers/pci/quirks.c
++++ b/drivers/pci/quirks.c
+@@ -4143,6 +4143,30 @@ DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_BROADCOM, 0x9000,
+ DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_BROADCOM, 0x9084,
+ 				quirk_bridge_cavm_thrx2_pcie_root);
+
++/*
++ * PCI BAR 5 is not setup correctly for the on-board AHCI controller
++ * on Broadcom's Vulcan processor. Added a quirk to fix BAR 5 by
++ * using BAR 4's resources which are populated correctly and NOT
++ * actually used by the AHCI controller.
++ */
++static void quirk_fix_vulcan_ahci_bars(struct pci_dev *dev)
++{
++	struct resource *r =  &dev->resource[4];
++
++	if (!(r->flags & IORESOURCE_MEM) || (r->start == 0))
++		return;
++
++	/* Set BAR5 resource to BAR4 */
++	dev->resource[5] = *r;
++
++	/* Update BAR5 in pci config space */
++	pci_write_config_dword(dev, PCI_BASE_ADDRESS_5, r->start);
++
++	/* Clear BAR4's resource */
++	memset(r, 0, sizeof(*r));
++}
++DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_BROADCOM, 0x9027, quirk_fix_vulcan_ahci_bars);
++
+ /*
+  * Intersil/Techwell TW686[4589]-based video capture cards have an empty (zero)
+  * class code.  Fix it.
+diff --git a/drivers/platform/x86/Kconfig b/drivers/platform/x86/Kconfig
+index ac4125ec0660..3a8ade8bb073 100644
+--- a/drivers/platform/x86/Kconfig
++++ b/drivers/platform/x86/Kconfig
+@@ -624,6 +624,7 @@ config IDEAPAD_LAPTOP
+ 	depends on BACKLIGHT_CLASS_DEVICE
+ 	depends on ACPI_VIDEO || ACPI_VIDEO = n
+ 	depends on ACPI_WMI || ACPI_WMI = n
++	select ACPI_PLATFORM_PROFILE
+ 	select INPUT_SPARSEKMAP
+ 	help
+ 	  This is a driver for Lenovo IdeaPad netbooks contains drivers for
+@@ -655,6 +656,7 @@ config THINKPAD_ACPI
+ 	depends on RFKILL || RFKILL = n
+ 	depends on ACPI_VIDEO || ACPI_VIDEO = n
+ 	depends on BACKLIGHT_CLASS_DEVICE
++	select ACPI_PLATFORM_PROFILE
+ 	select HWMON
+ 	select NVRAM
+ 	select NEW_LEDS
+diff --git a/drivers/platform/x86/ideapad-laptop.c b/drivers/platform/x86/ideapad-laptop.c
+index 5b81bafa5c16..cc42af2a0a98 100644
+--- a/drivers/platform/x86/ideapad-laptop.c
++++ b/drivers/platform/x86/ideapad-laptop.c
+@@ -15,6 +15,7 @@
+ #include <linux/acpi.h>
+ #include <linux/rfkill.h>
+ #include <linux/platform_device.h>
++#include <linux/platform_profile.h>
+ #include <linux/input.h>
+ #include <linux/input/sparse-keymap.h>
+ #include <linux/backlight.h>
+@@ -77,6 +78,13 @@ enum {
+ 	VPCCMD_W_BL_POWER = 0x33,
+ };
+
++struct ideapad_dytc_priv {
++	enum platform_profile_option current_profile;
++	struct platform_profile_handler pprof;
++	struct mutex mutex;
++	struct ideapad_private *priv;
++};
++
+ struct ideapad_rfk_priv {
+ 	int dev;
+ 	struct ideapad_private *priv;
+@@ -89,6 +97,7 @@ struct ideapad_private {
+ 	struct platform_device *platform_device;
+ 	struct input_dev *inputdev;
+ 	struct backlight_device *blightdev;
++	struct ideapad_dytc_priv *dytc;
+ 	struct dentry *debug;
+ 	unsigned long cfg;
+ 	bool has_hw_rfkill_switch;
+@@ -137,6 +146,28 @@ static int method_int1(acpi_handle handle, char *method, int cmd)
+ 	return ACPI_FAILURE(status) ? -1 : 0;
+ }
+
++static int method_dytc(acpi_handle handle, int cmd, int *ret)
++{
++	acpi_status status;
++	unsigned long long result;
++	struct acpi_object_list params;
++	union acpi_object in_obj;
++
++	params.count = 1;
++	params.pointer = &in_obj;
++	in_obj.type = ACPI_TYPE_INTEGER;
++	in_obj.integer.value = cmd;
++
++	status = acpi_evaluate_integer(handle, "DYTC", &params, &result);
++
++	if (ACPI_FAILURE(status)) {
++		*ret = -1;
++		return -1;
++	}
++	*ret = result;
++	return 0;
++}
++
+ static int method_vpcr(acpi_handle handle, int cmd, int *ret)
+ {
+ 	acpi_status status;
+@@ -549,6 +580,257 @@ static const struct attribute_group ideapad_attribute_group = {
+ 	.attrs = ideapad_attributes
+ };
+
++/*
++ * DYTC Platform profile
++ */
++#define DYTC_CMD_QUERY        0 /* To get DYTC status - enable/revision */
++#define DYTC_CMD_SET          1 /* To enable/disable IC function mode */
++#define DYTC_CMD_GET          2 /* To get current IC function and mode */
++#define DYTC_CMD_RESET    0x1ff /* To reset back to default */
++
++#define DYTC_QUERY_ENABLE_BIT 8  /* Bit        8 - 0 = disabled, 1 = enabled */
++#define DYTC_QUERY_SUBREV_BIT 16 /* Bits 16 - 27 - sub revision */
++#define DYTC_QUERY_REV_BIT    28 /* Bits 28 - 31 - revision */
++
++#define DYTC_GET_FUNCTION_BIT 8  /* Bits  8-11 - function setting */
++#define DYTC_GET_MODE_BIT     12 /* Bits 12-15 - mode setting */
++
++#define DYTC_SET_FUNCTION_BIT 12 /* Bits 12-15 - function setting */
++#define DYTC_SET_MODE_BIT     16 /* Bits 16-19 - mode setting */
++#define DYTC_SET_VALID_BIT    20 /* Bit     20 - 1 = on, 0 = off */
++
++#define DYTC_FUNCTION_STD     0  /* Function = 0, standard mode */
++#define DYTC_FUNCTION_CQL     1  /* Function = 1, lap mode */
++#define DYTC_FUNCTION_MMC     11 /* Function = 11, desk mode */
++
++#define DYTC_MODE_PERFORM     2  /* High power mode aka performance */
++#define DYTC_MODE_LOW_POWER       3  /* Low power mode aka quiet */
++#define DYTC_MODE_BALANCE   0xF  /* Default mode aka balanced */
++
++#define DYTC_SET_COMMAND(function, mode, on) \
++	(DYTC_CMD_SET | (function) << DYTC_SET_FUNCTION_BIT | \
++	 (mode) << DYTC_SET_MODE_BIT | \
++	 (on) << DYTC_SET_VALID_BIT)
++
++#define DYTC_DISABLE_CQL DYTC_SET_COMMAND(DYTC_FUNCTION_CQL, DYTC_MODE_BALANCE, 0)
++
++#define DYTC_ENABLE_CQL DYTC_SET_COMMAND(DYTC_FUNCTION_CQL, DYTC_MODE_BALANCE, 1)
++
++static int convert_dytc_to_profile(int dytcmode, enum platform_profile_option *profile)
++{
++	switch (dytcmode) {
++	case DYTC_MODE_LOW_POWER:
++		*profile = PLATFORM_PROFILE_LOW_POWER;
++		break;
++	case DYTC_MODE_BALANCE:
++		*profile =  PLATFORM_PROFILE_BALANCED;
++		break;
++	case DYTC_MODE_PERFORM:
++		*profile =  PLATFORM_PROFILE_PERFORMANCE;
++		break;
++	default: /* Unknown mode */
++		return -EINVAL;
++	}
++	return 0;
++}
++
++static int convert_profile_to_dytc(enum platform_profile_option profile, int *perfmode)
++{
++	switch (profile) {
++	case PLATFORM_PROFILE_LOW_POWER:
++		*perfmode = DYTC_MODE_LOW_POWER;
++		break;
++	case PLATFORM_PROFILE_BALANCED:
++		*perfmode = DYTC_MODE_BALANCE;
++		break;
++	case PLATFORM_PROFILE_PERFORMANCE:
++		*perfmode = DYTC_MODE_PERFORM;
++		break;
++	default: /* Unknown profile */
++		return -EOPNOTSUPP;
++	}
++	return 0;
++}
++
++/*
++ * dytc_profile_get: Function to register with platform_profile
++ * handler. Returns current platform profile.
++ */
++int dytc_profile_get(struct platform_profile_handler *pprof,
++			enum platform_profile_option *profile)
++{
++	struct ideapad_dytc_priv *dytc;
++
++	dytc = container_of(pprof, struct ideapad_dytc_priv, pprof);
++	*profile = dytc->current_profile;
++	return 0;
++}
++
++/*
++ * Helper function - check if we are in CQL mode and if we are
++ *  -  disable CQL,
++ *  - run the command
++ *  - enable CQL
++ *  If not in CQL mode, just run the command
++ */
++int dytc_cql_command(struct ideapad_private *priv, int command, int *output)
++{
++	int err, cmd_err, dummy;
++	int cur_funcmode;
++
++	/* Determine if we are in CQL mode. This alters the commands we do */
++	err = method_dytc(priv->adev->handle, DYTC_CMD_GET, output);
++	if (err)
++		return err;
++
++	cur_funcmode = (*output >> DYTC_GET_FUNCTION_BIT) & 0xF;
++	/* Check if we're OK to return immediately */
++	if ((command == DYTC_CMD_GET) && (cur_funcmode != DYTC_FUNCTION_CQL))
++		return 0;
++
++	if (cur_funcmode == DYTC_FUNCTION_CQL) {
++		err = method_dytc(priv->adev->handle, DYTC_DISABLE_CQL, &dummy);
++		if (err)
++			return err;
++	}
++
++	cmd_err = method_dytc(priv->adev->handle, command,	output);
++	/* Check return condition after we've restored CQL state */
++
++	if (cur_funcmode == DYTC_FUNCTION_CQL) {
++		err = method_dytc(priv->adev->handle, DYTC_ENABLE_CQL, &dummy);
++		if (err)
++			return err;
++	}
++
++	return cmd_err;
++}
++
++/*
++ * dytc_profile_set: Function to register with platform_profile
++ * handler. Sets current platform profile.
++ */
++int dytc_profile_set(struct platform_profile_handler *pprof,
++			enum platform_profile_option profile)
++{
++	struct ideapad_dytc_priv *dytc;
++	struct ideapad_private *priv;
++	int output;
++	int err;
++
++	dytc = container_of(pprof, struct ideapad_dytc_priv, pprof);
++	priv = dytc->priv;
++
++	err = mutex_lock_interruptible(&dytc->mutex);
++	if (err)
++		return err;
++
++	if (profile == PLATFORM_PROFILE_BALANCED) {
++		/* To get back to balanced mode we just issue a reset command */
++		err = method_dytc(priv->adev->handle, DYTC_CMD_RESET, &output);
++		if (err)
++			goto unlock;
++	} else {
++		int perfmode;
++
++		err = convert_profile_to_dytc(profile, &perfmode);
++		if (err)
++			goto unlock;
++
++		/* Determine if we are in CQL mode. This alters the commands we do */
++		err = dytc_cql_command(priv,
++				DYTC_SET_COMMAND(DYTC_FUNCTION_MMC, perfmode, 1),
++				&output);
++		if (err)
++			goto unlock;
++	}
++	/* Success - update current profile */
++	dytc->current_profile = profile;
++unlock:
++	mutex_unlock(&dytc->mutex);
++	return err;
++}
++
++static void dytc_profile_refresh(struct ideapad_private *priv)
++{
++	enum platform_profile_option profile;
++	int output, err;
++	int perfmode;
++
++	mutex_lock(&priv->dytc->mutex);
++	err = dytc_cql_command(priv, DYTC_CMD_GET, &output);
++	mutex_unlock(&priv->dytc->mutex);
++	if (err)
++		return;
++
++	perfmode = (output >> DYTC_GET_MODE_BIT) & 0xF;
++	convert_dytc_to_profile(perfmode, &profile);
++	if (profile != priv->dytc->current_profile) {
++		priv->dytc->current_profile = profile;
++		platform_profile_notify();
++	}
++}
++
++static int ideapad_dytc_profile_init(struct ideapad_private *priv)
++{
++	int err, output, dytc_version;
++
++	err = method_dytc(priv->adev->handle, DYTC_CMD_QUERY, &output);
++	/* For all other errors we can flag the failure */
++	if (err)
++		return err;
++
++	/* Check DYTC is enabled and supports mode setting */
++	if (!(output & BIT(DYTC_QUERY_ENABLE_BIT)))
++		return -ENODEV;
++
++	dytc_version = (output >> DYTC_QUERY_REV_BIT) & 0xF;
++	if (dytc_version < 5)
++		return -ENODEV;
++
++	priv->dytc = kzalloc(sizeof(struct ideapad_dytc_priv), GFP_KERNEL);
++	if (!priv->dytc)
++		return -ENOMEM;
++
++	mutex_init(&priv->dytc->mutex);
++
++	priv->dytc->priv = priv;
++	priv->dytc->pprof.profile_get = dytc_profile_get;
++	priv->dytc->pprof.profile_set = dytc_profile_set;
++
++	/* Setup supported modes */
++	set_bit(PLATFORM_PROFILE_LOW_POWER, priv->dytc->pprof.choices);
++	set_bit(PLATFORM_PROFILE_BALANCED, priv->dytc->pprof.choices);
++	set_bit(PLATFORM_PROFILE_PERFORMANCE, priv->dytc->pprof.choices);
++
++	/* Create platform_profile structure and register */
++	err = platform_profile_register(&priv->dytc->pprof);
++	if (err)
++		goto mutex_destroy;
++
++	/* Ensure initial values are correct */
++	dytc_profile_refresh(priv);
++
++	return 0;
++
++mutex_destroy:
++	mutex_destroy(&priv->dytc->mutex);
++	kfree(priv->dytc);
++	priv->dytc = NULL;
++	return err;
++}
++
++static void ideapad_dytc_profile_exit(struct ideapad_private *priv)
++{
++	if (!priv->dytc)
++		return;
++
++	platform_profile_remove();
++	mutex_destroy(&priv->dytc->mutex);
++	kfree(priv->dytc);
++	priv->dytc = NULL;
++}
++
+ /*
+  * Rfkill
+  */
+@@ -1026,6 +1308,8 @@ static int ideapad_acpi_add(struct platform_device *pdev)
+ 	ideapad_sync_rfk_state(priv);
+ 	ideapad_sync_touchpad_state(priv);
+
++	ideapad_dytc_profile_init(priv);
++
+ 	if (acpi_video_get_backlight_type() == acpi_backlight_vendor) {
+ 		ret = ideapad_backlight_init(priv);
+ 		if (ret && ret != -ENODEV)
+@@ -1079,6 +1363,7 @@ static int ideapad_acpi_remove(struct platform_device *pdev)
+ 	acpi_remove_notify_handler(priv->adev->handle,
+ 		ACPI_DEVICE_NOTIFY, ideapad_acpi_notify);
+ 	ideapad_backlight_exit(priv);
++	ideapad_dytc_profile_exit(priv);
+ 	for (i = 0; i < IDEAPAD_RFKILL_DEV_NUM; i++)
+ 		ideapad_unregister_rfkill(priv, i);
+ 	ideapad_input_exit(priv);
+@@ -1100,6 +1385,10 @@ static int ideapad_acpi_resume(struct device *device)
+
+ 	ideapad_sync_rfk_state(priv);
+ 	ideapad_sync_touchpad_state(priv);
++
++	if (priv->dytc)
++		dytc_profile_refresh(priv);
++
+ 	return 0;
+ }
+ #endif
+diff --git a/drivers/platform/x86/thinkpad_acpi.c b/drivers/platform/x86/thinkpad_acpi.c
+index 9f8da7155a89..9ecf7829b3d8 100644
+--- a/drivers/platform/x86/thinkpad_acpi.c
++++ b/drivers/platform/x86/thinkpad_acpi.c
+@@ -66,6 +66,7 @@
+ #include <linux/acpi.h>
+ #include <linux/pci.h>
+ #include <linux/power_supply.h>
++#include <linux/platform_profile.h>
+ #include <sound/core.h>
+ #include <sound/control.h>
+ #include <sound/initval.h>
+@@ -9850,6 +9851,11 @@ static struct ibm_struct lcdshadow_driver_data = {
+  * Thinkpad sensor interfaces
+  */
+
++#define DYTC_CMD_QUERY        0 /* To get DYTC status - enable/revision */
++#define DYTC_QUERY_ENABLE_BIT 8  /* Bit        8 - 0 = disabled, 1 = enabled */
++#define DYTC_QUERY_SUBREV_BIT 16 /* Bits 16 - 27 - sub revision */
++#define DYTC_QUERY_REV_BIT    28 /* Bits 28 - 31 - revision */
++
+ #define DYTC_CMD_GET          2 /* To get current IC function and mode */
+ #define DYTC_GET_LAPMODE_BIT 17 /* Set when in lapmode */
+
+@@ -9860,17 +9866,56 @@ static bool has_palmsensor;
+ static bool has_lapsensor;
+ static bool palm_state;
+ static bool lap_state;
++static int dytc_version;
+
+-static int lapsensor_get(bool *present, bool *state)
++static int dytc_command(int command, int *output)
+ {
+ 	acpi_handle dytc_handle;
+-	int output;
+
+-	*present = false;
+-	if (ACPI_FAILURE(acpi_get_handle(hkey_handle, "DYTC", &dytc_handle)))
++	if (ACPI_FAILURE(acpi_get_handle(hkey_handle, "DYTC", &dytc_handle))) {
++		/* Platform doesn't support DYTC */
+ 		return -ENODEV;
+-	if (!acpi_evalf(dytc_handle, &output, NULL, "dd", DYTC_CMD_GET))
++	}
++	if (!acpi_evalf(dytc_handle, output, NULL, "dd", command))
+ 		return -EIO;
++	return 0;
++}
++
++static int dytc_get_version(void)
++{
++	int err, output;
++
++	/* Check if we've been called before - and just return cached value */
++	if (dytc_version)
++		return dytc_version;
++
++	/* Otherwise query DYTC and extract version information */
++	err = dytc_command(DYTC_CMD_QUERY, &output);
++	/*
++	 * If support isn't available (ENODEV) then don't return an error
++	 * and don't create the sysfs group
++	 */
++	if (err == -ENODEV)
++		return 0;
++	/* For all other errors we can flag the failure */
++	if (err)
++		return err;
++
++	/* Check DYTC is enabled and supports mode setting */
++	if (output & BIT(DYTC_QUERY_ENABLE_BIT))
++		dytc_version = (output >> DYTC_QUERY_REV_BIT) & 0xF;
++
++	return 0;
++}
++
++static int lapsensor_get(bool *present, bool *state)
++{
++	int output, err;
++
++	*present = false;
++	err = dytc_command(DYTC_CMD_GET, &output);
++	if (err)
++		return err;
+
+ 	*present = true; /*If we get his far, we have lapmode support*/
+ 	*state = output & BIT(DYTC_GET_LAPMODE_BIT) ? true : false;
+@@ -9968,7 +10013,18 @@ static int tpacpi_proxsensor_init(struct ibm_init_struct *iibm)
+ 		if (err)
+ 			return err;
+ 	}
+-	if (has_lapsensor) {
++
++	/* Check if we know the DYTC version, if we don't then get it */
++	if (!dytc_version) {
++		err = dytc_get_version();
++		if (err)
++			return err;
++	}
++	/*
++	 * Platforms before DYTC version 5 claim to have a lap sensor, but it doesn't work, so we
++	 * ignore them
++	 */
++	if (has_lapsensor && (dytc_version >= 5)) {
+ 		err = sysfs_create_file(&tpacpi_pdev->dev.kobj, &dev_attr_dytc_lapmode.attr);
+ 		if (err)
+ 			return err;
+@@ -9989,6 +10045,434 @@ static struct ibm_struct proxsensor_driver_data = {
+ 	.exit = proxsensor_exit,
+ };
+
++/*************************************************************************
++ * DYTC Platform Profile interface
++ */
++
++#define DYTC_CMD_SET          1 /* To enable/disable IC function mode */
++#define DYTC_CMD_RESET    0x1ff /* To reset back to default */
++
++#define DYTC_GET_FUNCTION_BIT 8  /* Bits  8-11 - function setting */
++#define DYTC_GET_MODE_BIT     12 /* Bits 12-15 - mode setting */
++
++#define DYTC_SET_FUNCTION_BIT 12 /* Bits 12-15 - function setting */
++#define DYTC_SET_MODE_BIT     16 /* Bits 16-19 - mode setting */
++#define DYTC_SET_VALID_BIT    20 /* Bit     20 - 1 = on, 0 = off */
++
++#define DYTC_FUNCTION_STD     0  /* Function = 0, standard mode */
++#define DYTC_FUNCTION_CQL     1  /* Function = 1, lap mode */
++#define DYTC_FUNCTION_MMC     11 /* Function = 11, desk mode */
++
++#define DYTC_MODE_PERFORM     2  /* High power mode aka performance */
++#define DYTC_MODE_LOWPOWER    3  /* Low power mode */
++#define DYTC_MODE_BALANCE   0xF  /* Default mode aka balanced */
++
++#define DYTC_SET_COMMAND(function, mode, on) \
++	(DYTC_CMD_SET | (function) << DYTC_SET_FUNCTION_BIT | \
++	 (mode) << DYTC_SET_MODE_BIT | \
++	 (on) << DYTC_SET_VALID_BIT)
++
++#define DYTC_DISABLE_CQL DYTC_SET_COMMAND(DYTC_FUNCTION_CQL, DYTC_MODE_BALANCE, 0)
++
++#define DYTC_ENABLE_CQL DYTC_SET_COMMAND(DYTC_FUNCTION_CQL, DYTC_MODE_BALANCE, 1)
++
++static bool dytc_profile_available;
++static enum platform_profile_option dytc_current_profile;
++static atomic_t dytc_ignore_event = ATOMIC_INIT(0);
++static DEFINE_MUTEX(dytc_mutex);
++
++static int convert_dytc_to_profile(int dytcmode, enum platform_profile_option *profile)
++{
++	switch (dytcmode) {
++	case DYTC_MODE_LOWPOWER:
++		*profile = PLATFORM_PROFILE_LOW_POWER;
++		break;
++	case DYTC_MODE_BALANCE:
++		*profile =  PLATFORM_PROFILE_BALANCED;
++		break;
++	case DYTC_MODE_PERFORM:
++		*profile =  PLATFORM_PROFILE_PERFORMANCE;
++		break;
++	default: /* Unknown mode */
++		return -EINVAL;
++	}
++	return 0;
++}
++
++static int convert_profile_to_dytc(enum platform_profile_option profile, int *perfmode)
++{
++	switch (profile) {
++	case PLATFORM_PROFILE_LOW_POWER:
++		*perfmode = DYTC_MODE_LOWPOWER;
++		break;
++	case PLATFORM_PROFILE_BALANCED:
++		*perfmode = DYTC_MODE_BALANCE;
++		break;
++	case PLATFORM_PROFILE_PERFORMANCE:
++		*perfmode = DYTC_MODE_PERFORM;
++		break;
++	default: /* Unknown profile */
++		return -EOPNOTSUPP;
++	}
++	return 0;
++}
++
++/*
++ * dytc_profile_get: Function to register with platform_profile
++ * handler. Returns current platform profile.
++ */
++int dytc_profile_get(struct platform_profile_handler *pprof,
++			enum platform_profile_option *profile)
++{
++	*profile = dytc_current_profile;
++	return 0;
++}
++
++/*
++ * Helper function - check if we are in CQL mode and if we are
++ *  -  disable CQL,
++ *  - run the command
++ *  - enable CQL
++ *  If not in CQL mode, just run the command
++ */
++int dytc_cql_command(int command, int *output)
++{
++	int err, cmd_err, dummy;
++	int cur_funcmode;
++
++	/* Determine if we are in CQL mode. This alters the commands we do */
++	err = dytc_command(DYTC_CMD_GET, output);
++	if (err)
++		return err;
++
++	cur_funcmode = (*output >> DYTC_GET_FUNCTION_BIT) & 0xF;
++	/* Check if we're OK to return immediately */
++	if ((command == DYTC_CMD_GET) && (cur_funcmode != DYTC_FUNCTION_CQL))
++		return 0;
++
++	if (cur_funcmode == DYTC_FUNCTION_CQL) {
++		atomic_inc(&dytc_ignore_event);
++		err = dytc_command(DYTC_DISABLE_CQL, &dummy);
++		if (err)
++			return err;
++	}
++
++	cmd_err = dytc_command(command,	output);
++	/* Check return condition after we've restored CQL state */
++
++	if (cur_funcmode == DYTC_FUNCTION_CQL) {
++		err = dytc_command(DYTC_ENABLE_CQL, &dummy);
++		if (err)
++			return err;
++	}
++
++	return cmd_err;
++}
++
++/*
++ * dytc_profile_set: Function to register with platform_profile
++ * handler. Sets current platform profile.
++ */
++int dytc_profile_set(struct platform_profile_handler *pprof,
++			enum platform_profile_option profile)
++{
++	int output;
++	int err;
++
++	if (!dytc_profile_available)
++		return -ENODEV;
++
++	err = mutex_lock_interruptible(&dytc_mutex);
++	if (err)
++		return err;
++
++	if (profile == PLATFORM_PROFILE_BALANCED) {
++		/*
++		 * To get back to balanced mode we need to issue a reset command.
++		 * Note we still need to disable CQL mode before hand and re-enable
++		 * it afterwards, otherwise dytc_lapmode gets reset to 0 and stays
++		 * stuck at 0 for aprox. 30 minutes.
++		 */
++		err = dytc_cql_command(DYTC_CMD_RESET, &output);
++		if (err)
++			goto unlock;
++	} else {
++		int perfmode;
++
++		err = convert_profile_to_dytc(profile, &perfmode);
++		if (err)
++			goto unlock;
++
++		/* Determine if we are in CQL mode. This alters the commands we do */
++		err = dytc_cql_command(DYTC_SET_COMMAND(DYTC_FUNCTION_MMC, perfmode, 1), &output);
++		if (err)
++			goto unlock;
++	}
++	/* Success - update current profile */
++	dytc_current_profile = profile;
++unlock:
++	mutex_unlock(&dytc_mutex);
++	return err;
++}
++
++static void dytc_profile_refresh(void)
++{
++	enum platform_profile_option profile;
++	int output, err;
++	int perfmode;
++
++	mutex_lock(&dytc_mutex);
++	err = dytc_cql_command(DYTC_CMD_GET, &output);
++	mutex_unlock(&dytc_mutex);
++	if (err)
++		return;
++
++	perfmode = (output >> DYTC_GET_MODE_BIT) & 0xF;
++	convert_dytc_to_profile(perfmode, &profile);
++	if (profile != dytc_current_profile) {
++		dytc_current_profile = profile;
++		platform_profile_notify();
++	}
++}
++
++static struct platform_profile_handler dytc_profile = {
++	.profile_get = dytc_profile_get,
++	.profile_set = dytc_profile_set,
++};
++
++static int tpacpi_dytc_profile_init(struct ibm_init_struct *iibm)
++{
++	int err, output;
++
++	/* Setup supported modes */
++	set_bit(PLATFORM_PROFILE_LOW_POWER, dytc_profile.choices);
++	set_bit(PLATFORM_PROFILE_BALANCED, dytc_profile.choices);
++	set_bit(PLATFORM_PROFILE_PERFORMANCE, dytc_profile.choices);
++
++	dytc_profile_available = false;
++	err = dytc_command(DYTC_CMD_QUERY, &output);
++	/*
++	 * If support isn't available (ENODEV) then don't return an error
++	 * and don't create the sysfs group
++	 */
++	if (err == -ENODEV)
++		return 0;
++	/* For all other errors we can flag the failure */
++	if (err)
++		return err;
++
++	/* Check if we know the DYTC version, if we don't then get it */
++	if (!dytc_version) {
++		err = dytc_get_version();
++		if (err)
++			return err;
++	}
++	/* Check DYTC is enabled and supports mode setting */
++	if (dytc_version >= 5) {
++		dbg_printk(TPACPI_DBG_INIT,
++				"DYTC version %d: thermal mode available\n", dytc_version);
++		/* Create platform_profile structure and register */
++		err = platform_profile_register(&dytc_profile);
++		/*
++		 * If for some reason platform_profiles aren't enabled
++		 * don't quit terminally.
++		 */
++		if (err)
++			return 0;
++
++		dytc_profile_available = true;
++		/* Ensure initial values are correct */
++		dytc_profile_refresh();
++	}
++	return 0;
++}
++
++static void dytc_profile_exit(void)
++{
++	if (dytc_profile_available) {
++		dytc_profile_available = false;
++		platform_profile_remove();
++	}
++}
++
++static struct ibm_struct  dytc_profile_driver_data = {
++	.name = "dytc-profile",
++	.exit = dytc_profile_exit,
++};
++
++/*************************************************************************
++ * Keyboard language interface
++ */
++
++struct keyboard_lang_data {
++	const char *lang_str;
++	int lang_code;
++};
++
++static const struct keyboard_lang_data keyboard_lang_data[] = {
++	{"be", 0x080c},
++	{"cz", 0x0405},
++	{"da", 0x0406},
++	{"de", 0x0c07},
++	{"en", 0x0000},
++	{"es", 0x2c0a},
++	{"et", 0x0425},
++	{"fr", 0x040c},
++	{"fr-ch", 0x100c},
++	{"hu", 0x040e},
++	{"it", 0x0410},
++	{"jp", 0x0411},
++	{"nl", 0x0413},
++	{"nn", 0x0414},
++	{"pl", 0x0415},
++	{"pt", 0x0816},
++	{"sl", 0x041b},
++	{"sv", 0x081d},
++	{"tr", 0x041f},
++};
++
++static int set_keyboard_lang_command(int command)
++{
++	acpi_handle sskl_handle;
++	int output;
++
++	if (ACPI_FAILURE(acpi_get_handle(hkey_handle, "SSKL", &sskl_handle))) {
++		/* Platform doesn't support SSKL */
++		return -ENODEV;
++	}
++
++	if (!acpi_evalf(sskl_handle, &output, NULL, "dd", command))
++		return -EIO;
++
++	return 0;
++}
++
++static int get_keyboard_lang(int *output)
++{
++	acpi_handle gskl_handle;
++	int kbd_lang;
++
++	if (ACPI_FAILURE(acpi_get_handle(hkey_handle, "GSKL", &gskl_handle))) {
++		/* Platform doesn't support GSKL */
++		return -ENODEV;
++	}
++
++	if (!acpi_evalf(gskl_handle, &kbd_lang, NULL, "dd", 0x02000000))
++		return -EIO;
++
++	/*
++	 * METHOD_ERR gets returned on devices where there are no special (e.g. '=',
++	 * '(' and ')') keys which use layout dependent key-press emulation.
++	 */
++	if (kbd_lang & METHOD_ERR)
++		return -ENODEV;
++
++	*output = kbd_lang;
++
++	return 0;
++}
++
++/* sysfs keyboard language entry */
++static ssize_t keyboard_lang_show(struct device *dev,
++				struct device_attribute *attr,
++				char *buf)
++{
++	int output, err, i, len = 0;
++
++	err = get_keyboard_lang(&output);
++	if (err)
++		return err;
++
++	for (i = 0; i < ARRAY_SIZE(keyboard_lang_data); i++) {
++		if (i)
++			len += sysfs_emit_at(buf, len, "%s", " ");
++
++		if (output == keyboard_lang_data[i].lang_code) {
++			len += sysfs_emit_at(buf, len, "[%s]", keyboard_lang_data[i].lang_str);
++		} else {
++			len += sysfs_emit_at(buf, len, "%s", keyboard_lang_data[i].lang_str);
++		}
++	}
++	len += sysfs_emit_at(buf, len, "\n");
++
++	return len;
++}
++
++static ssize_t keyboard_lang_store(struct device *dev,
++				struct device_attribute *attr,
++				const char *buf, size_t count)
++{
++	int err, i;
++	bool lang_found = false;
++	int lang_code = 0;
++
++	for (i = 0; i < ARRAY_SIZE(keyboard_lang_data); i++) {
++		if (sysfs_streq(buf, keyboard_lang_data[i].lang_str)) {
++			lang_code = keyboard_lang_data[i].lang_code;
++			lang_found = true;
++			break;
++		}
++	}
++
++	if (lang_found) {
++		lang_code = lang_code | 1 << 24;
++
++		/* Set language code */
++		err = set_keyboard_lang_command(lang_code);
++		if (err)
++			return err;
++	} else {
++		dev_err(&tpacpi_pdev->dev, "Unknown Keyboard language. Ignoring\n");
++		return -EINVAL;
++	}
++
++	tpacpi_disclose_usertask(attr->attr.name,
++			"keyboard language is set to  %s\n", buf);
++
++	sysfs_notify(&tpacpi_pdev->dev.kobj, NULL, "keyboard_lang");
++
++	return count;
++}
++static DEVICE_ATTR_RW(keyboard_lang);
++
++static struct attribute *kbdlang_attributes[] = {
++	&dev_attr_keyboard_lang.attr,
++	NULL
++};
++
++static const struct attribute_group kbdlang_attr_group = {
++	.attrs = kbdlang_attributes,
++};
++
++static int tpacpi_kbdlang_init(struct ibm_init_struct *iibm)
++{
++	int err, output;
++
++	err = get_keyboard_lang(&output);
++	/*
++	 * If support isn't available (ENODEV) then don't return an error
++	 * just don't create the sysfs group.
++	 */
++	if (err == -ENODEV)
++		return 0;
++
++	if (err)
++		return err;
++
++	/* Platform supports this feature - create the sysfs file */
++	return sysfs_create_group(&tpacpi_pdev->dev.kobj, &kbdlang_attr_group);
++}
++
++static void kbdlang_exit(void)
++{
++	sysfs_remove_group(&tpacpi_pdev->dev.kobj, &kbdlang_attr_group);
++}
++
++static struct ibm_struct kbdlang_driver_data = {
++	.name = "kbdlang",
++	.exit = kbdlang_exit,
++};
++
+ /****************************************************************************
+  ****************************************************************************
+  *
+@@ -10037,8 +10521,12 @@ static void tpacpi_driver_event(const unsigned int hkey_event)
+ 		mutex_unlock(&kbdlight_mutex);
+ 	}
+
+-	if (hkey_event == TP_HKEY_EV_THM_CSM_COMPLETED)
++	if (hkey_event == TP_HKEY_EV_THM_CSM_COMPLETED) {
+ 		lapsensor_refresh();
++		/* If we are already accessing DYTC then skip dytc update */
++		if (!atomic_add_unless(&dytc_ignore_event, -1, 0))
++			dytc_profile_refresh();
++	}
+ }
+
+ static void hotkey_driver_event(const unsigned int scancode)
+@@ -10481,6 +10969,14 @@ static struct ibm_init_struct ibms_init[] __initdata = {
+ 		.init = tpacpi_proxsensor_init,
+ 		.data = &proxsensor_driver_data,
+ 	},
++	{
++		.init = tpacpi_dytc_profile_init,
++		.data = &dytc_profile_driver_data,
++	},
++	{
++		.init = tpacpi_kbdlang_init,
++		.data = &kbdlang_driver_data,
++	},
+ };
+
+ static int __init set_ibm_param(const char *val, const struct kernel_param *kp)
+diff --git a/drivers/scsi/smartpqi/smartpqi_init.c b/drivers/scsi/smartpqi/smartpqi_init.c
+index c53f456fbd09..ea190660c86e 100644
+--- a/drivers/scsi/smartpqi/smartpqi_init.c
++++ b/drivers/scsi/smartpqi/smartpqi_init.c
+@@ -8313,6 +8313,18 @@ static const struct pci_device_id pqi_pci_id_table[] = {
+ 		PCI_DEVICE_SUB(PCI_VENDOR_ID_ADAPTEC2, 0x028f,
+ 			       0x19e5, 0xd22c)
+ 	},
++	{
++		PCI_DEVICE_SUB(PCI_VENDOR_ID_ADAPTEC2, 0x028f,
++			       0x1bd4, 0x004a)
++	},
++	{
++		PCI_DEVICE_SUB(PCI_VENDOR_ID_ADAPTEC2, 0x028f,
++			       0x1bd4, 0x004b)
++	},
++	{
++		PCI_DEVICE_SUB(PCI_VENDOR_ID_ADAPTEC2, 0x028f,
++			       0x1bd4, 0x004c)
++	},
+ 	{
+ 		PCI_DEVICE_SUB(PCI_VENDOR_ID_ADAPTEC2, 0x028f,
+ 			       PCI_VENDOR_ID_ADAPTEC2, 0x0110)
+@@ -8453,6 +8465,10 @@ static const struct pci_device_id pqi_pci_id_table[] = {
+ 		PCI_DEVICE_SUB(PCI_VENDOR_ID_ADAPTEC2, 0x028f,
+ 			       PCI_VENDOR_ID_ADVANTECH, 0x8312)
+ 	},
++	{
++		PCI_DEVICE_SUB(PCI_VENDOR_ID_ADAPTEC2, 0x028f,
++			       PCI_VENDOR_ID_ADVANTECH, 0x8312)
++	},
+ 	{
+ 		PCI_DEVICE_SUB(PCI_VENDOR_ID_ADAPTEC2, 0x028f,
+ 			       PCI_VENDOR_ID_DELL, 0x1fe0)
+diff --git a/drivers/usb/core/hub.c b/drivers/usb/core/hub.c
+index 7f71218cc1e5..283fc0f41cd2 100644
+--- a/drivers/usb/core/hub.c
++++ b/drivers/usb/core/hub.c
+@@ -5532,6 +5532,13 @@ static void hub_event(struct work_struct *work)
+ 			(u16) hub->change_bits[0],
+ 			(u16) hub->event_bits[0]);
+
++	/* Don't disconnect USB-SATA on TrimSlice */
++	if (strcmp(dev_name(hdev->bus->controller), "tegra-ehci.0") == 0) {
++		if ((hdev->state == 7) && (hub->change_bits[0] == 0) &&
++				(hub->event_bits[0] == 0x2))
++			hub->event_bits[0] = 0;
++	}
++
+ 	/* Lock the device, then check to see if we were
+ 	 * disconnected while waiting for the lock to succeed. */
+ 	usb_lock_device(hdev);
+diff --git a/include/linux/efi.h b/include/linux/efi.h
+index 119262585e9b..7d67f0187c34 100644
+--- a/include/linux/efi.h
++++ b/include/linux/efi.h
+@@ -43,6 +43,8 @@
+ #define EFI_ABORTED		(21 | (1UL << (BITS_PER_LONG-1)))
+ #define EFI_SECURITY_VIOLATION	(26 | (1UL << (BITS_PER_LONG-1)))
+
++#define EFI_IS_ERROR(x)		((x) & (1UL << (BITS_PER_LONG-1)))
++
+ typedef unsigned long efi_status_t;
+ typedef u8 efi_bool_t;
+ typedef u16 efi_char16_t;		/* UNICODE character */
+@@ -788,6 +790,14 @@ extern int __init efi_setup_pcdp_console(char *);
+ #define EFI_MEM_ATTR		10	/* Did firmware publish an EFI_MEMORY_ATTRIBUTES table? */
+ #define EFI_MEM_NO_SOFT_RESERVE	11	/* Is the kernel configured to ignore soft reservations? */
+ #define EFI_PRESERVE_BS_REGIONS	12	/* Are EFI boot-services memory segments available? */
++#define EFI_SECURE_BOOT		13	/* Are we in Secure Boot mode? */
++
++enum efi_secureboot_mode {
++	efi_secureboot_mode_unset,
++	efi_secureboot_mode_unknown,
++	efi_secureboot_mode_disabled,
++	efi_secureboot_mode_enabled,
++};
+
+ #ifdef CONFIG_EFI
+ /*
+@@ -799,6 +809,8 @@ static inline bool efi_enabled(int feature)
+ }
+ extern void efi_reboot(enum reboot_mode reboot_mode, const char *__unused);
+
++extern void __init efi_set_secure_boot(enum efi_secureboot_mode mode);
++
+ bool __pure __efi_soft_reserve_enabled(void);
+
+ static inline bool __pure efi_soft_reserve_enabled(void)
+@@ -819,6 +831,8 @@ static inline bool efi_enabled(int feature)
+ static inline void
+ efi_reboot(enum reboot_mode reboot_mode, const char *__unused) {}
+
++static inline void efi_set_secure_boot(enum efi_secureboot_mode mode) {}
++
+ static inline bool efi_soft_reserve_enabled(void)
+ {
+ 	return false;
+@@ -831,6 +845,7 @@ static inline bool efi_rt_services_supported(unsigned int mask)
+ #endif
+
+ extern int efi_status_to_err(efi_status_t status);
++extern const char *efi_status_to_str(efi_status_t status);
+
+ /*
+  * Variable Attributes
+@@ -1083,13 +1098,6 @@ static inline bool efi_runtime_disabled(void) { return true; }
+ extern void efi_call_virt_check_flags(unsigned long flags, const char *call);
+ extern unsigned long efi_call_virt_save_flags(void);
+
+-enum efi_secureboot_mode {
+-	efi_secureboot_mode_unset,
+-	efi_secureboot_mode_unknown,
+-	efi_secureboot_mode_disabled,
+-	efi_secureboot_mode_enabled,
+-};
+-
+ static inline
+ enum efi_secureboot_mode efi_get_secureboot_mode(efi_get_variable_t *get_var)
+ {
+diff --git a/include/linux/lsm_hook_defs.h b/include/linux/lsm_hook_defs.h
+index 7aaa753b8608..8e164db118c3 100644
+--- a/include/linux/lsm_hook_defs.h
++++ b/include/linux/lsm_hook_defs.h
+@@ -385,6 +385,8 @@ LSM_HOOK(void, LSM_RET_VOID, bpf_prog_free_security, struct bpf_prog_aux *aux)
+ #endif /* CONFIG_BPF_SYSCALL */
+
+ LSM_HOOK(int, 0, locked_down, enum lockdown_reason what)
++LSM_HOOK(int, 0, lock_kernel_down, const char *where, enum lockdown_reason level)
++
+
+ #ifdef CONFIG_PERF_EVENTS
+ LSM_HOOK(int, 0, perf_event_open, struct perf_event_attr *attr, int type)
+diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+index a19adef1f088..57cce0d5c347 100644
+--- a/include/linux/lsm_hooks.h
++++ b/include/linux/lsm_hooks.h
+@@ -1520,6 +1520,12 @@
+  *
+  *     @what: kernel feature being accessed
+  *
++ * @lock_kernel_down
++ * 	Put the kernel into lock-down mode.
++ *
++ * 	@where: Where the lock-down is originating from (e.g. command line option)
++ * 	@level: The lock-down level (can only increase)
++ *
+  * Security hooks for perf events
+  *
+  * @perf_event_open:
+diff --git a/include/linux/pci-ecam.h b/include/linux/pci-ecam.h
+index 65d3d83015c3..fbdadd4d8377 100644
+--- a/include/linux/pci-ecam.h
++++ b/include/linux/pci-ecam.h
+@@ -85,6 +85,7 @@ extern const struct pci_ecam_ops pci_thunder_ecam_ops; /* Cavium ThunderX 1.x */
+ extern const struct pci_ecam_ops xgene_v1_pcie_ecam_ops; /* APM X-Gene PCIe v1 */
+ extern const struct pci_ecam_ops xgene_v2_pcie_ecam_ops; /* APM X-Gene PCIe v2.x */
+ extern const struct pci_ecam_ops al_pcie_ops;	/* Amazon Annapurna Labs PCIe */
++extern const struct pci_ecam_ops tegra194_pcie_ops; /* Tegra194 PCIe */
+ #endif
+
+ #if IS_ENABLED(CONFIG_PCI_HOST_COMMON)
+diff --git a/include/linux/platform_profile.h b/include/linux/platform_profile.h
+new file mode 100644
+index 000000000000..a26542d53058
+--- /dev/null
++++ b/include/linux/platform_profile.h
+@@ -0,0 +1,41 @@
++/* SPDX-License-Identifier: GPL-2.0-or-later */
++/*
++ * Platform profile sysfs interface
++ *
++ * See Documentation/ABI/testing/sysfs-platform_profile.rst for more
++ * information.
++ */
++
++#ifndef _PLATFORM_PROFILE_H_
++#define _PLATFORM_PROFILE_H_
++
++#include <linux/bitops.h>
++
++/*
++ * If more options are added please update profile_names
++ * array in platform-profile.c and sysfs-platform-profile.rst
++ * documentation.
++ */
++
++enum platform_profile_option {
++	PLATFORM_PROFILE_LOW_POWER,
++	PLATFORM_PROFILE_COOL,
++	PLATFORM_PROFILE_QUIET,
++	PLATFORM_PROFILE_BALANCED,
++	PLATFORM_PROFILE_PERFORMANCE,
++	PLATFORM_PROFILE_LAST, /*must always be last */
++};
++
++struct platform_profile_handler {
++	unsigned long choices[BITS_TO_LONGS(PLATFORM_PROFILE_LAST)];
++	int (*profile_get)(struct platform_profile_handler *pprof,
++				enum platform_profile_option *profile);
++	int (*profile_set)(struct platform_profile_handler *pprof,
++				enum platform_profile_option profile);
++};
++
++int platform_profile_register(struct platform_profile_handler *pprof);
++int platform_profile_remove(void);
++void platform_profile_notify(void);
++
++#endif  /*_PLATFORM_PROFILE_H_*/
+diff --git a/include/linux/rmi.h b/include/linux/rmi.h
+index ab7eea01ab42..fff7c5f737fc 100644
+--- a/include/linux/rmi.h
++++ b/include/linux/rmi.h
+@@ -364,6 +364,7 @@ struct rmi_driver_data {
+
+ 	struct rmi4_attn_data attn_data;
+ 	DECLARE_KFIFO(attn_fifo, struct rmi4_attn_data, 16);
++	struct work_struct attn_work;
+ };
+
+ int rmi_register_transport_device(struct rmi_transport_dev *xport);
+diff --git a/include/linux/security.h b/include/linux/security.h
+index c35ea0ffccd9..342d4579bf5c 100644
+--- a/include/linux/security.h
++++ b/include/linux/security.h
+@@ -457,6 +457,7 @@ int security_inode_notifysecctx(struct inode *inode, void *ctx, u32 ctxlen);
+ int security_inode_setsecctx(struct dentry *dentry, void *ctx, u32 ctxlen);
+ int security_inode_getsecctx(struct inode *inode, void **ctx, u32 *ctxlen);
+ int security_locked_down(enum lockdown_reason what);
++int security_lock_kernel_down(const char *where, enum lockdown_reason level);
+ #else /* CONFIG_SECURITY */
+
+ static inline int call_blocking_lsm_notifier(enum lsm_event event, void *data)
+@@ -1305,6 +1306,10 @@ static inline int security_locked_down(enum lockdown_reason what)
+ {
+ 	return 0;
+ }
++static inline int security_lock_kernel_down(const char *where, enum lockdown_reason level)
++{
++	return 0;
++}
+ #endif	/* CONFIG_SECURITY */
+
+ #if defined(CONFIG_SECURITY) && defined(CONFIG_WATCH_QUEUE)
+diff --git a/kernel/crash_core.c b/kernel/crash_core.c
+index 825284baaf46..0b2b3f510b16 100644
+--- a/kernel/crash_core.c
++++ b/kernel/crash_core.c
+@@ -7,6 +7,7 @@
+ #include <linux/crash_core.h>
+ #include <linux/utsname.h>
+ #include <linux/vmalloc.h>
++#include <linux/sizes.h>
+
+ #include <asm/page.h>
+ #include <asm/sections.h>
+@@ -41,6 +42,15 @@ static int __init parse_crashkernel_mem(char *cmdline,
+ 					unsigned long long *crash_base)
+ {
+ 	char *cur = cmdline, *tmp;
++	unsigned long long total_mem = system_ram;
++
++	/*
++	 * Firmware sometimes reserves some memory regions for it's own use.
++	 * so we get less than actual system memory size.
++	 * Workaround this by round up the total size to 128M which is
++	 * enough for most test cases.
++	 */
++	total_mem = roundup(total_mem, SZ_128M);
+
+ 	/* for each entry of the comma-separated list */
+ 	do {
+@@ -85,13 +95,13 @@ static int __init parse_crashkernel_mem(char *cmdline,
+ 			return -EINVAL;
+ 		}
+ 		cur = tmp;
+-		if (size >= system_ram) {
++		if (size >= total_mem) {
+ 			pr_warn("crashkernel: invalid size\n");
+ 			return -EINVAL;
+ 		}
+
+ 		/* match ? */
+-		if (system_ram >= start && system_ram < end) {
++		if (total_mem >= start && total_mem < end) {
+ 			*crash_size = size;
+ 			break;
+ 		}
+@@ -250,6 +260,20 @@ static int __init __parse_crashkernel(char *cmdline,
+ 	if (suffix)
+ 		return parse_crashkernel_suffix(ck_cmdline, crash_size,
+ 				suffix);
++
++	if (strncmp(ck_cmdline, "auto", 4) == 0) {
++#ifdef CONFIG_X86_64
++		ck_cmdline = "1G-64G:160M,64G-1T:256M,1T-:512M";
++#elif defined(CONFIG_S390)
++		ck_cmdline = "4G-64G:160M,64G-1T:256M,1T-:512M";
++#elif defined(CONFIG_ARM64)
++		ck_cmdline = "2G-:512M";
++#elif defined(CONFIG_PPC64)
++		ck_cmdline = "2G-4G:384M,4G-16G:512M,16G-64G:1G,64G-128G:2G,128G-:4G";
++#endif
++		pr_info("Using crashkernel=auto, the size chosen is a best effort estimation.\n");
++	}
++
+ 	/*
+ 	 * if the commandline contains a ':', then that's the extended
+ 	 * syntax -- if not, it must be the classic syntax
+diff --git a/kernel/module_signing.c b/kernel/module_signing.c
+index 8723ae70ea1f..fb2d773498c2 100644
+--- a/kernel/module_signing.c
++++ b/kernel/module_signing.c
+@@ -38,8 +38,15 @@ int mod_verify_sig(const void *mod, struct load_info *info)
+ 	modlen -= sig_len + sizeof(ms);
+ 	info->len = modlen;
+
+-	return verify_pkcs7_signature(mod, modlen, mod + modlen, sig_len,
++	ret = verify_pkcs7_signature(mod, modlen, mod + modlen, sig_len,
+ 				      VERIFY_USE_SECONDARY_KEYRING,
+ 				      VERIFYING_MODULE_SIGNATURE,
+ 				      NULL, NULL);
++	if (ret == -ENOKEY && IS_ENABLED(CONFIG_INTEGRITY_PLATFORM_KEYRING)) {
++		ret = verify_pkcs7_signature(mod, modlen, mod + modlen, sig_len,
++				VERIFY_USE_PLATFORM_KEYRING,
++				VERIFYING_MODULE_SIGNATURE,
++				NULL, NULL);
++	}
++	return ret;
+ }
+diff --git a/mm/kmemleak.c b/mm/kmemleak.c
+index c0014d3b91c1..c00e9820412a 100644
+--- a/mm/kmemleak.c
++++ b/mm/kmemleak.c
+@@ -1960,6 +1960,11 @@ void __init kmemleak_init(void)
+  */
+ static int __init kmemleak_late_init(void)
+ {
++	if (!kmemleak_skip_disable) {
++		kmemleak_disable();
++		return 0;
++	}
++
+ 	kmemleak_initialized = 1;
+
+ 	debugfs_create_file("kmemleak", 0644, NULL, NULL, &kmemleak_fops);
+diff --git a/security/integrity/platform_certs/load_uefi.c b/security/integrity/platform_certs/load_uefi.c
+index ee4b4c666854..eff9ff593405 100644
+--- a/security/integrity/platform_certs/load_uefi.c
++++ b/security/integrity/platform_certs/load_uefi.c
+@@ -46,7 +46,8 @@ static __init void *get_cert_list(efi_char16_t *name, efi_guid_t *guid,
+ 		return NULL;
+
+ 	if (*status != EFI_BUFFER_TOO_SMALL) {
+-		pr_err("Couldn't get size: 0x%lx\n", *status);
++		pr_err("Couldn't get size: %s (0x%lx)\n",
++		       efi_status_to_str(*status), *status);
+ 		return NULL;
+ 	}
+
+@@ -57,7 +58,8 @@ static __init void *get_cert_list(efi_char16_t *name, efi_guid_t *guid,
+ 	*status = efi.get_variable(name, guid, NULL, &lsize, db);
+ 	if (*status != EFI_SUCCESS) {
+ 		kfree(db);
+-		pr_err("Error reading db var: 0x%lx\n", *status);
++		pr_err("Error reading db var: %s (0x%lx)\n",
++		       efi_status_to_str(*status), *status);
+ 		return NULL;
+ 	}
+
+diff --git a/security/lockdown/Kconfig b/security/lockdown/Kconfig
+index e84ddf484010..d0501353a4b9 100644
+--- a/security/lockdown/Kconfig
++++ b/security/lockdown/Kconfig
+@@ -16,6 +16,19 @@ config SECURITY_LOCKDOWN_LSM_EARLY
+ 	  subsystem is fully initialised. If enabled, lockdown will
+ 	  unconditionally be called before any other LSMs.
+
++config LOCK_DOWN_IN_EFI_SECURE_BOOT
++	bool "Lock down the kernel in EFI Secure Boot mode"
++	default n
++	depends on EFI && SECURITY_LOCKDOWN_LSM_EARLY
++	help
++	  UEFI Secure Boot provides a mechanism for ensuring that the firmware
++	  will only load signed bootloaders and kernels.  Secure boot mode may
++	  be determined from EFI variables provided by the system firmware if
++	  not indicated by the boot parameters.
++
++	  Enabling this option results in kernel lockdown being triggered if
++	  EFI Secure Boot is set.
++
+ choice
+ 	prompt "Kernel default lockdown mode"
+ 	default LOCK_DOWN_KERNEL_FORCE_NONE
+diff --git a/security/lockdown/lockdown.c b/security/lockdown/lockdown.c
+index 87cbdc64d272..18555cf18da7 100644
+--- a/security/lockdown/lockdown.c
++++ b/security/lockdown/lockdown.c
+@@ -73,6 +73,7 @@ static int lockdown_is_locked_down(enum lockdown_reason what)
+
+ static struct security_hook_list lockdown_hooks[] __lsm_ro_after_init = {
+ 	LSM_HOOK_INIT(locked_down, lockdown_is_locked_down),
++	LSM_HOOK_INIT(lock_kernel_down, lock_kernel_down),
+ };
+
+ static int __init lockdown_lsm_init(void)
+diff --git a/security/security.c b/security/security.c
+index 7b09cfbae94f..e1c7bda4de13 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -2534,6 +2534,12 @@ int security_locked_down(enum lockdown_reason what)
+ }
+ EXPORT_SYMBOL(security_locked_down);
+
++int security_lock_kernel_down(const char *where, enum lockdown_reason level)
++{
++	return call_int_hook(lock_kernel_down, 0, where, level);
++}
++EXPORT_SYMBOL(security_lock_kernel_down);
++
+ #ifdef CONFIG_PERF_EVENTS
+ int security_perf_event_open(struct perf_event_attr *attr, int type)
+ {
+diff --git a/sound/hda/Kconfig b/sound/hda/Kconfig
+index 3bc9224d5e4f..9ed5cfa3c18c 100644
+--- a/sound/hda/Kconfig
++++ b/sound/hda/Kconfig
+@@ -46,3 +46,17 @@ config SND_INTEL_DSP_CONFIG
+ 	select SND_INTEL_NHLT if ACPI
+ 	# this config should be selected only for Intel DSP platforms.
+ 	# A fallback is provided so that the code compiles in all cases.
++
++config SND_INTEL_BYT_PREFER_SOF
++	bool "Prefer SOF driver over SST on BY/CHT platforms"
++	depends on SND_SST_ATOM_HIFI2_PLATFORM_ACPI && SND_SOC_SOF_BAYTRAIL
++	default n
++	help
++	  The kernel has 2 drivers for the Low Power Engine audio-block on
++	  Bay- and Cherry-Trail SoCs. The old SST driver and the new SOF
++	  driver. If both drivers are enabled then the kernel will default
++	  to using the old SST driver, unless told otherwise through the
++	  snd_intel_dspcfg.dsp_driver module-parameter.
++
++	  Set this option to Y to make the kernel default to the new SOF
++	  driver instead.
+diff --git a/sound/hda/intel-dsp-config.c b/sound/hda/intel-dsp-config.c
+index c45686172517..68bb977c6a37 100644
+--- a/sound/hda/intel-dsp-config.c
++++ b/sound/hda/intel-dsp-config.c
+@@ -452,35 +452,30 @@ int snd_intel_dsp_driver_probe(struct pci_dev *pci)
+ }
+ EXPORT_SYMBOL_GPL(snd_intel_dsp_driver_probe);
+
++/* Should we default to SOF or SST for BYT/CHT ? */
++#if IS_ENABLED(CONFIG_SND_INTEL_BYT_PREFER_SOF) || \
++    !IS_ENABLED(CONFIG_SND_SST_ATOM_HIFI2_PLATFORM_ACPI)
++#define FLAG_SST_OR_SOF_BYT	FLAG_SOF
++#else
++#define FLAG_SST_OR_SOF_BYT	FLAG_SST
++#endif
++
+ /*
+  * configuration table
+  * - the order of similar ACPI ID entries is important!
+  * - the first successful match will win
+  */
+ static const struct config_entry acpi_config_table[] = {
++#if IS_ENABLED(CONFIG_SND_SST_ATOM_HIFI2_PLATFORM_ACPI) || \
++    IS_ENABLED(CONFIG_SND_SOC_SOF_BAYTRAIL)
+ /* BayTrail */
+-#if IS_ENABLED(CONFIG_SND_SST_ATOM_HIFI2_PLATFORM_ACPI)
+-	{
+-		.flags = FLAG_SST,
+-		.acpi_hid = "80860F28",
+-	},
+-#endif
+-#if IS_ENABLED(CONFIG_SND_SOC_SOF_BAYTRAIL)
+ 	{
+-		.flags = FLAG_SOF,
++		.flags = FLAG_SST_OR_SOF_BYT,
+ 		.acpi_hid = "80860F28",
+ 	},
+-#endif
+ /* CherryTrail */
+-#if IS_ENABLED(CONFIG_SND_SST_ATOM_HIFI2_PLATFORM_ACPI)
+-	{
+-		.flags = FLAG_SST,
+-		.acpi_hid = "808622A8",
+-	},
+-#endif
+-#if IS_ENABLED(CONFIG_SND_SOC_SOF_BAYTRAIL)
+ 	{
+-		.flags = FLAG_SOF,
++		.flags = FLAG_SST_OR_SOF_BYT,
+ 		.acpi_hid = "808622A8",
+ 	},
+ #endif
+diff --git a/sound/soc/sof/intel/apl.c b/sound/soc/sof/intel/apl.c
+index fc29b91b8932..c7ed2b3d6abc 100644
+--- a/sound/soc/sof/intel/apl.c
++++ b/sound/soc/sof/intel/apl.c
+@@ -27,9 +27,10 @@ static const struct snd_sof_debugfs_map apl_dsp_debugfs[] = {
+
+ /* apollolake ops */
+ const struct snd_sof_dsp_ops sof_apl_ops = {
+-	/* probe and remove */
++	/* probe/remove/shutdown */
+ 	.probe		= hda_dsp_probe,
+ 	.remove		= hda_dsp_remove,
++	.shutdown	= hda_dsp_shutdown,
+
+ 	/* Register IO */
+ 	.write		= sof_io_write,
+diff --git a/sound/soc/sof/intel/cnl.c b/sound/soc/sof/intel/cnl.c
+index e38db519f38d..094cde17a1b7 100644
+--- a/sound/soc/sof/intel/cnl.c
++++ b/sound/soc/sof/intel/cnl.c
+@@ -232,9 +232,10 @@ void cnl_ipc_dump(struct snd_sof_dev *sdev)
+
+ /* cannonlake ops */
+ const struct snd_sof_dsp_ops sof_cnl_ops = {
+-	/* probe and remove */
++	/* probe/remove/shutdown */
+ 	.probe		= hda_dsp_probe,
+ 	.remove		= hda_dsp_remove,
++	.shutdown	= hda_dsp_shutdown,
+
+ 	/* Register IO */
+ 	.write		= sof_io_write,
+diff --git a/sound/soc/sof/intel/hda-dsp.c b/sound/soc/sof/intel/hda-dsp.c
+index ea8e7ad8684d..d87cc16d53f6 100644
+--- a/sound/soc/sof/intel/hda-dsp.c
++++ b/sound/soc/sof/intel/hda-dsp.c
+@@ -892,6 +892,12 @@ int hda_dsp_suspend(struct snd_sof_dev *sdev, u32 target_state)
+ 	return snd_sof_dsp_set_power_state(sdev, &target_dsp_state);
+ }
+
++int hda_dsp_shutdown(struct snd_sof_dev *sdev)
++{
++	sdev->system_suspend_target = SOF_SUSPEND_S3;
++	return snd_sof_suspend(sdev->dev);
++}
++
+ int hda_dsp_set_hw_params_upon_resume(struct snd_sof_dev *sdev)
+ {
+ #if IS_ENABLED(CONFIG_SND_SOC_SOF_HDA)
+diff --git a/sound/soc/sof/intel/hda.h b/sound/soc/sof/intel/hda.h
+index a3b6f3e9121c..010577885913 100644
+--- a/sound/soc/sof/intel/hda.h
++++ b/sound/soc/sof/intel/hda.h
+@@ -512,6 +512,7 @@ int hda_dsp_resume(struct snd_sof_dev *sdev);
+ int hda_dsp_runtime_suspend(struct snd_sof_dev *sdev);
+ int hda_dsp_runtime_resume(struct snd_sof_dev *sdev);
+ int hda_dsp_runtime_idle(struct snd_sof_dev *sdev);
++int hda_dsp_shutdown(struct snd_sof_dev *sdev);
+ int hda_dsp_set_hw_params_upon_resume(struct snd_sof_dev *sdev);
+ void hda_dsp_dump_skl(struct snd_sof_dev *sdev, u32 flags);
+ void hda_dsp_dump(struct snd_sof_dev *sdev, u32 flags);
+diff --git a/sound/soc/sof/intel/icl.c b/sound/soc/sof/intel/icl.c
+index e9d5a0a58504..88a74be8a0c1 100644
+--- a/sound/soc/sof/intel/icl.c
++++ b/sound/soc/sof/intel/icl.c
+@@ -26,9 +26,10 @@ static const struct snd_sof_debugfs_map icl_dsp_debugfs[] = {
+
+ /* Icelake ops */
+ const struct snd_sof_dsp_ops sof_icl_ops = {
+-	/* probe and remove */
++	/* probe/remove/shutdown */
+ 	.probe		= hda_dsp_probe,
+ 	.remove		= hda_dsp_remove,
++	.shutdown	= hda_dsp_shutdown,
+
+ 	/* Register IO */
+ 	.write		= sof_io_write,
+diff --git a/sound/soc/sof/intel/tgl.c b/sound/soc/sof/intel/tgl.c
+index 2252ca38ff4b..4f661f042d4d 100644
+--- a/sound/soc/sof/intel/tgl.c
++++ b/sound/soc/sof/intel/tgl.c
+@@ -25,6 +25,7 @@ const struct snd_sof_dsp_ops sof_tgl_ops = {
+ 	/* probe and remove */
+ 	.probe		= hda_dsp_probe,
+ 	.remove		= hda_dsp_remove,
++	.shutdown       = hda_dsp_shutdown,
+
+ 	/* Register IO */
+ 	.write		= sof_io_write,
+diff --git a/sound/soc/sof/ops.h b/sound/soc/sof/ops.h
+index 95e748b36903..7562097bd7d5 100644
+--- a/sound/soc/sof/ops.h
++++ b/sound/soc/sof/ops.h
+@@ -37,6 +37,14 @@ static inline int snd_sof_remove(struct snd_sof_dev *sdev)
+ 	return 0;
+ }
+
++static inline int snd_sof_shutdown(struct snd_sof_dev *sdev)
++{
++	if (sof_ops(sdev)->shutdown)
++		return sof_ops(sdev)->shutdown(sdev);
++
++	return 0;
++}
++
+ /* control */
+
+ /*
+diff --git a/sound/soc/sof/sof-pci-dev.c b/sound/soc/sof/sof-pci-dev.c
+index 9adf50b20a73..a93b3aa6349c 100644
+--- a/sound/soc/sof/sof-pci-dev.c
++++ b/sound/soc/sof/sof-pci-dev.c
+@@ -269,7 +269,7 @@ static const struct sof_dev_desc ehl_desc = {
+ 	.default_tplg_path = "intel/sof-tplg",
+ 	.default_fw_filename = "sof-ehl.ri",
+ 	.nocodec_tplg_filename = "sof-ehl-nocodec.tplg",
+-	.ops = &sof_cnl_ops,
++	.ops = &sof_tgl_ops,
+ };
+ #endif
+
+diff --git a/sound/soc/sof/sof-priv.h b/sound/soc/sof/sof-priv.h
+index 68da8f797403..8d0c33c6d053 100644
+--- a/sound/soc/sof/sof-priv.h
++++ b/sound/soc/sof/sof-priv.h
+@@ -98,9 +98,10 @@ struct snd_sof_pdata;
+  */
+ struct snd_sof_dsp_ops {
+
+-	/* probe and remove */
++	/* probe/remove/shutdown */
+ 	int (*probe)(struct snd_sof_dev *sof_dev); /* mandatory */
+ 	int (*remove)(struct snd_sof_dev *sof_dev); /* optional */
++	int (*shutdown)(struct snd_sof_dev *sof_dev); /* optional */
+
+ 	/* DSP core boot / reset */
+ 	int (*run)(struct snd_sof_dev *sof_dev); /* mandatory */
+@@ -460,6 +461,7 @@ struct snd_sof_dev {
+
+ int snd_sof_device_probe(struct device *dev, struct snd_sof_pdata *plat_data);
+ int snd_sof_device_remove(struct device *dev);
++int snd_sof_device_shutdown(struct device *dev);
+
+ int snd_sof_runtime_suspend(struct device *dev);
+ int snd_sof_runtime_resume(struct device *dev);

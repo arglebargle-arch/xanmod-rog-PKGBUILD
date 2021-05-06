@@ -1,0 +1,45 @@
+From 0cf7e9098a1d59e5349974d6b03558e61dbc562c Mon Sep 17 00:00:00 2001
+From: Alex Deucher <alexander.deucher@amd.com>
+Date: Tue, 16 Mar 2021 14:15:44 -0400
+Subject: [PATCH 10/18] drm/amdgpu: skip CG/PG for gfx during S0ix
+
+Not needed as the device is in gfxoff state so the CG/PG state
+is handled just like it would be for gfxoff during runtime gfxoff.
+
+This should also prevent delays on resume.
+
+Signed-off-by: Alex Deucher <alexander.deucher@amd.com>
+Cc: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
+---
+ drivers/gpu/drm/amd/amdgpu/amdgpu_device.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_device.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_device.c
+index 5e2020c37..4082b3d63 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_device.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_device.c
+@@ -2359,6 +2359,10 @@ static int amdgpu_device_set_cg_state(struct amdgpu_device *adev,
+ 		i = state == AMD_CG_STATE_GATE ? j : adev->num_ip_blocks - j - 1;
+ 		if (!adev->ip_blocks[i].status.late_initialized)
+ 			continue;
++		/* skip CG for GFX on S0ix */
++		if (adev->in_s0ix &&
++		    adev->ip_blocks[i].version->type == AMD_IP_BLOCK_TYPE_GFX)
++			continue;
+ 		/* skip CG for VCE/UVD, it's handled specially */
+ 		if (adev->ip_blocks[i].version->type != AMD_IP_BLOCK_TYPE_UVD &&
+ 		    adev->ip_blocks[i].version->type != AMD_IP_BLOCK_TYPE_VCE &&
+@@ -2390,6 +2394,10 @@ static int amdgpu_device_set_pg_state(struct amdgpu_device *adev, enum amd_power
+ 		i = state == AMD_PG_STATE_GATE ? j : adev->num_ip_blocks - j - 1;
+ 		if (!adev->ip_blocks[i].status.late_initialized)
+ 			continue;
++		/* skip PG for GFX on S0ix */
++		if (adev->in_s0ix &&
++		    adev->ip_blocks[i].version->type == AMD_IP_BLOCK_TYPE_GFX)
++			continue;
+ 		/* skip CG for VCE/UVD, it's handled specially */
+ 		if (adev->ip_blocks[i].version->type != AMD_IP_BLOCK_TYPE_UVD &&
+ 		    adev->ip_blocks[i].version->type != AMD_IP_BLOCK_TYPE_VCE &&
+-- 
+2.31.1
+

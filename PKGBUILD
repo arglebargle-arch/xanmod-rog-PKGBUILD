@@ -127,11 +127,15 @@ prepare() {
   # ASUS-linux patches
   # --
 
+  # these patches are a moving target and Luke rebases his patch set often so instead of pulling from a commit in the repo
+  # during package build (which may be gone by the time someone else builds this package) I pull the repo as a submodule and
+  # store asus-linux/{*patch,kernel.spec} in tree under asus-linux-patch/
+
   # this will apply all enabled patches from the fedora-linux kernel.spec
-  for src in $(awk -F ' ' '/^ApplyOptionalPatch.*patch$/{print $2}' ../fedora-kernel/kernel.spec \
+  for src in $(awk -F ' ' '/^ApplyOptionalPatch.*patch$/{print $2}' ${startdir}/asus-linux-patches/kernel.spec \
     );
+    # insert the next line just above to filter out the redhat and test patches
     #| grep -Ev '\-(redhat|test)\.patch' );
-    # swap comments on the two lines above to filter redhat & test patches
   do
     src="${src%%::*}"
     src="${src##*/}"
@@ -145,8 +149,8 @@ prepare() {
     # TODO: this doesn't handle partially applied patches perfectly;
     # if a portion of the patch succeeds we'll proceed, but dump debug output.
     # this works for the one partially applied patch in this set (the redhat patch)
-    # but could cause problems in other situations so caveat programmator
-    OUT="$(patch --forward -Np1 < "../fedora-kernel/$src")" || \
+    # but could cause problems later for other half-applied patches so caveat programmator
+    OUT="$(patch --forward -Np1 < "${startdir}/asus-linux-patches/$src")" || \
       ( echo "$OUT"; (echo "${OUT}" | grep "Skipping patch" -q;) || false;)
   done
 

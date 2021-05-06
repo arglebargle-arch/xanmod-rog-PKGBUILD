@@ -1,0 +1,162 @@
+From b845886f4e39890cfae7c0b62d744f1472515bfd Mon Sep 17 00:00:00 2001
+From: Alex Deucher <alexander.deucher@amd.com>
+Date: Fri, 12 Mar 2021 15:22:36 -0500
+Subject: [PATCH 03/18] drm/amdgpu: rework S3/S4/S0ix state handling
+
+Set flags at the top level pmops callbacks to track
+state.  This cleans up the current set of flags and
+properly handles S4 on S0ix capable systems.
+
+Signed-off-by: Alex Deucher <alexander.deucher@amd.com>
+---
+ drivers/gpu/drm/amd/amdgpu/amdgpu.h        | 10 +++-----
+ drivers/gpu/drm/amd/amdgpu/amdgpu_device.c | 12 +++------
+ drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c    | 30 +++++++++++++---------
+ drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c  |  2 +-
+ 4 files changed, 25 insertions(+), 29 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu.h b/drivers/gpu/drm/amd/amdgpu/amdgpu.h
+index ccdf508ac..6d0ae92b7 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu.h
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu.h
+@@ -1002,13 +1002,9 @@ struct amdgpu_device {
+ 
+ 	/* s3/s4 mask */
+ 	bool                            in_suspend;
+-	bool				in_hibernate;
+-
+-	/*
+-	 * The combination flag in_poweroff_reboot_com used to identify the poweroff
+-	 * and reboot opt in the s0i3 system-wide suspend.
+-	 */
+-	bool 				in_poweroff_reboot_com;
++	bool				in_s3;
++	bool				in_s4;
++	bool				in_s0ix;
+ 
+ 	atomic_t 			in_gpu_reset;
+ 	enum pp_mp1_state               mp1_state;
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_device.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_device.c
+index c52299b2a..5a8b0e996 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_device.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_device.c
+@@ -2666,8 +2666,7 @@ static int amdgpu_device_ip_suspend_phase1(struct amdgpu_device *adev)
+ {
+ 	int i, r;
+ 
+-	if (adev->in_poweroff_reboot_com || adev->in_hibernate ||
+-	    !amdgpu_acpi_is_s0ix_supported(adev) || amdgpu_in_reset(adev)) {
++	if (!adev->in_s0ix || amdgpu_in_reset(adev)) {
+ 		amdgpu_device_set_pg_state(adev, AMD_PG_STATE_UNGATE);
+ 		amdgpu_device_set_cg_state(adev, AMD_CG_STATE_UNGATE);
+ 	}
+@@ -3726,12 +3725,7 @@ int amdgpu_device_suspend(struct drm_device *dev, bool fbcon)
+ 
+ 	amdgpu_fence_driver_suspend(adev);
+ 
+-	/*
+-	 * TODO: Need figure out the each GNB IP idle off dependency and then
+-	 * improve the AMDGPU suspend/resume sequence for system-wide Sx entry/exit.
+-	 */
+-	if (adev->in_poweroff_reboot_com || adev->in_hibernate ||
+-	    !amdgpu_acpi_is_s0ix_supported(adev) || amdgpu_in_reset(adev))
++	if (!adev->in_s0ix || amdgpu_in_reset(adev))
+ 		r = amdgpu_device_ip_suspend_phase2(adev);
+ 	else
+ 		amdgpu_gfx_state_change_set(adev, sGpuChangeState_D3Entry);
+@@ -3765,7 +3759,7 @@ int amdgpu_device_resume(struct drm_device *dev, bool fbcon)
+ 	if (dev->switch_power_state == DRM_SWITCH_POWER_OFF)
+ 		return 0;
+ 
+-	if (amdgpu_acpi_is_s0ix_supported(adev))
++	if (adev->in_s0ix)
+ 		amdgpu_gfx_state_change_set(adev, sGpuChangeState_D0Entry);
+ 
+ 	/* post card */
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
+index 82cb2ade8..697ab1564 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
+@@ -1271,24 +1271,35 @@ amdgpu_pci_shutdown(struct pci_dev *pdev)
+ 	 */
+ 	if (!amdgpu_passthrough(adev))
+ 		adev->mp1_state = PP_MP1_STATE_UNLOAD;
+-	adev->in_poweroff_reboot_com = true;
+ 	amdgpu_device_ip_suspend(adev);
+-	adev->in_poweroff_reboot_com = false;
+ 	adev->mp1_state = PP_MP1_STATE_NONE;
+ }
+ 
+ static int amdgpu_pmops_suspend(struct device *dev)
+ {
+ 	struct drm_device *drm_dev = dev_get_drvdata(dev);
++	struct amdgpu_device *adev = drm_to_adev(drm_dev);
++	int r;
+ 
+-	return amdgpu_device_suspend(drm_dev, true);
++	if (amdgpu_acpi_is_s0ix_supported(adev))
++		adev->in_s0ix = true;
++	adev->in_s3 = true;
++	r = amdgpu_device_suspend(drm_dev, true);
++	adev->in_s3 = false;
++
++	return r;
+ }
+ 
+ static int amdgpu_pmops_resume(struct device *dev)
+ {
+ 	struct drm_device *drm_dev = dev_get_drvdata(dev);
++	struct amdgpu_device *adev = drm_to_adev(drm_dev);
++	int r;
+ 
+-	return amdgpu_device_resume(drm_dev, true);
++	r = amdgpu_device_resume(drm_dev, true);
++	if (amdgpu_acpi_is_s0ix_supported(adev))
++		adev->in_s0ix = false;
++	return r;
+ }
+ 
+ static int amdgpu_pmops_freeze(struct device *dev)
+@@ -1297,9 +1308,9 @@ static int amdgpu_pmops_freeze(struct device *dev)
+ 	struct amdgpu_device *adev = drm_to_adev(drm_dev);
+ 	int r;
+ 
+-	adev->in_hibernate = true;
++	adev->in_s4 = true;
+ 	r = amdgpu_device_suspend(drm_dev, true);
+-	adev->in_hibernate = false;
++	adev->in_s4 = false;
+ 	if (r)
+ 		return r;
+ 	return amdgpu_asic_reset(adev);
+@@ -1315,13 +1326,8 @@ static int amdgpu_pmops_thaw(struct device *dev)
+ static int amdgpu_pmops_poweroff(struct device *dev)
+ {
+ 	struct drm_device *drm_dev = dev_get_drvdata(dev);
+-	struct amdgpu_device *adev = drm_to_adev(drm_dev);
+-	int r;
+ 
+-	adev->in_poweroff_reboot_com = true;
+-	r =  amdgpu_device_suspend(drm_dev, true);
+-	adev->in_poweroff_reboot_com = false;
+-	return r;
++	return amdgpu_device_suspend(drm_dev, true);
+ }
+ 
+ static int amdgpu_pmops_restore(struct device *dev)
+diff --git a/drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c b/drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c
+index e84c737e3..44adc3c79 100644
+--- a/drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c
++++ b/drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c
+@@ -1170,7 +1170,7 @@ static int smu_disable_dpms(struct smu_context *smu)
+ 	bool use_baco = !smu->is_apu &&
+ 		((amdgpu_in_reset(adev) &&
+ 		  (amdgpu_asic_reset_method(adev) == AMD_RESET_METHOD_BACO)) ||
+-		 ((adev->in_runpm || adev->in_hibernate) && amdgpu_asic_supports_baco(adev)));
++		 ((adev->in_runpm || adev->in_s4) && amdgpu_asic_supports_baco(adev)));
+ 
+ 	/*
+ 	 * For custom pptable uploading, skip the DPM features
+-- 
+2.31.1
+

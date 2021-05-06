@@ -1,0 +1,45 @@
+From 0c372d873801ed8d663c03a8136ce3edcfdf578a Mon Sep 17 00:00:00 2001
+From: Alex Deucher <alexander.deucher@amd.com>
+Date: Fri, 12 Mar 2021 16:00:21 -0500
+Subject: [PATCH 08/18] drm/amdgpu/swsmu: skip gfx cgpg on s0ix suspend
+
+The SMU expects CGPG to be enabled when entering S0ix.
+with this we can re-enable SMU suspend.
+
+Signed-off-by: Alex Deucher <alexander.deucher@amd.com>
+---
+ drivers/gpu/drm/amd/amdgpu/amdgpu_device.c | 3 +--
+ drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c  | 3 ++-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_device.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_device.c
+index d56e5dfe0..de32f2907 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_device.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_device.c
+@@ -2727,8 +2727,7 @@ static int amdgpu_device_ip_suspend_phase2(struct amdgpu_device *adev)
+ 
+ 		/* XXX fix these remaining cases */
+ 		if (adev->in_s0ix &&
+-		    (adev->ip_blocks[i].version->type == AMD_IP_BLOCK_TYPE_SMC || /* breaks suspend */
+-		     adev->ip_blocks[i].version->type == AMD_IP_BLOCK_TYPE_PSP || /* breaks resume */
++		    (adev->ip_blocks[i].version->type == AMD_IP_BLOCK_TYPE_PSP || /* breaks resume */
+ 		     adev->ip_blocks[i].version->type == AMD_IP_BLOCK_TYPE_GFX))  /* breaks suspend */
+ 			continue;
+ 
+diff --git a/drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c b/drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c
+index 44adc3c79..8fe7fc61f 100644
+--- a/drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c
++++ b/drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c
+@@ -1307,7 +1307,8 @@ static int smu_suspend(void *handle)
+ 
+ 	smu->watermarks_bitmap &= ~(WATERMARKS_LOADED);
+ 
+-	if (smu->is_apu)
++	/* skip CGPG when in S0ix */
++	if (smu->is_apu && !adev->in_s0ix)
+ 		smu_set_gfx_cgpg(&adev->smu, false);
+ 
+ 	return 0;
+-- 
+2.31.1
+
