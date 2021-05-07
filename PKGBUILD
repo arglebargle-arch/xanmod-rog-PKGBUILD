@@ -138,11 +138,9 @@ prepare() {
   do
     src="${src%%::*}"
     src="${src##*/}"
-    # skip non-patch files
+    # skip non-patch files, skip empty test patch, fixup redhat patch filename
     [[ $src = *.patch ]] || continue
-    # skip empty test patch
     [[ $src = "linux-kernel-test.patch" ]] && continue
-    # fixup redhat patch version
     if [[ $src =~ "%{stableversion}-redhat.patch" ]]; then
       src=${src/\%\{stableversion\}/$_major}
       # skip redhat patch if we're chasing a kernel version asus-linux doesn't build yet
