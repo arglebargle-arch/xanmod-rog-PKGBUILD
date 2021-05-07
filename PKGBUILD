@@ -90,6 +90,15 @@ for _patch in ${_patches[@]}; do
     source+=("${_patch}::https://git.archlinux.org/svntogit/packages.git/plain/trunk/${_patch}?h=packages/linux&id=${_commit}")
 done
 
+# Add incremental patches when we're building ahead of Xanmod
+if [[ ${xanmod%-xanmod?} != ${pkgver%+xanmod?} ]]; then
+  _patch_start=$(echo ${xanmod%-xanmod?} | cut -d'.' -f3)
+  _patch_end=$(echo ${pkgver%+xanmod?} | cut -d'.' -f3)
+  for (( _i=_patch_start; _i < _patch_end; _i++ )); do
+    source+=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/incr/patch-${_major}.${_i}-$((_i +1)).xz")
+  done
+fi
+
 sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
             'e304fded229a9f3134fd20a96ae111ca9a68f0a872384511662bb36b83560d86'
@@ -108,10 +117,22 @@ prepare() {
   # Apply Xanmod patch
   patch -Np1 -i ../patch-${xanmod}
 
+  # Apply kernel.org patches when mainline is slightly ahead of Xanmod
+  if [[ ${xanmod%-xanmod?} != ${pkgver%+xanmod?} ]]; then
+      for (( _i=_patch_start; _i < _patch_end; _i++ )); do
+        echo "(prerelease-incremental) Applying patch ${_major}.${_i} -> ${_major}.$((_i+1))..."
+        patch -Np1 -i ../patch-${_major}.${_i}-$((_i+1))
+      done
+  fi
+
   msg2 "Setting version..."
   scripts/setlocalversion --save-scmversion
   echo "-$pkgrel" > localversion.99-pkgrel
   echo "${pkgbase#linux-xanmod}" > localversion.20-pkgname
+
+  # Rewrute xanmod release to 0 if we're pre-releasing
+  [[ ${xanmod%-xanmod?} != ${pkgver%+xanmod?} ]] &&
+    sed -Ei 's/xanmod[0-9]+/xanmod0/' localversion
 
   # Archlinux patches
   local src
