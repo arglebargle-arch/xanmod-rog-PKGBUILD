@@ -70,7 +70,7 @@ makedepends=(
 options=('!strip')
 _major=$(echo $xanmod | cut -d'.' -f1,2)
 _branch=$(echo $xanmod | cut -d'.' -f1).x
-_patch=$(echo $xanmod | cut -d'.' -f3)
+_patch=$(echo ${xanmod%-xanmod?} | cut -d'.' -f3)
 
 source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
