@@ -1,7 +1,7 @@
 pkgbase = linux-xanmod-rog
 	pkgdesc = Linux Xanmod
-	pkgver = 5.12.1+xanmod2
-	pkgrel = 0
+	pkgver = 5.12.2+xanmod1
+	pkgrel = 1
 	url = http://www.xanmod.org/
 	arch = x86_64
 	license = GPL2
@@ -14,7 +14,7 @@ pkgbase = linux-xanmod-rog
 	options = !strip
 	source = https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.12.tar.xz
 	source = https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.12.tar.sign
-	source = https://github.com/xanmod/linux/releases/download/5.12.1-xanmod2/patch-5.12.1-xanmod2.xz
+	source = https://github.com/xanmod/linux/releases/download/5.12.2-xanmod1/patch-5.12.2-xanmod1.xz
 	source = choose-gcc-optimization.sh
 	source = https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-5.12.patch
 	source = sys-kernel_arch-sources-g14_files-6010-acpi_unused.patch::https://aur.archlinux.org/cgit/aur.git/plain/sys-kernel_arch-sources-g14_files-6010-acpi_unused.patch?h=linux-g14&id=71e5fa9a8459b8e7a49ed5c0b7fc74ba680dfe29
@@ -23,7 +23,7 @@ pkgbase = linux-xanmod-rog
 	validpgpkeys = 647F28654894E3BD457199BE38DBBDC86092693E
 	sha256sums = 7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366
 	sha256sums = SKIP
-	sha256sums = e304fded229a9f3134fd20a96ae111ca9a68f0a872384511662bb36b83560d86
+	sha256sums = 9c222ec39d6e77ec71233f13eb8c4140c25eded7aa94347dc14512517f113667
 	sha256sums = 51742dee57cd15bece152d6527f48af87cb7930f0f6a356d5282f778e7c35b39
 	sha256sums = 8b2e476ae108255ae5dc6da43cda57620021a8e68da0e3c568eb44afd3d3254a
 	sha256sums = c384049787c8f0008accf9c4d053eb407b76242fe522e1aed1fe8a9c59f9d996

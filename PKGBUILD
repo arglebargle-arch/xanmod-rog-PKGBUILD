@@ -54,8 +54,8 @@ _makenconfig=
 
 #_major="5.11"
 # curl -s "https://api.github.com/repos/xanmod/linux/releases" | jq -r '[.[] | select(.target_commitish == "$_major")][].tag_name' | sort -V | tail -n1
-xanmod=5.12.1-xanmod2
-pkgrel=0
+xanmod=5.12.2-xanmod1
+pkgrel=1
 
 pkgbase=linux-xanmod-rog
 pkgver=${xanmod//-/+}
@@ -101,7 +101,7 @@ fi
 
 sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
-            'e304fded229a9f3134fd20a96ae111ca9a68f0a872384511662bb36b83560d86'
+            '9c222ec39d6e77ec71233f13eb8c4140c25eded7aa94347dc14512517f113667'
             '51742dee57cd15bece152d6527f48af87cb7930f0f6a356d5282f778e7c35b39'
             '8b2e476ae108255ae5dc6da43cda57620021a8e68da0e3c568eb44afd3d3254a'
             'c384049787c8f0008accf9c4d053eb407b76242fe522e1aed1fe8a9c59f9d996'
