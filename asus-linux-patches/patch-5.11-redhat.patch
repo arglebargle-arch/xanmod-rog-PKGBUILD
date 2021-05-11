@@ -43,6 +43,8 @@
  drivers/hid/hid-rmi.c                              |  64 ---
  drivers/input/rmi4/rmi_driver.c                    | 124 +++--
  drivers/iommu/iommu.c                              |  22 +
+ drivers/net/ethernet/sfc/ef10.c                    |   3 +-
+ drivers/net/ethernet/sfc/farch.c                   |  16 +-
  drivers/pci/controller/dwc/Kconfig                 |  10 +-
  drivers/pci/controller/dwc/Makefile                |   2 +-
  drivers/pci/controller/dwc/pcie-tegra194.c         | 102 +++++
@@ -53,6 +55,7 @@
  drivers/platform/x86/thinkpad_acpi.c               | 510 ++++++++++++++++++++-
  drivers/scsi/smartpqi/smartpqi_init.c              |  16 +
  drivers/usb/core/hub.c                             |   7 +
+ drivers/virt/nitro_enclaves/ne_misc_dev.c          |  43 +-
  include/linux/efi.h                                |  22 +-
  include/linux/lsm_hook_defs.h                      |   2 +
  include/linux/lsm_hooks.h                          |   6 +
@@ -69,6 +72,7 @@
  security/security.c                                |   6 +
  sound/hda/Kconfig                                  |  14 +
  sound/hda/intel-dsp-config.c                       |  29 +-
+ sound/pci/hda/patch_realtek.c                      |  18 +
  sound/soc/sof/intel/apl.c                          |   3 +-
  sound/soc/sof/intel/cnl.c                          |   3 +-
  sound/soc/sof/intel/hda-dsp.c                      |   6 +
@@ -78,7 +82,7 @@
  sound/soc/sof/ops.h                                |   8 +
  sound/soc/sof/sof-pci-dev.c                        |   2 +-
  sound/soc/sof/sof-priv.h                           |   4 +-
- 80 files changed, 2378 insertions(+), 330 deletions(-)
+ 84 files changed, 2422 insertions(+), 366 deletions(-)
 
 diff --git a/Documentation/ABI/testing/sysfs-platform_profile b/Documentation/ABI/testing/sysfs-platform_profile
 new file mode 100644
@@ -292,7 +296,7 @@ index 000000000000..c33a71263d9e
 + 2. Add the new profile name, along with a clear description of the
 +    expected behaviour, to the sysfs-platform_profile ABI documentation.
 diff --git a/Makefile b/Makefile
-index d8367e193232..d0621367191f 100644
+index a3b7a2602100..6eb7ce52c05b 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -495,6 +495,7 @@ KBUILD_AFLAGS   := -D__ASSEMBLY__ -fno-PIE
@@ -1474,7 +1478,7 @@ index b3631b722de3..5089dbd240f4 100644
  		return;
 
 diff --git a/drivers/gpu/drm/i915/i915_drv.c b/drivers/gpu/drm/i915/i915_drv.c
-index 99eb0d7bbc44..85feb5742296 100644
+index 31a197f172fd..218cfb6faa27 100644
 --- a/drivers/gpu/drm/i915/i915_drv.c
 +++ b/drivers/gpu/drm/i915/i915_drv.c
 @@ -609,14 +609,15 @@ static int i915_driver_hw_probe(struct drm_i915_private *dev_priv)
@@ -2390,6 +2394,64 @@ index fd5f59373fc6..8a11aa9e0318 100644
  /*
   * Changes the default domain of an iommu group that has *only* one device
   *
+diff --git a/drivers/net/ethernet/sfc/ef10.c b/drivers/net/ethernet/sfc/ef10.c
+index da6886dcac37..4fa72b573c17 100644
+--- a/drivers/net/ethernet/sfc/ef10.c
++++ b/drivers/net/ethernet/sfc/ef10.c
+@@ -2928,8 +2928,7 @@ efx_ef10_handle_tx_event(struct efx_channel *channel, efx_qword_t *event)
+
+ 	/* Get the transmit queue */
+ 	tx_ev_q_label = EFX_QWORD_FIELD(*event, ESF_DZ_TX_QLABEL);
+-	tx_queue = efx_channel_get_tx_queue(channel,
+-					    tx_ev_q_label % EFX_MAX_TXQ_PER_CHANNEL);
++	tx_queue = channel->tx_queue + (tx_ev_q_label % EFX_MAX_TXQ_PER_CHANNEL);
+
+ 	if (!tx_queue->timestamping) {
+ 		/* Transmit completion */
+diff --git a/drivers/net/ethernet/sfc/farch.c b/drivers/net/ethernet/sfc/farch.c
+index d75cf5ff5686..49df02ecee91 100644
+--- a/drivers/net/ethernet/sfc/farch.c
++++ b/drivers/net/ethernet/sfc/farch.c
+@@ -835,14 +835,14 @@ efx_farch_handle_tx_event(struct efx_channel *channel, efx_qword_t *event)
+ 		/* Transmit completion */
+ 		tx_ev_desc_ptr = EFX_QWORD_FIELD(*event, FSF_AZ_TX_EV_DESC_PTR);
+ 		tx_ev_q_label = EFX_QWORD_FIELD(*event, FSF_AZ_TX_EV_Q_LABEL);
+-		tx_queue = efx_channel_get_tx_queue(
+-			channel, tx_ev_q_label % EFX_MAX_TXQ_PER_CHANNEL);
++		tx_queue = channel->tx_queue +
++				(tx_ev_q_label % EFX_MAX_TXQ_PER_CHANNEL);
+ 		efx_xmit_done(tx_queue, tx_ev_desc_ptr);
+ 	} else if (EFX_QWORD_FIELD(*event, FSF_AZ_TX_EV_WQ_FF_FULL)) {
+ 		/* Rewrite the FIFO write pointer */
+ 		tx_ev_q_label = EFX_QWORD_FIELD(*event, FSF_AZ_TX_EV_Q_LABEL);
+-		tx_queue = efx_channel_get_tx_queue(
+-			channel, tx_ev_q_label % EFX_MAX_TXQ_PER_CHANNEL);
++		tx_queue = channel->tx_queue +
++				(tx_ev_q_label % EFX_MAX_TXQ_PER_CHANNEL);
+
+ 		netif_tx_lock(efx->net_dev);
+ 		efx_farch_notify_tx_desc(tx_queue);
+@@ -1081,16 +1081,16 @@ static void
+ efx_farch_handle_tx_flush_done(struct efx_nic *efx, efx_qword_t *event)
+ {
+ 	struct efx_tx_queue *tx_queue;
++	struct efx_channel *channel;
+ 	int qid;
+
+ 	qid = EFX_QWORD_FIELD(*event, FSF_AZ_DRIVER_EV_SUBDATA);
+ 	if (qid < EFX_MAX_TXQ_PER_CHANNEL * (efx->n_tx_channels + efx->n_extra_tx_channels)) {
+-		tx_queue = efx_get_tx_queue(efx, qid / EFX_MAX_TXQ_PER_CHANNEL,
+-					    qid % EFX_MAX_TXQ_PER_CHANNEL);
+-		if (atomic_cmpxchg(&tx_queue->flush_outstanding, 1, 0)) {
++		channel = efx_get_tx_channel(efx, qid / EFX_MAX_TXQ_PER_CHANNEL);
++		tx_queue = channel->tx_queue + (qid % EFX_MAX_TXQ_PER_CHANNEL);
++		if (atomic_cmpxchg(&tx_queue->flush_outstanding, 1, 0))
+ 			efx_farch_magic_event(tx_queue->channel,
+ 					      EFX_CHANNEL_MAGIC_TX_DRAIN(tx_queue));
+-		}
+ 	}
+ }
+
 diff --git a/drivers/pci/controller/dwc/Kconfig b/drivers/pci/controller/dwc/Kconfig
 index 22c5529e9a65..259ff5ff3f24 100644
 --- a/drivers/pci/controller/dwc/Kconfig
@@ -2985,7 +3047,7 @@ index 5b81bafa5c16..cc42af2a0a98 100644
  }
  #endif
 diff --git a/drivers/platform/x86/thinkpad_acpi.c b/drivers/platform/x86/thinkpad_acpi.c
-index 9f8da7155a89..9ecf7829b3d8 100644
+index 77d457915925..02f9c281dd54 100644
 --- a/drivers/platform/x86/thinkpad_acpi.c
 +++ b/drivers/platform/x86/thinkpad_acpi.c
 @@ -66,6 +66,7 @@
@@ -2996,7 +3058,7 @@ index 9f8da7155a89..9ecf7829b3d8 100644
  #include <sound/core.h>
  #include <sound/control.h>
  #include <sound/initval.h>
-@@ -9850,6 +9851,11 @@ static struct ibm_struct lcdshadow_driver_data = {
+@@ -9863,6 +9864,11 @@ static struct ibm_struct lcdshadow_driver_data = {
   * Thinkpad sensor interfaces
   */
 
@@ -3008,7 +3070,7 @@ index 9f8da7155a89..9ecf7829b3d8 100644
  #define DYTC_CMD_GET          2 /* To get current IC function and mode */
  #define DYTC_GET_LAPMODE_BIT 17 /* Set when in lapmode */
 
-@@ -9860,17 +9866,56 @@ static bool has_palmsensor;
+@@ -9873,17 +9879,56 @@ static bool has_palmsensor;
  static bool has_lapsensor;
  static bool palm_state;
  static bool lap_state;
@@ -3070,7 +3132,7 @@ index 9f8da7155a89..9ecf7829b3d8 100644
 
  	*present = true; /*If we get his far, we have lapmode support*/
  	*state = output & BIT(DYTC_GET_LAPMODE_BIT) ? true : false;
-@@ -9968,7 +10013,18 @@ static int tpacpi_proxsensor_init(struct ibm_init_struct *iibm)
+@@ -9981,7 +10026,18 @@ static int tpacpi_proxsensor_init(struct ibm_init_struct *iibm)
  		if (err)
  			return err;
  	}
@@ -3090,7 +3152,7 @@ index 9f8da7155a89..9ecf7829b3d8 100644
  		err = sysfs_create_file(&tpacpi_pdev->dev.kobj, &dev_attr_dytc_lapmode.attr);
  		if (err)
  			return err;
-@@ -9989,6 +10045,434 @@ static struct ibm_struct proxsensor_driver_data = {
+@@ -10002,6 +10058,434 @@ static struct ibm_struct proxsensor_driver_data = {
  	.exit = proxsensor_exit,
  };
 
@@ -3525,7 +3587,7 @@ index 9f8da7155a89..9ecf7829b3d8 100644
  /****************************************************************************
   ****************************************************************************
   *
-@@ -10037,8 +10521,12 @@ static void tpacpi_driver_event(const unsigned int hkey_event)
+@@ -10050,8 +10534,12 @@ static void tpacpi_driver_event(const unsigned int hkey_event)
  		mutex_unlock(&kbdlight_mutex);
  	}
 
@@ -3539,7 +3601,7 @@ index 9f8da7155a89..9ecf7829b3d8 100644
  }
 
  static void hotkey_driver_event(const unsigned int scancode)
-@@ -10481,6 +10969,14 @@ static struct ibm_init_struct ibms_init[] __initdata = {
+@@ -10494,6 +10982,14 @@ static struct ibm_init_struct ibms_init[] __initdata = {
  		.init = tpacpi_proxsensor_init,
  		.data = &proxsensor_driver_data,
  	},
@@ -3606,6 +3668,86 @@ index 7f71218cc1e5..283fc0f41cd2 100644
  	/* Lock the device, then check to see if we were
  	 * disconnected while waiting for the lock to succeed. */
  	usb_lock_device(hdev);
+diff --git a/drivers/virt/nitro_enclaves/ne_misc_dev.c b/drivers/virt/nitro_enclaves/ne_misc_dev.c
+index f1964ea4b826..e21e1e86ad15 100644
+--- a/drivers/virt/nitro_enclaves/ne_misc_dev.c
++++ b/drivers/virt/nitro_enclaves/ne_misc_dev.c
+@@ -1524,7 +1524,8 @@ static const struct file_operations ne_enclave_fops = {
+  *			  enclave file descriptor to be further used for enclave
+  *			  resources handling e.g. memory regions and CPUs.
+  * @ne_pci_dev :	Private data associated with the PCI device.
+- * @slot_uid:		Generated unique slot id associated with an enclave.
++ * @slot_uid:		User pointer to store the generated unique slot id
++ *			associated with an enclave to.
+  *
+  * Context: Process context. This function is called with the ne_pci_dev enclave
+  *	    mutex held.
+@@ -1532,7 +1533,7 @@ static const struct file_operations ne_enclave_fops = {
+  * * Enclave fd on success.
+  * * Negative return value on failure.
+  */
+-static int ne_create_vm_ioctl(struct ne_pci_dev *ne_pci_dev, u64 *slot_uid)
++static int ne_create_vm_ioctl(struct ne_pci_dev *ne_pci_dev, u64 __user *slot_uid)
+ {
+ 	struct ne_pci_dev_cmd_reply cmd_reply = {};
+ 	int enclave_fd = -1;
+@@ -1634,7 +1635,18 @@ static int ne_create_vm_ioctl(struct ne_pci_dev *ne_pci_dev, u64 *slot_uid)
+
+ 	list_add(&ne_enclave->enclave_list_entry, &ne_pci_dev->enclaves_list);
+
+-	*slot_uid = ne_enclave->slot_uid;
++	if (copy_to_user(slot_uid, &ne_enclave->slot_uid, sizeof(ne_enclave->slot_uid))) {
++		/*
++		 * As we're holding the only reference to 'enclave_file', fput()
++		 * will call ne_enclave_release() which will do a proper cleanup
++		 * of all so far allocated resources, leaving only the unused fd
++		 * for us to free.
++		 */
++		fput(enclave_file);
++		put_unused_fd(enclave_fd);
++
++		return -EFAULT;
++	}
+
+ 	fd_install(enclave_fd, enclave_file);
+
+@@ -1671,34 +1683,13 @@ static long ne_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 	switch (cmd) {
+ 	case NE_CREATE_VM: {
+ 		int enclave_fd = -1;
+-		struct file *enclave_file = NULL;
+ 		struct ne_pci_dev *ne_pci_dev = ne_devs.ne_pci_dev;
+-		int rc = -EINVAL;
+-		u64 slot_uid = 0;
++		u64 __user *slot_uid = (void __user *)arg;
+
+ 		mutex_lock(&ne_pci_dev->enclaves_list_mutex);
+-
+-		enclave_fd = ne_create_vm_ioctl(ne_pci_dev, &slot_uid);
+-		if (enclave_fd < 0) {
+-			rc = enclave_fd;
+-
+-			mutex_unlock(&ne_pci_dev->enclaves_list_mutex);
+-
+-			return rc;
+-		}
+-
++		enclave_fd = ne_create_vm_ioctl(ne_pci_dev, slot_uid);
+ 		mutex_unlock(&ne_pci_dev->enclaves_list_mutex);
+
+-		if (copy_to_user((void __user *)arg, &slot_uid, sizeof(slot_uid))) {
+-			enclave_file = fget(enclave_fd);
+-			/* Decrement file refs to have release() called. */
+-			fput(enclave_file);
+-			fput(enclave_file);
+-			put_unused_fd(enclave_fd);
+-
+-			return -EFAULT;
+-		}
+-
+ 		return enclave_fd;
+ 	}
+
 diff --git a/include/linux/efi.h b/include/linux/efi.h
 index 119262585e9b..7d67f0187c34 100644
 --- a/include/linux/efi.h
@@ -4051,6 +4193,56 @@ index c45686172517..68bb977c6a37 100644
  		.acpi_hid = "808622A8",
  	},
  #endif
+diff --git a/sound/pci/hda/patch_realtek.c b/sound/pci/hda/patch_realtek.c
+index a7544b77d3f7..7569fd8c9cff 100644
+--- a/sound/pci/hda/patch_realtek.c
++++ b/sound/pci/hda/patch_realtek.c
+@@ -5667,6 +5667,18 @@ static void alc_fixup_tpt470_dacs(struct hda_codec *codec,
+ 		spec->gen.preferred_dacs = preferred_pairs;
+ }
+
++static void alc295_fixup_asus_dacs(struct hda_codec *codec,
++				   const struct hda_fixup *fix, int action)
++{
++	static const hda_nid_t preferred_pairs[] = {
++		0x17, 0x02, 0x21, 0x03, 0
++	};
++	struct alc_spec *spec = codec->spec;
++
++	if (action == HDA_FIXUP_ACT_PRE_PROBE)
++		spec->gen.preferred_dacs = preferred_pairs;
++}
++
+ static void alc_shutup_dell_xps13(struct hda_codec *codec)
+ {
+ 	struct alc_spec *spec = codec->spec;
+@@ -6427,6 +6439,7 @@ enum {
+ 	ALC282_FIXUP_ACER_DISABLE_LINEOUT,
+ 	ALC255_FIXUP_ACER_LIMIT_INT_MIC_BOOST,
+ 	ALC256_FIXUP_ACER_HEADSET_MIC,
++	ALC295_FIXUP_ASUS_DACS,
+ };
+
+ static const struct hda_fixup alc269_fixups[] = {
+@@ -7901,6 +7914,10 @@ static const struct hda_fixup alc269_fixups[] = {
+ 		.chained = true,
+ 		.chain_id = ALC269_FIXUP_HEADSET_MODE_NO_HP_MIC
+ 	},
++	[ALC295_FIXUP_ASUS_DACS] = {
++		.type = HDA_FIXUP_FUNC,
++		.v.func = alc295_fixup_asus_dacs,
++	},
+ };
+
+ static const struct snd_pci_quirk alc269_fixup_tbl[] = {
+@@ -8096,6 +8113,7 @@ static const struct snd_pci_quirk alc269_fixup_tbl[] = {
+ 	SND_PCI_QUIRK(0x1043, 0x1427, "Asus Zenbook UX31E", ALC269VB_FIXUP_ASUS_ZENBOOK),
+ 	SND_PCI_QUIRK(0x1043, 0x1517, "Asus Zenbook UX31A", ALC269VB_FIXUP_ASUS_ZENBOOK_UX31A),
+ 	SND_PCI_QUIRK(0x1043, 0x16e3, "ASUS UX50", ALC269_FIXUP_STEREO_DMIC),
++	SND_PCI_QUIRK(0x1043, 0x1740, "ASUS UX430UA", ALC295_FIXUP_ASUS_DACS),
+ 	SND_PCI_QUIRK(0x1043, 0x17d1, "ASUS UX431FL", ALC294_FIXUP_ASUS_DUAL_SPK),
+ 	SND_PCI_QUIRK(0x1043, 0x18b1, "Asus MJ401TA", ALC256_FIXUP_ASUS_HEADSET_MIC),
+ 	SND_PCI_QUIRK(0x1043, 0x18f1, "Asus FX505DT", ALC256_FIXUP_ASUS_HEADSET_MIC),
 diff --git a/sound/soc/sof/intel/apl.c b/sound/soc/sof/intel/apl.c
 index fc29b91b8932..c7ed2b3d6abc 100644
 --- a/sound/soc/sof/intel/apl.c

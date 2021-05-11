@@ -104,7 +104,7 @@ Summary: The Linux kernel
 %define primary_target rhel
 %endif
 
-%define rpmversion 5.11.17
+%define rpmversion 5.11.19
 %define stableversion 5.11
 %define pkgrelease 300
 
@@ -603,7 +603,7 @@ BuildRequires: asciidoc
 # exact git commit you can run
 #
 # xzcat -qq ${TARBALL} | git get-tar-commit-id
-Source0: linux-5.11.17.tar.xz
+Source0: linux-5.11.19.tar.xz
 
 Source1: Makefile.rhelver
 
@@ -771,6 +771,8 @@ Patch905: 0001-Add-jack-toggle-support-for-headphones-on-Asus-ROG-Z.patch
 Patch906: 0001-ACPI-video-use-native-backlight-for-GA401-GA502-GA50.patch
 Patch907: 0002-Revert-platform-x86-asus-nb-wmi-Drop-duplicate-DMI-q.patch
 Patch908: 0003-Revert-platform-x86-asus-nb-wmi-add-support-for-ASUS.patch
+#
+Patch909: amdgpu-sleep-fix.patch
 # Power saving and suspend
 Patch910: 0001-drm-amdgpu-use-runpm-flag-rather-than-fbcon-for-kfd-.patch
 Patch911: 0002-drm-amdgpu-drop-extraneous-hw_status-update.patch
@@ -1283,8 +1285,8 @@ ApplyOptionalPatch()
   fi
 }
 
-%setup -q -n kernel-5.11.17 -c
-mv linux-5.11.17 linux-%{KVERREL}
+%setup -q -n kernel-5.11.19 -c
+mv linux-5.11.19 linux-%{KVERREL}
 
 cd linux-%{KVERREL}
 cp -a %{SOURCE1} .
@@ -1296,6 +1298,7 @@ ApplyOptionalPatch patch-%{stableversion}-redhat.patch
 
 ApplyOptionalPatch linux-kernel-test.patch
 
+ApplyOptionalPatch amdgpu-sleep-fix.patch
 ApplyOptionalPatch 0001-asus-wmi-Add-panel-overdrive-functionality.patch
 ApplyOptionalPatch 0001-asus-wmi-Add-dgpu-disable-method.patch
 ApplyOptionalPatch 0001-HID-asus-Filter-keyboard-EC-for-old-ROG-keyboard.patch
@@ -2478,7 +2481,7 @@ if [ -f /etc/sysconfig/kernel ]\
 then\
     . /etc/sysconfig/kernel || exit $?\
 fi\
-if [ "$HARDLINK" != "no" -a -x /usr/sbin/hardlink -a ! -e /run/ostree-booted ] \
+if [ "$HARDLINK" != "no" -a -x /usr/bin/hardlink -a ! -e /run/ostree-booted ] \
 then\
     (cd /usr/src/kernels/%{KVERREL}%{?1:+%{1}} &&\
      /usr/bin/find . -type f | while read f; do\
@@ -2829,6 +2832,18 @@ fi
 #
 #
 %changelog
+* Fri May 07 2021 Justin M. Forbes <jforbes@fedoraproject.org> [5.11.19-0]
+- Fedora-5.12: Make amd_pinctrl module builtin (Hans de Goede)
+- ALSA: hda/realtek: Fix silent headphone output on ASUS UX430UA (Takashi Iwai)
+- nitro_enclaves: Fix stale file descriptors on failed usercopy (Mathias Krause)
+
+* Mon May 03 2021 Justin M. Forbes <jforbes@fedoraproject.org> [5.11.18-0]
+- Enable mtdram for fedora (rhbz 1955916) (Justin M. Forbes)
+- hardlink is in /usr/bin/ (rhbz 1889043) (Justin M. Forbes)
+- sfc: ef10: fix TX queue lookup in TX event handling (Edward Cree)
+- sfc: farch: fix TX queue lookup in TX event handling (Edward Cree)
+- sfc: farch: fix TX queue lookup in TX flush done handling (Edward Cree)
+
 * Wed Apr 28 2021 Justin M. Forbes <jforbes@fedoraproject.org> [5.11.17-0]
 - Fedora: ARMv7: build for 16 CPUs. (Peter Robinson)
 

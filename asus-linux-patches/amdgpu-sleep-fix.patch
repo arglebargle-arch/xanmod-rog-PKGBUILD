@@ -1,0 +1,35 @@
+diff --git a/drivers/gpu/drm/amd/display/dc/core/dc_link.c b/drivers/gpu/drm/amd/display/dc/core/dc_link.c
+index bd0101013ec8..e82b633fbaa1 100644
+--- a/drivers/gpu/drm/amd/display/dc/core/dc_link.c
++++ b/drivers/gpu/drm/amd/display/dc/core/dc_link.c
+@@ -153,7 +153,7 @@ static bool program_hpd_filter(const struct dc_link *link)
+ 	case SIGNAL_TYPE_HDMI_TYPE_A:
+ 		/* Program hpd filter */
+ 		delay_on_connect_in_ms = 500;
+-		delay_on_disconnect_in_ms = 100;
++		delay_on_disconnect_in_ms = 1200;
+ 		break;
+ 	case SIGNAL_TYPE_DISPLAY_PORT:
+ 	case SIGNAL_TYPE_DISPLAY_PORT_MST:
+@@ -1598,7 +1598,8 @@ static bool dc_link_construct(struct dc_link *link,
+ 	 * If GPIO isn't programmed correctly HPD might not rise or drain
+ 	 * fast enough, leading to bounces.
+ 	 */
+-	program_hpd_filter(link);
++	// program_hpd_filter(link);
++	dc_link_enable_hpd_filter(link, true);
+ 
+ 	link->psr_settings.psr_version = DC_PSR_VERSION_UNSUPPORTED;
+ 
+@@ -2852,7 +2853,10 @@ const struct dc_link_status *dc_link_get_status(const struct dc_link *link)
+ void core_link_resume(struct dc_link *link)
+ {
+ 	if (link->connector_signal != SIGNAL_TYPE_VIRTUAL)
+-		program_hpd_filter(link);
++	{
++		// program_hpd_filter(link);
++		dc_link_enable_hpd_filter(link, true);
++	}
+ }
+ 
+ static struct fixed31_32 get_pbn_per_slot(struct dc_stream_state *stream)

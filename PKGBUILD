@@ -55,7 +55,7 @@ _makenconfig=
 #_major="5.11"
 # curl -s "https://api.github.com/repos/xanmod/linux/releases" | jq -r '[.[] | select(.target_commitish == "$_major")][].tag_name' | sort -V | tail -n1
 xanmod=5.12.2-xanmod1
-pkgrel=1
+pkgrel=2
 
 pkgbase=linux-xanmod-rog
 pkgver=${xanmod//-/+}
