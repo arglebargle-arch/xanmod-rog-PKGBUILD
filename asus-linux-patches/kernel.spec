@@ -1309,7 +1309,7 @@ ApplyOptionalPatch 0001-ACPI-video-use-native-backlight-for-GA401-GA502-GA50.pat
 ApplyOptionalPatch 0002-Revert-platform-x86-asus-nb-wmi-Drop-duplicate-DMI-q.patch
 ApplyOptionalPatch 0003-Revert-platform-x86-asus-nb-wmi-add-support-for-ASUS.patch
 # Sound
-ApplyOptionalPatch 0001-ALSA-hda-realtek-GA503-use-same-quirks-as-GA401.patch
+#ApplyOptionalPatch 0001-ALSA-hda-realtek-GA503-use-same-quirks-as-GA401.patch
 ApplyOptionalPatch 0001-Add-jack-toggle-support-for-headphones-on-Asus-ROG-Z.patch
 # Power saving and suspend
 #ApplyOptionalPatch 0001-drm-amdgpu-use-runpm-flag-rather-than-fbcon-for-kfd-.patch
