@@ -96,9 +96,9 @@ _fedora_kernel_commit_id=29f433a6b9ba268b0202ac8200cf2ce38d6071b7
 source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
         "choose-gcc-optimization.sh"
-        "acpi-scan-turn-off-unused-1of2.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=4b9ee772eaa82188b0eb8e05bdd1707c2a992004"
-        "acpi-power-turn-off-unconditionally-2of2.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=7e4fdeafa61f2b653fcf9678f09935e55756aed2"
         "https://gitlab.com/asus-linux/fedora-kernel/-/archive/$_fedora_kernel_commit_id/fedora-kernel-$_fedora_kernel_commit_id.zip"
+        "5.12-acpi-1of2-turn-off-unused.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=4b9ee772eaa82188b0eb8e05bdd1707c2a992004"
+        "5.12-acpi-2of2-turn-off-unconditionally.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=7e4fdeafa61f2b653fcf9678f09935e55756aed2"
         "5.12.4--Add-jack-toggle-support-for-headphones-on-Asus-ROG-Z.patch"
         )
 validpgpkeys=(
@@ -106,12 +106,13 @@ validpgpkeys=(
     '647F28654894E3BD457199BE38DBBDC86092693E' # Greg Kroah-Hartman
 )
 
-# asus-linux patch management; any matching patch is pruned from the patchset during application
+# asus-linux patch management; any patch matching this list is pruned from the patchset during prepare()
 # accepts filenames and bash globs, ** important: don't quote globs **
 _fedora_kernel_patch_skip_list=(
 
-  #00{03,05,08}-drm-amdgpu*.patch      # multi-select example
-  #00{01..12}-drm-amdgpu*.patch        # range select example
+  #00{03,05,08}-drm-amdgpu*.patch      # example multi-select
+  #00{01..12}-drm-amdgpu*.patch        # example range select
+  #patch-*-redhat.patch                # example wildcard match
   
   "linux-kernel-test.patch"           # test patch, please ignore
   patch-*-redhat.patch                # wildcard match any redhat patch version
@@ -154,9 +155,9 @@ sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
             '550c0791ec823628b94dd9220942510faef33f2e0912a3cc0d0833f3f16561a1'
             '51742dee57cd15bece152d6527f48af87cb7930f0f6a356d5282f778e7c35b39'
+            'ce2a5e79ed29c701529f0aa2d854bab79d9f5cbdd173e13774f6e1f4e8ae585f'
             '5af4796400245fec2e84d6e3f847b8896600558aa85f5e9c4706dd50994a9802'
             '9cf7519ee1a0544f431c9fe57735aae7b9d150e62abed318837befc3b6af7c5f'
-            'ce2a5e79ed29c701529f0aa2d854bab79d9f5cbdd173e13774f6e1f4e8ae585f'
             '495dc8131b98f4c165107b8f6c1324022b27c9b4442aa1018f78c446f4221d28'
             '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb'
             '8b2e476ae108255ae5dc6da43cda57620021a8e68da0e3c568eb44afd3d3254a')
