@@ -1,6 +1,0 @@
-[submodule "linux-xanmod"]
-	path = linux-xanmod
-	url = https://aur.archlinux.org/linux-xanmod.git
-[submodule "asus-linux"]
-	path = asus-linux
-	url = https://gitlab.com/asus-linux/fedora-kernel.git
