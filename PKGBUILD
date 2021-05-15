@@ -1,10 +1,29 @@
 # Maintainer: Arglebargle < arglebargle at arglebargle dot dev>
-#  based on the work of Joan Figueras <ffigue at gmail dot com>
+# Contributor: Joan Figueras <ffigue at gmail dot com>
 # Contributor: Torge Matthies <openglfreak at googlemail dot com>
 # Contributor: Jan Alexander Steffens (heftig) <jan.steffens@gmail.com>
 # Contributor: Yoshi2889 <rick.2889 at gmail dot com>
 # Contributor: Tobias Powalowski <tpowa@archlinux.org>
 # Contributor: Thomas Baechler <thomas@archlinux.org>
+
+##
+## Ultra Kernel Samepage Merging, disabling this will increase memory consumption
+## See: https://github.com/dolohow/uksm
+##
+##  build with 'env no_uksm=foo makepkg ...' to skip UKSM patch
+##
+if [[ -v no_uksm ]]; then
+  no_uksm=y
+fi
+
+## Apply Redhat kernel patch
+##
+## Enable this to apply redhat/fedora kernel patch from asus-linux fedora kernel sources
+## This is completely optional but mostly plays nicely in my experience.
+##
+#if [[ -v redhat_patch ]]; then
+#  redhat_patch=y
+#fi
 
 ##
 ## The following variables can be customized at build time. Use env or export to change at your wish
@@ -54,33 +73,56 @@ _makenconfig=
 
 #_major="5.11"
 # curl -s "https://api.github.com/repos/xanmod/linux/releases" | jq -r '[.[] | select(.target_commitish == "$_major")][].tag_name' | sort -V | tail -n1
-xanmod=5.12.3-xanmod1
-pkgrel=1
 
 pkgbase=linux-xanmod-rog
+xanmod=5.12.4-xanmod1
 pkgver=${xanmod//-/+}
+#pkgver=5.12.4+pre0
+pkgrel=1
+
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
 arch=(x86_64)
-
 license=(GPL2)
 makedepends=(
   xmlto kmod inetutils bc libelf cpio
 )
 options=('!strip')
 _major=$(echo $xanmod | cut -d'.' -f1,2)
-_branch=$(echo $xanmod | cut -d'.' -f1).x
 _patch=$(echo ${xanmod%-xanmod?} | cut -d'.' -f3)
+_branch="$(echo $xanmod | cut -d'.' -f1).x"
 
+_fedora_kernel_commit_id=29f433a6b9ba268b0202ac8200cf2ce38d6071b7
 source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
         "choose-gcc-optimization.sh"
-        "https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-5.12.patch"
-        "sys-kernel_arch-sources-g14_files-6010-acpi_unused.patch"::"https://aur.archlinux.org/cgit/aur.git/plain/sys-kernel_arch-sources-g14_files-6010-acpi_unused.patch?h=linux-g14&id=71e5fa9a8459b8e7a49ed5c0b7fc74ba680dfe29"
+        "acpi-scan-turn-off-unused-1of2.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=4b9ee772eaa82188b0eb8e05bdd1707c2a992004"
+        "acpi-power-turn-off-unconditionally-2of2.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=7e4fdeafa61f2b653fcf9678f09935e55756aed2"
+        "https://gitlab.com/asus-linux/fedora-kernel/-/archive/$_fedora_kernel_commit_id/fedora-kernel-$_fedora_kernel_commit_id.zip"
+        "5.12.4--Add-jack-toggle-support-for-headphones-on-Asus-ROG-Z.patch"
         )
 validpgpkeys=(
     'ABAF11C65A2970B130ABE3C479BE3E4300411886' # Linux Torvalds
     '647F28654894E3BD457199BE38DBBDC86092693E' # Greg Kroah-Hartman
+)
+
+# asus-linux patch management; any matching patch is pruned from the patchset during application
+# accepts filenames and bash globs, ** important: don't quote globs **
+_fedora_kernel_patch_skip_list=(
+
+  #00{03,05,08}-drm-amdgpu*.patch      # multi-select example
+  #00{01..12}-drm-amdgpu*.patch        # range select example
+  
+  "linux-kernel-test.patch"           # test patch, please ignore
+  patch-*-redhat.patch                # wildcard match any redhat patch version
+  00{01..12}-drm-amdgpu*.patch        # upstreamed in 5.12
+
+  # upstreamed
+  "0001-HID-asus-Filter-keyboard-EC-for-old-ROG-keyboard.patch"
+  "0001-ALSA-hda-realtek-GA503-use-same-quirks-as-GA401.patch"
+
+  # patch broken in 5.12.4, updated patch included in package sources
+  "0001-Add-jack-toggle-support-for-headphones-on-Asus-ROG-Z.patch"
 )
 
 # Archlinux patches
@@ -90,7 +132,16 @@ for _patch in ${_patches[@]}; do
     source+=("${_patch}::https://git.archlinux.org/svntogit/packages.git/plain/trunk/${_patch}?h=packages/linux&id=${_commit}")
 done
 
-# Add incremental patches when we're building ahead of Xanmod
+# apply UKSM patch
+#
+_uksm_patch="https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-${_major}.patch"
+#_uksm_patch="https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-5.12.patch"
+if [[ ! -v no_uksm ]]; then
+  source+=("${_uksm_patch##*/}::${_uksm_patch}")
+fi
+
+# Support stacking incremental point releases from kernel.org when we're building ahead of Xanmod
+#
 if [[ ${xanmod%-xanmod?} != ${pkgver%+xanmod?} ]]; then
   _patch_start=$(echo ${xanmod%-xanmod?} | cut -d'.' -f3)
   _patch_end=$(echo ${pkgver%+xanmod?} | cut -d'.' -f3)
@@ -101,26 +152,36 @@ fi
 
 sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
-            '4e18254c207460eb338234d2ac77006c0a4eadb1d4e8c3d351ca4f7c35d9085b'
+            '550c0791ec823628b94dd9220942510faef33f2e0912a3cc0d0833f3f16561a1'
             '51742dee57cd15bece152d6527f48af87cb7930f0f6a356d5282f778e7c35b39'
-            '8b2e476ae108255ae5dc6da43cda57620021a8e68da0e3c568eb44afd3d3254a'
-            'c384049787c8f0008accf9c4d053eb407b76242fe522e1aed1fe8a9c59f9d996'
-            '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb')
+            '5af4796400245fec2e84d6e3f847b8896600558aa85f5e9c4706dd50994a9802'
+            '9cf7519ee1a0544f431c9fe57735aae7b9d150e62abed318837befc3b6af7c5f'
+            'ce2a5e79ed29c701529f0aa2d854bab79d9f5cbdd173e13774f6e1f4e8ae585f'
+            'f52aadc1ebcdc118bb50769e4f5a4c036521c09ffecba48cb34392e1a687ac0a'
+            '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb'
+            '8b2e476ae108255ae5dc6da43cda57620021a8e68da0e3c568eb44afd3d3254a')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
 export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-makepkg}
 export KBUILD_BUILD_TIMESTAMP=${KBUILD_BUILD_TIMESTAMP:-$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})}
 
+_fedora_patch_in_skip_list() {
+  for p in "${_fedora_kernel_patch_skip_list[@]}"; do [[ "$1" == $p ]] && return 0; done
+  return 1
+}
+
 prepare() {
   cd linux-${_major}
 
   # Apply Xanmod patch
+  msg2 "Applying Xanmod patch..."
   patch -Np1 -i ../patch-${xanmod}
 
   # Apply kernel.org patches when mainline is slightly ahead of Xanmod
   if [[ ${xanmod%-xanmod?} != ${pkgver%+xanmod?} ]]; then
+      msg2 "Applying kernel.org point-release patches..."
       for (( _i=_patch_start; _i < _patch_end; _i++ )); do
-        echo "(prerelease-incremental) Applying patch ${_major}.${_i} -> ${_major}.$((_i+1))..."
+        echo "Applying patch ${_major}.${_i} -> ${_major}.$((_i+1))..."
         patch -Np1 -i ../patch-${_major}.${_i}-$((_i+1))
       done
   fi
@@ -147,35 +208,51 @@ prepare() {
   # ASUS-linux patches
   # --
 
-  # these patches are a moving target and Luke rebases his patch set often so instead of pulling from a commit in the repo
-  # during package build (which may be gone by the time someone else builds this package) I pull the repo as a submodule and
-  # store asus-linux/{*patch,kernel.spec} in tree under asus-linux-patch/
+  # these patches are a moving target and we're not guaranteed that Luke is building a fedora kernel for our kernel version yet.
+  # we'll make a best effort at patching against our kernel sources and use _fkernel_skip_patches=() list above to filter any
+  # patches that have already been upstreamed or are broken for us
+
+  local p_err=()
+  local p_meh=()
+  local _fkernel_path="../fedora-kernel-${_fedora_kernel_commit_id}"
+  msg2 "Applying asus-linux patches..."
 
   # this will apply all enabled patches from the fedora-linux kernel.spec
-  for src in $(awk -F ' ' '/^ApplyOptionalPatch.*patch$/{print $2}' ${startdir}/asus-linux-patches/kernel.spec \
-    # | grep -Ev '\-(redhat|test)\.patch'
-    # ^ this skips both redhat and test patches
-    );
-  do
-    src="${src%%::*}"
-    src="${src##*/}"
-    # skip non-patch files, skip empty test patch, fixup redhat patch filename
-    [[ $src = *.patch ]] || continue
-    [[ $src = "linux-kernel-test.patch" ]] && continue
-    if [[ $src =~ "%{stableversion}-redhat.patch" ]]; then
-      src=${src/\%\{stableversion\}/$_major}
-      # skip redhat patch if we're chasing a kernel version asus-linux doesn't build yet
-      [[ -f "${startdir}/asus-linux-patches/$src" ]] || continue
+  for src in $(awk -F ' ' '/^ApplyOptionalPatch.*patch$/{print $2}' "${_fkernel_path}/kernel.spec"); do
+
+    # skip patches in our skip list
+    _fedora_patch_in_skip_list "$src" && continue
+
+    # the redhat patch needs special handling
+    if [[ "$src" == patch*-redhat.patch ]]; then
+      src=${src/\%\{stableversion\}/$_major} ## fixup filename first
+      if [[ ! -v redhat_patch ]]; then
+        plain "Skipping optional redhat patch $src ..."
+        continue
+      fi
+      if [[ ! -f "${_fkernel_path}/$src" ]]; then
+        plain "Skipping redhat patch, no patch available for this kernel ..."
+        continue
+      fi
     fi
-    echo "(asus-linux) Applying patch $src..."
-    # TODO: this doesn't handle partially applied patches perfectly;
-    # if a portion of the patch succeeds we'll proceed, but dump debug output.
-    # this works for the one partially applied patch in this set (the redhat patch)
-    # but could cause problems later for other half-applied patches so caveat programmator
-    OUT="$(patch --forward -Np1 < "${startdir}/asus-linux-patches/$src")" || \
-      ( echo "$OUT"; (echo "${OUT}" | grep "Skipping patch" -q;) || false;)
+
+    echo "Applying patch $src..."
+    if OUT="$(patch --forward -Np1 < "${_fkernel_path}/$src")"; then
+      : #plain "Applied patch $src..."
+    else
+      # if you want to ignore a specific patch failure for some reason do it right here
+      # then 'continue'
+      if { echo "$OUT" | grep -qiE 'hunk(|s) FAILED'; }; then
+        error "Patch failed $src" && echo "$OUT" && p_err+=("$src") && _throw=y
+      else
+        warning "Duplicate patch $src" && p_meh+=("$src")
+      fi
+    fi
   done
 
+  (( ${#p_err[@]} > 0 )) && error "Failed patches:" && for p in ${p_err[@]}; do plain "$p"; done
+  (( ${#p_meh[@]} > 0 )) && warning "Duplicate patches:" && for p in ${p_meh[@]}; do plain "$p"; done
+  [[ -z "$_throw" ]]  # if throw is defined we had a hard patch failure, propagate it and stop so we can address
   # --
 
   # CONFIG_STACK_VALIDATION gives better stack traces. Also is enabled in all official kernel packages by Archlinux team
@@ -248,10 +325,12 @@ build() {
 }
 
 _package() {
-  pkgdesc="The Linux kernel and modules with Xanmod and ASUS ROG laptop patches"
+  pkgdesc="The Linux kernel and modules with Xanmod and ASUS ROG laptop patches (Zephyrus G14, G15, etc)"
   depends=(coreutils kmod initramfs)
   optdepends=('crda: to set the correct wireless channels of your country'
               'linux-firmware: firmware images needed for some devices')
+  provides+=(linux-xanmod-g14)
+  conflicts+=(linux-xanmod-g14)
 
   cd linux-${_major}
   local kernver="$(<version)"
@@ -275,6 +354,8 @@ _package() {
 _package-headers() {
   pkgdesc="Headers and scripts for building modules for the $pkgdesc kernel"
   depends=(pahole)
+  provides+=(linux-xanmod-g14-headers)
+  conflicts+=(linux-xanmod-g14-headers)
 
   cd linux-${_major}
   local builddir="$pkgdir/usr/lib/modules/$(<version)/build"
