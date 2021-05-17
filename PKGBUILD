@@ -78,7 +78,7 @@ pkgbase=linux-xanmod-rog
 xanmod=5.12.4-xanmod1
 pkgver=${xanmod//-/+}
 #pkgver=5.12.4+pre0
-pkgrel=1
+pkgrel=2
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
