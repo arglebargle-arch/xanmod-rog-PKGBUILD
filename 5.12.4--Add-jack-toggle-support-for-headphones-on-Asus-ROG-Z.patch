@@ -1,11 +1,11 @@
 
-updated from original patch:
+updated for 5.12.4, original header info:
 
-From: =?UTF-8?q?Daniel=20C=C3=B3rdova?= <danesc87@gmail.com>
-Date: Tue, 20 Apr 2021 12:20:44 -0500
-Subject: [PATCH] Add jack toggle support for headphones on Asus ROG Zephyrus
- M15
+  From: =?UTF-8?q?Daniel=20C=C3=B3rdova?= <danesc87@gmail.com>
+  Date: Tue, 20 Apr 2021 12:20:44 -0500
+  Subject: [PATCH] Add jack toggle support for headphones on Asus ROG Zephyrus M15
 
+updated patch follows
 
 diff --git a/sound/pci/hda/patch_realtek.c b/sound/pci/hda/patch_realtek.c
 index 8ec57bd351df..b1d965743282 100644
