@@ -144,9 +144,9 @@ fi
 
 # Support stacking incremental point releases from kernel.org when we're building ahead of Xanmod
 #
-if [[ ${xanmod%-xanmod?} != ${pkgver%+xanmod?} ]]; then
+if [[ ${xanmod%-xanmod?} != ${pkgver%%+*} ]]; then
   _patch_start=$(echo ${xanmod%-xanmod?} | cut -d'.' -f3)
-  _patch_end=$(echo ${pkgver%+xanmod?} | cut -d'.' -f3)
+  _patch_end=$(echo ${pkgver%%+*} | cut -d'.' -f3)
   for (( _i=_patch_start; _i < _patch_end; _i++ )); do
     source+=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/incr/patch-${_major}.${_i}-$((_i +1)).xz")
   done
@@ -180,7 +180,7 @@ prepare() {
   patch -Np1 -i ../patch-${xanmod}
 
   # Apply kernel.org patches when mainline is slightly ahead of Xanmod
-  if [[ ${xanmod%-xanmod?} != ${pkgver%+xanmod?} ]]; then
+  if [[ ${xanmod%-xanmod?} != ${pkgver%%+*} ]]; then
       msg2 "Applying kernel.org point-release patches..."
       for (( _i=_patch_start; _i < _patch_end; _i++ )); do
         echo "Applying patch ${_major}.${_i} -> ${_major}.$((_i+1))..."
@@ -194,8 +194,9 @@ prepare() {
   echo "${pkgbase#linux-xanmod}" > localversion.20-pkgname
 
   # Rewrute xanmod release to 0 if we're pre-releasing
-  [[ ${xanmod%-xanmod?} != ${pkgver%+xanmod?} ]] &&
-    sed -Ei 's/xanmod[0-9]+/xanmod0/' localversion
+  tag=${pkgver#*+}
+  [[ ${xanmod%-xanmod?} != ${pkgver%%+*} ]] &&
+    sed -Ei "s/xanmod[0-9]+/${tag//+/-}/" localversion
 
   # Archlinux patches
   local src
