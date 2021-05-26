@@ -75,7 +75,7 @@ _makenconfig=
 # curl -s "https://api.github.com/repos/xanmod/linux/releases" | jq -r '[.[] | select(.target_commitish == "$_major")][].tag_name' | sort -V | tail -n1
 
 pkgbase=linux-xanmod-rog
-xanmod=5.12.6-xanmod1
+xanmod=5.12.7-xanmod1
 pkgver=${xanmod//-/+}
 #pkgver=5.12.4+pre0
 pkgrel=1
@@ -100,7 +100,6 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "https://gitlab.com/asus-linux/fedora-kernel/-/archive/$_fedora_kernel_commit_id/fedora-kernel-$_fedora_kernel_commit_id.zip"
         "5.12-acpi-1of2-turn-off-unused.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=4b9ee772eaa82188b0eb8e05bdd1707c2a992004"
         "5.12-acpi-2of2-turn-off-unconditionally.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=7e4fdeafa61f2b653fcf9678f09935e55756aed2"
-        "5.12.4--Add-jack-toggle-support-for-headphones-on-Asus-ROG-Z.patch"
         )
 validpgpkeys=(
     'ABAF11C65A2970B130ABE3C479BE3E4300411886' # Linux Torvalds
@@ -123,7 +122,7 @@ _fedora_kernel_patch_skip_list=(
   "0001-HID-asus-Filter-keyboard-EC-for-old-ROG-keyboard.patch"
   "0001-ALSA-hda-realtek-GA503-use-same-quirks-as-GA401.patch"
 
-  # patch broken in 5.12.4, updated patch included in package sources
+  # patch upstreamed in 5.12.7
   "0001-Add-jack-toggle-support-for-headphones-on-Asus-ROG-Z.patch"
 )
 
@@ -154,12 +153,11 @@ fi
 
 sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
-            '2bb72c4ac95cfd63abd2890d23fc12a946874114ca1c48c5a75143866821953c'
+            '907e4d0c92ecd840e32d4c26e745bfb94ae3260d8351fe545101bb7da70e6a50'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             'ce2a5e79ed29c701529f0aa2d854bab79d9f5cbdd173e13774f6e1f4e8ae585f'
             '5af4796400245fec2e84d6e3f847b8896600558aa85f5e9c4706dd50994a9802'
             '9cf7519ee1a0544f431c9fe57735aae7b9d150e62abed318837befc3b6af7c5f'
-            'a3e9adec2af855178381c75621fe49f49e9354e6796bdb1624dfb21367b84d1b'
             '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb'
             '8b2e476ae108255ae5dc6da43cda57620021a8e68da0e3c568eb44afd3d3254a')
 
