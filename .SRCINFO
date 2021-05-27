@@ -17,7 +17,7 @@ pkgbase = linux-xanmod-rog
 	source = https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.12.tar.sign
 	source = https://github.com/xanmod/linux/releases/download/5.12.7-xanmod1/patch-5.12.7-xanmod1.xz
 	source = choose-gcc-optimization.sh
-	source = https://gitlab.com/asus-linux/fedora-kernel/-/archive/29f433a6b9ba268b0202ac8200cf2ce38d6071b7/fedora-kernel-29f433a6b9ba268b0202ac8200cf2ce38d6071b7.zip
+	source = https://gitlab.com/asus-linux/fedora-kernel/-/archive/d3431c2f0a9b8e88150c48d8b1471fdae6716f6d/fedora-kernel-d3431c2f0a9b8e88150c48d8b1471fdae6716f6d.zip
 	source = 5.12-acpi-1of2-turn-off-unused.patch::https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=4b9ee772eaa82188b0eb8e05bdd1707c2a992004
 	source = 5.12-acpi-2of2-turn-off-unconditionally.patch::https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=7e4fdeafa61f2b653fcf9678f09935e55756aed2
 	source = sphinx-workaround.patch::https://git.archlinux.org/svntogit/packages.git/plain/trunk/sphinx-workaround.patch?h=packages/linux&id=be7d4710850020de55bce930c83fa80347c02fc3
@@ -28,7 +28,7 @@ pkgbase = linux-xanmod-rog
 	sha256sums = SKIP
 	sha256sums = 907e4d0c92ecd840e32d4c26e745bfb94ae3260d8351fe545101bb7da70e6a50
 	sha256sums = 1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee
-	sha256sums = ce2a5e79ed29c701529f0aa2d854bab79d9f5cbdd173e13774f6e1f4e8ae585f
+	sha256sums = ab22db05a9f25eedc40621d5debd0388128175d2293b1d5360dffe880eefc42e
 	sha256sums = 5af4796400245fec2e84d6e3f847b8896600558aa85f5e9c4706dd50994a9802
 	sha256sums = 9cf7519ee1a0544f431c9fe57735aae7b9d150e62abed318837befc3b6af7c5f
 	sha256sums = 52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb

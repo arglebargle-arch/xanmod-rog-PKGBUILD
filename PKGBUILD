@@ -93,7 +93,7 @@ _major=$(echo $xanmod | cut -d'.' -f1,2)
 _patch=$(echo ${xanmod%-xanmod?} | cut -d'.' -f3)
 _branch="$(echo $xanmod | cut -d'.' -f1).x"
 
-_fedora_kernel_commit_id=29f433a6b9ba268b0202ac8200cf2ce38d6071b7
+_fedora_kernel_commit_id=d3431c2f0a9b8e88150c48d8b1471fdae6716f6d
 source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
         "choose-gcc-optimization.sh"
@@ -155,7 +155,7 @@ sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
             '907e4d0c92ecd840e32d4c26e745bfb94ae3260d8351fe545101bb7da70e6a50'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
-            'ce2a5e79ed29c701529f0aa2d854bab79d9f5cbdd173e13774f6e1f4e8ae585f'
+            'ab22db05a9f25eedc40621d5debd0388128175d2293b1d5360dffe880eefc42e'
             '5af4796400245fec2e84d6e3f847b8896600558aa85f5e9c4706dd50994a9802'
             '9cf7519ee1a0544f431c9fe57735aae7b9d150e62abed318837befc3b6af7c5f'
             '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb'
