@@ -20,6 +20,7 @@ pkgbase = linux-xanmod-rog
 	source = https://gitlab.com/asus-linux/fedora-kernel/-/archive/d3431c2f0a9b8e88150c48d8b1471fdae6716f6d/fedora-kernel-d3431c2f0a9b8e88150c48d8b1471fdae6716f6d.zip
 	source = 5.12-acpi-1of2-turn-off-unused.patch::https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=4b9ee772eaa82188b0eb8e05bdd1707c2a992004
 	source = 5.12-acpi-2of2-turn-off-unconditionally.patch::https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=7e4fdeafa61f2b653fcf9678f09935e55756aed2
+	source = GV301QH-Flow-X13-Audio.patch
 	source = sphinx-workaround.patch::https://git.archlinux.org/svntogit/packages.git/plain/trunk/sphinx-workaround.patch?h=packages/linux&id=be7d4710850020de55bce930c83fa80347c02fc3
 	source = uksm-5.12.patch::https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-5.12.patch
 	validpgpkeys = ABAF11C65A2970B130ABE3C479BE3E4300411886
@@ -31,6 +32,7 @@ pkgbase = linux-xanmod-rog
 	sha256sums = ab22db05a9f25eedc40621d5debd0388128175d2293b1d5360dffe880eefc42e
 	sha256sums = 5af4796400245fec2e84d6e3f847b8896600558aa85f5e9c4706dd50994a9802
 	sha256sums = 9cf7519ee1a0544f431c9fe57735aae7b9d150e62abed318837befc3b6af7c5f
+	sha256sums = 81d2e76b13831d5ceef63e903eac547442ba7b5c27c2f3f2fd2177332009d07b
 	sha256sums = 52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb
 	sha256sums = 8b2e476ae108255ae5dc6da43cda57620021a8e68da0e3c568eb44afd3d3254a
 
