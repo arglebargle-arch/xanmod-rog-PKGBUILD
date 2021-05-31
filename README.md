@@ -1,6 +1,7 @@
 
 Notes:
 
+  - Added Flow x13 audio patch in 5.12.8
   - Added support for new GCC-11 microarchitecture feature targets, see [`choose-gcc-optimization.sh`](choose-gcc-optimization.sh) or [`PKGBUILD`](PKGBUILD) for details.
   - Builds now default to the `x86-64-v3` target; this builds for Haswell era and newer CPUs and should be ~10% more performant than a generic `x86_64` while maintaining wide compatibility.
   - Package now requires GCC >= 11 to support the new default build target. You can edit this out of the PKGBUILD if you're building for some other architecture target, this is really just to prevent confusion if someone tries to build with GCC 10.
