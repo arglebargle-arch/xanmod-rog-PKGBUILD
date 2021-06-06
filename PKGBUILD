@@ -78,7 +78,7 @@ pkgbase=linux-xanmod-rog
 xanmod=5.12.9-xanmod1
 pkgver=${xanmod//-/+}
 #pkgver=5.12.4+pre0
-pkgrel=1
+pkgrel=3
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -93,20 +93,14 @@ _major=$(echo $xanmod | cut -d'.' -f1,2)
 _patch=$(echo ${xanmod%-xanmod?} | cut -d'.' -f3)
 _branch="$(echo $xanmod | cut -d'.' -f1).x"
 
-_fedora_kernel_commit_id=d3431c2f0a9b8e88150c48d8b1471fdae6716f6d
+_fedora_kernel_commit_id=0bee086d6161b21607e29e6aa080be0ecd6bee35
+
 source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
         "choose-gcc-optimization.sh"
         "https://gitlab.com/asus-linux/fedora-kernel/-/archive/$_fedora_kernel_commit_id/fedora-kernel-$_fedora_kernel_commit_id.zip"
         "5.12-acpi-1of2-turn-off-unused.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=4b9ee772eaa82188b0eb8e05bdd1707c2a992004"
         "5.12-acpi-2of2-turn-off-unconditionally.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=7e4fdeafa61f2b653fcf9678f09935e55756aed2"
-        "GV301QH-Flow-X13-Audio.patch"
-        "ACPI-PM-s2idle-Add-missing-LPS0-functions.patch"
-        "ACPI-processor-idle-Fix-up-C-state-latency.patch"
-        "NVMe-set-some-AMD-PCIe-downstream-storage-device-to-D3-for-s2idle.patch"
-        "PCI-quirks-Quirk-PCI-d3hot-delay.patch"
-        "platform-x86-force-LPS0-functions-for-AMD.patch"
-        "USB-pci-quirks-disable-D3cold-on-s2idle-Renoire.patch"
         )
 validpgpkeys=(
     'ABAF11C65A2970B130ABE3C479BE3E4300411886' # Linux Torvalds
@@ -117,13 +111,13 @@ validpgpkeys=(
 # accepts filenames and bash globs, ** important: don't quote globs **
 _fedora_kernel_patch_skip_list=(
 
-  #00{03,05,08}-drm-amdgpu*.patch      # example multi-select
-  #00{01..12}-drm-amdgpu*.patch        # example range select
-  #patch-*-redhat.patch                # example wildcard match
+  # 00{03,05,08}-drm-amdgpu*.patch      # example multi-select
+  # 00{01..12}-drm-amdgpu*.patch        # example range select
+  # patch-*-redhat.patch                # example wildcard match
   
   "linux-kernel-test.patch"           # test patch, please ignore
   patch-*-redhat.patch                # wildcard match any redhat patch version
-  00{01..12}-drm-amdgpu*.patch        # upstreamed in 5.12
+  # 00{01..12}-drm-amdgpu*.patch        # upstreamed in 5.12
 
   # upstreamed
   "0001-HID-asus-Filter-keyboard-EC-for-old-ROG-keyboard.patch"
@@ -131,9 +125,6 @@ _fedora_kernel_patch_skip_list=(
 
   # patch upstreamed in 5.12.7
   "0001-Add-jack-toggle-support-for-headphones-on-Asus-ROG-Z.patch"
-
-  # pulled more recent suspend related patches from upstream
-  00{13..18}*.patch
 )
 
 # Archlinux patches
@@ -165,16 +156,9 @@ sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
             'bae3ee9c642b48abbaa609ac29d74f082bcdbdd8a1070e83b2a2ecce86d4bb99'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
-            'ab22db05a9f25eedc40621d5debd0388128175d2293b1d5360dffe880eefc42e'
+            '73930930d7ade14b0c2615682141840dc6e0c2b698945c6e5593aee21437cc6e'
             '5af4796400245fec2e84d6e3f847b8896600558aa85f5e9c4706dd50994a9802'
             '9cf7519ee1a0544f431c9fe57735aae7b9d150e62abed318837befc3b6af7c5f'
-            '81d2e76b13831d5ceef63e903eac547442ba7b5c27c2f3f2fd2177332009d07b'
-            '9bd0d51808b8ee31eb07f9105a7e33d9411024587f2777351b15ce994e03b5ff'
-            '0664d797dbdf286622fee24b73d7cf9eb91be7b658476a7d1804d980f3d9a34f'
-            '7db34ebe1b10c4ec147d929bfcd5ef3318a59cdcc32db53a90f8f7acf26c647b'
-            'cf7fdb56c80c36619db963bca14c114d933ac8f9f5c2a44de678f1db780ea3fb'
-            '988903454672517f1103719bd698aa125c6d5a44201c7523c030b21eff52487a'
-            '73ebda084fcda647b8e13a66d118d903454c46d60fdefea4647e09359f313a28'
             '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb'
             '8b2e476ae108255ae5dc6da43cda57620021a8e68da0e3c568eb44afd3d3254a')
 
@@ -236,7 +220,7 @@ prepare() {
   msg2 "Applying asus-linux patches..."
 
   # this will apply all enabled patches from the fedora-linux kernel.spec
-  for src in $(awk -F ' ' '/^ApplyOptionalPatch.*patch$/{print $2}' "${_fkernel_path}/kernel.spec"); do
+  for src in $(awk -F ' ' '/^ApplyOptionalPatch.*(patch|diff)$/{print $2}' "${_fkernel_path}/kernel.spec"); do
 
     # skip patches in our skip list
     _fedora_patch_in_skip_list "$src" && continue

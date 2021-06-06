@@ -5,3 +5,4 @@
 src-cache/*
 src/*
 pkg/*
+patches/*
