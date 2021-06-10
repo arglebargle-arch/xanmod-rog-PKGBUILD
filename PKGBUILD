@@ -75,10 +75,10 @@ _makenconfig=
 # curl -s "https://api.github.com/repos/xanmod/linux/releases" | jq -r '[.[] | select(.target_commitish == "$_major")][].tag_name' | sort -V | tail -n1
 
 pkgbase=linux-xanmod-rog
-xanmod=5.12.9-xanmod1
+xanmod=5.12.10-xanmod1
 pkgver=${xanmod//-/+}
 #pkgver=5.12.4+pre0
-pkgrel=3
+pkgrel=1
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -154,7 +154,7 @@ fi
 
 sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
-            'bae3ee9c642b48abbaa609ac29d74f082bcdbdd8a1070e83b2a2ecce86d4bb99'
+            'ad47cc2b1e14ad443a419af5c56c3adc29f299b399ddac72a6fd5cfc5c64265d'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             '73930930d7ade14b0c2615682141840dc6e0c2b698945c6e5593aee21437cc6e'
             '5af4796400245fec2e84d6e3f847b8896600558aa85f5e9c4706dd50994a9802'
