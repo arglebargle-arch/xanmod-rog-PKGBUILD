@@ -6,3 +6,4 @@ src-cache/*
 src/*
 pkg/*
 patches/*
+buildlog*
