@@ -1,0 +1,29 @@
+From bcdf90e238edadc0918b3806bf58441895e314e6 Mon Sep 17 00:00:00 2001
+From: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
+Date: Thu, 17 Jun 2021 11:42:08 -0500
+Subject: [PATCH] ACPI: PM: s2idle: Use correct revision id
+
+AMD spec mentions only revision 0. With this change,
+device constraint list is populated properly.
+
+Signed-off-by: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
+---
+ drivers/acpi/x86/s2idle.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/acpi/x86/s2idle.c b/drivers/acpi/x86/s2idle.c
+index 2d7ddb8a8cb6..da27c1c45c9f 100644
+--- a/drivers/acpi/x86/s2idle.c
++++ b/drivers/acpi/x86/s2idle.c
+@@ -96,7 +96,7 @@ static void lpi_device_get_constraints_amd(void)
+ 	int i, j, k;
+ 
+ 	out_obj = acpi_evaluate_dsm_typed(lps0_device_handle, &lps0_dsm_guid,
+-					  1, ACPI_LPS0_GET_DEVICE_CONSTRAINTS,
++					  rev_id, ACPI_LPS0_GET_DEVICE_CONSTRAINTS,
+ 					  NULL, ACPI_TYPE_PACKAGE);
+ 
+ 	if (!out_obj)
+-- 
+GitLab
+

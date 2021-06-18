@@ -83,7 +83,7 @@ pkgbase=linux-xanmod-rog
 xanmod=5.12.11-xanmod1
 pkgver=${xanmod//-/+}
 #pkgver=5.12.4+pre0
-pkgrel=1
+pkgrel=2
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -98,7 +98,10 @@ _major=$(echo $xanmod | cut -d'.' -f1,2)
 _patch=$(echo ${xanmod%-xanmod?} | cut -d'.' -f3)
 _branch="$(echo $xanmod | cut -d'.' -f1).x"
 
-_fedora_kernel_commit_id=0bee086d6161b21607e29e6aa080be0ecd6bee35
+# suspend test branch:
+#_fedora_kernel_commit_id=0bee086d6161b21607e29e6aa080be0ecd6bee35
+# rog branch:
+_fedora_kernel_commit_id=91f97d88231152006764d3c50cc52ddbb508529f
 
 source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
@@ -107,6 +110,17 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "5.12-acpi-1of2-turn-off-unused.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=4b9ee772eaa82188b0eb8e05bdd1707c2a992004"
         # "5.12-acpi-2of2-turn-off-unconditionally.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=7e4fdeafa61f2b653fcf9678f09935e55756aed2"
         "5.12-acpi-refine-turning-off-unused-power-resources.patch"
+        "ACPI-processor-idle-Fix-up-C-state-latency-if-not-ordered.patch"
+        "PCI-quirks-Quirk-PCI-d3hot-delay-for-AMD-xhci.patch"
+        "nvme-pci-look-for-StorageD3Enable-on-companion-ACPI-device.patch"
+        "ACPI-Check-StorageD3Enable_DSD-property-in-AHCI-mode.patch"
+        "ACPI-Add-quirks-for-AMD-Renoir+Lucienne-CPUs-to-force-the-D3-hint.patch"
+        "ACPI-PM-s2idle-Add-missing-LPS0-functions-for-AMD.patch"
+        "ACPI-PM-s2idle-Use-correct-revision-id.patch"
+        "ACPI-PM-s2idle-Refactor-common-code.patch"
+        "ACPI-PM-s2idle-Add-support-for-multiple-func-mask.patch"
+        "ACPI-PM-s2idle-Add-support-for-new-Microsoft-UUID.patch"
+        "ACPI-PM-Adjust-behavior-for-field-problems-on-AMD-systems.patch"
         )
 validpgpkeys=(
     'ABAF11C65A2970B130ABE3C479BE3E4300411886' # Linux Torvalds
@@ -131,6 +145,25 @@ _fedora_kernel_patch_skip_list=(
 
   # patch upstreamed in 5.12.7
   "0001-Add-jack-toggle-support-for-headphones-on-Asus-ROG-Z.patch"
+
+  # filter out suspend patches, we'll use upstream directly
+  "0001-ACPI-processor-idle-Fix-up-C-state-latency-if-not-ordered.patch"
+  "0002-v5-usb-pci-quirks-disable-D3cold-on-xhci-suspend-for-s2idle-on-AMD-Renoir.diff"
+  "0003-PCI-quirks-Quirk-PCI-d3hot-delay-for-AMD-xhci.diff"
+  "0004-nvme-pci_look_for_StorageD3Enable_on_companion_ACPI_device_instead.patch"
+  "0005-v5-1-2-acpi-PM-Move-check-for-_DSD-StorageD3Enable-property-to-acpi.diff"
+  "0006-v5-2-2-acpi-PM-Add-quirks-for-AMD-Renoir-Lucienne-CPUs-to-force-the-D3-hint.diff"
+  "0007-ACPI_PM_s2idle_Add_missing_LPS0_functions_for_AMD.patch"
+  "0008-2-2-V2-platform-x86-force-LPS0-functions-for-AMD.diff"
+
+  # filter suspend patches from 'rog' branch
+  "0002-drm-amdgpu-drop-extraneous-hw_status-update.patch"
+  "0013-ACPI-idle-override-and-update-c-state-latency-when-n.patch"
+  "0014-usb-pci-quirks-disable-D3cold-on-AMD-xhci-suspend-fo.patch"
+  "0015-PCI-quirks-Quirk-PCI-d3hot-delay-for-AMD-xhci.patch"
+  "0016-nvme-put-some-AMD-PCIE-downstream-NVME-device-to-sim.patch"
+  "0017-platform-x86-Add-missing-LPS0-functions-for-AMD.patch"
+  "0018-platform-x86-force-LPS0-functions-for-AMD.patch"
 )
 
 # Archlinux patches
@@ -162,9 +195,20 @@ sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
             '629f10bd8dd1a3f1427dbc5f2efce7bbe815c3eac1f08a82df80e6d917628f9e'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
-            '73930930d7ade14b0c2615682141840dc6e0c2b698945c6e5593aee21437cc6e'
+            'f94b12f56e99ebfc87014f9570a987bca7b50400c412ddbbb7035d73c5d8c668'
             '5af4796400245fec2e84d6e3f847b8896600558aa85f5e9c4706dd50994a9802'
             'f3b2dbdfd01d728ca1f4bc130eb227edd1985c2b2f7470c8a95aa75c6a85da10'
+            'b4a563ef30f86b9af0932c00bb3422b95eedbda1ff40a1a725c22a0ae9ab7084'
+            'dab4db308ede1aa35166f31671572eeccf0e7637b3218ce3ae519c2705934f79'
+            '9e83c46bed9059ba78df6c17a2f7c80a1cdb6efbdf64ec643f68573ede891b95'
+            '6c5538dc21a139a4475af6c1acc5d2761923173992568f7c159db971ff3167cd'
+            '84119c2d2beb6d7dc56389f2d1be8052b4fd23022e15edd86ee59130adcd9ab7'
+            '478e908f89ae413c650116681710aed3e974384a2ed5e97be3755189688e5415'
+            '8c30af848c19e543043cbed07ee0a3f6f247ce2a137fbb0bb84a66024a106897'
+            '9c838fb8bd1e7874c9a39b48717c3be122d08fb17966dd28ea9da61186158837'
+            'b2dfc605c13b766cca8c89aa74828927cddf44bb65840ac32fdf3685fc837bbc'
+            '751966936e57a36644cf2d718b37c65519a2ffb8606d5ef315073321fc66877a'
+            'edbeac437170e74bb33b4b5e79bfa1005e3d2588d75610bd379257e5a5646049'
             '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb'
             '8b2e476ae108255ae5dc6da43cda57620021a8e68da0e3c568eb44afd3d3254a')
 

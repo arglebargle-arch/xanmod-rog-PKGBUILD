@@ -1,0 +1,53 @@
+From ead65087f27b8c8aa01bc9f4f1f1a36fb521eb4b Mon Sep 17 00:00:00 2001
+From: Mario Limonciello <mario.limonciello@amd.com>
+Date: Thu, 17 Jun 2021 11:42:12 -0500
+Subject: [PATCH] ACPI: PM: Adjust behavior for field problems on AMD systems
+
+Some AMD Systems with uPEP _HID AMD004/AMDI005 have an off by one bug
+in their function mask return.  This means that they will call entrance
+but not exit for matching functions.
+
+Other AMD systems with this HID should use the Microsoft generic UUID.
+
+AMD systems with uPEP HID AMDI006 should be using the Microsoft method.
+
+Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
+---
+ drivers/acpi/x86/s2idle.c | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/drivers/acpi/x86/s2idle.c b/drivers/acpi/x86/s2idle.c
+index 3f2a90648ec9..816bf2c34b7a 100644
+--- a/drivers/acpi/x86/s2idle.c
++++ b/drivers/acpi/x86/s2idle.c
+@@ -371,12 +371,27 @@ static int lps0_device_attach(struct acpi_device *adev,
+ 		return 0;
+ 
+ 	if (acpi_s2idle_vendor_amd()) {
++		/* AMD0004, AMDI0005:
++		 * - Should use rev_id 0x0
++		 * - function mask > 0x3: Should use AMD method, but has off by one bug
++		 * - function mask = 0x3: Should use Microsoft method
++		 * AMDI0006:
++		 * - should use rev_id 0x0
++		 * - function mask = 0x3: Should use Microsoft method
++		 */
++		const char *hid = acpi_device_hid(adev);
+ 		rev_id = 0;
+ 		lps0_dsm_func_mask = validate_dsm(adev->handle,
+ 					ACPI_LPS0_DSM_UUID_AMD, rev_id, &lps0_dsm_guid);
+ 		lps0_dsm_func_mask_microsoft = validate_dsm(adev->handle,
+ 					ACPI_LPS0_DSM_UUID_MICROSOFT, rev_id,
+ 					&lps0_dsm_guid_microsoft);
++		if (lps0_dsm_func_mask > 0x3 && (!strcmp(hid, "AMD0004") ||
++						 !strcmp(hid, "AMDI0005"))) {
++			lps0_dsm_func_mask = (lps0_dsm_func_mask << 1) | 0x1;
++			acpi_handle_debug(adev->handle, "_DSM UUID %s: Adjusted function mask: 0x%x\n",
++					  ACPI_LPS0_DSM_UUID_AMD, lps0_dsm_func_mask);
++		}
+ 	} else {
+ 		rev_id = 1;
+ 		lps0_dsm_func_mask = validate_dsm(adev->handle,
+-- 
+GitLab
+
