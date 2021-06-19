@@ -108,7 +108,7 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "choose-gcc-optimization.sh"
         "https://gitlab.com/asus-linux/fedora-kernel/-/archive/$_fedora_kernel_commit_id/fedora-kernel-$_fedora_kernel_commit_id.zip"
         "5.13-acpi-1of2-turn-off-unused.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=4b9ee772eaa82188b0eb8e05bdd1707c2a992004"
-        # "5.13-acpi-2of2-turn-off-unconditionally.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=7e4fdeafa61f2b653fcf9678f09935e55756aed2"
+        #"5.13-acpi-2of2-turn-off-unconditionally.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=7e4fdeafa61f2b653fcf9678f09935e55756aed2"
         "5.13-acpi-refine-turning-off-unused-power-resources.patch"
 
         "5.14-ACPI-processor-idle-Fix-up-C-state-latency-if-not-ordered.patch"
@@ -117,12 +117,6 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "5.14-ACPI-Check-StorageD3Enable_DSD-property-in-AHCI-mode.patch"
         "5.14-ACPI-Add-quirks-for-AMD-Renoir+Lucienne-CPUs-to-force-the-D3-hint.patch"
         "5.14-ACPI-PM-s2idle-Add-missing-LPS0-functions-for-AMD.patch"
-        #"ACPI-PM-s2idle-Use-correct-revision-id.patch"
-        #"ACPI-PM-s2idle-Refactor-common-code.patch"
-        #"ACPI-PM-s2idle-Add-support-for-multiple-func-mask.patch"
-        #"ACPI-PM-s2idle-Add-support-for-new-Microsoft-UUID.patch"
-        #"ACPI-PM-Adjust-behavior-for-field-problems-on-AMD-systems.patch"
-
         "5.14-1of5-ACPI-PM-s2idle-Use-correct-revision-id.patch"
         "5.14-2of5-ACPI-PM-s2idle-Refactor-common-code.patch"
         "5.14-3of5-ACPI-PM-s2idle-Add-support-for-multiple-func-mask.patch"
