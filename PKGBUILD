@@ -80,9 +80,9 @@ _makenconfig=
 # curl -s "https://api.github.com/repos/xanmod/linux/releases" | jq -r '[.[] | select(.target_commitish == "$_major")][].tag_name' | sort -V | tail -n1
 
 pkgbase=linux-xanmod-rog
-xanmod=5.12.11-xanmod1
-#pkgver=${xanmod//-/+}
-pkgver=5.12.12+pre0
+xanmod=5.12.12-xanmod1
+pkgver=${xanmod//-/+}
+#pkgver=5.12.12+pre0
 pkgrel=10
 
 pkgdesc='Linux Xanmod'
@@ -123,13 +123,12 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "5.14-4of5-ACPI-PM-s2idle-Add-support-for-new-Microsoft-UUID.patch"
         "5.14-5of5-ACPI-PM-s2idle-Adjust-behavior-for-field-problems-on-AMD-systems.patch"
 
-        # these need manual fixup to apply to 5.12
-        #"platform-x86-amd-pmc-Add-new-acpi-for-future-PMC.patch"
-        #"platform-x86-amd-pmc-Add-support-for-ACPI-ID-AMDI0006.patch"
-        #"platform-x86-amd-pmc-Add-support-for-logging-SMU-metrics.patch"
-        #"platform-x86-amd-pmc-Add-support-for-s0ix-counters.patch"
-        #"platform-x86-amd-pmc-Fix-command-completion-code.patch"
-        #"platform-x86-amd-pmc-Fix-SMU-firmware-reporting-mechanism.patch"
+        "platform-x86-amd-pmc-Fix-command-completion-code.patch"
+        "platform-x86-amd-pmc-Fix-SMU-firmware-reporting-mechanism.patch"
+        "platform-x86-amd-pmc-Add-support-for-logging-SMU-metrics.patch"
+        "platform-x86-amd-pmc-Add-support-for-s0ix-counters.patch"
+        "platform-x86-amd-pmc-Add-support-for-ACPI-ID-AMDI0006.patch"
+        "platform-x86-amd-pmc-Add-new-acpi-for-future-PMC.patch"
         )
 validpgpkeys=(
     'ABAF11C65A2970B130ABE3C479BE3E4300411886' # Linux Torvalds
@@ -201,7 +200,7 @@ fi
 
 sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
-            '629f10bd8dd1a3f1427dbc5f2efce7bbe815c3eac1f08a82df80e6d917628f9e'
+            'd92c6a7be9d7dd7086299ba2c8fe14831629a190707e3469b384e9e2d52c309c'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             'f94b12f56e99ebfc87014f9570a987bca7b50400c412ddbbb7035d73c5d8c668'
             '5af4796400245fec2e84d6e3f847b8896600558aa85f5e9c4706dd50994a9802'
@@ -216,9 +215,14 @@ sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             '23ada5c29c415c0bb8d14cff213c697c649b438d7427a67a15b0b3f65c66aa6f'
             '9ea5d38eea3809e85c6f3165f4b410ee53f0fdb813cbbf229e18a87e79c13ad5'
             'd6113df716cb81f78abc58405648d90f8497e29d79f5fd403eda36af867b50f3'
+            'bc783b22ab5ab75dc28ae10519a9d6da23d80ee291812115555945acd280edc5'
+            'dce87ca35886d075554fe6d8831075237d80526e078431165d2ec0d1a9630c7b'
+            'ad9f485bb262bb1156da57698ccab5a6b8d8ca34b6ae8a185dcd014a34c69557'
+            '3e8c51aff84b6f12e6bc61057982befd82415626fe379e83271ddeb1a9628734'
+            'bd975ab32d6490a4231d6ce4fab0343698b28407799bdaec133671e9fd778eb5'
+            'ae66bbed96b5946b5a20d902bc0282c7dd172650812114b24429f40d5ba225bb'
             '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb'
-            '8b2e476ae108255ae5dc6da43cda57620021a8e68da0e3c568eb44afd3d3254a'
-            '1141b71ee3f73aaf9de6b137097b9b717be562c325f9b1de3938dba51a966918')
+            '8b2e476ae108255ae5dc6da43cda57620021a8e68da0e3c568eb44afd3d3254a')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
 export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-makepkg}
