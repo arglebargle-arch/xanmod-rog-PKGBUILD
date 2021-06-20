@@ -80,7 +80,7 @@ _makenconfig=
 # curl -s "https://api.github.com/repos/xanmod/linux/releases" | jq -r '[.[] | select(.target_commitish == "$_major")][].tag_name' | sort -V | tail -n1
 
 pkgbase=linux-xanmod-rog
-xanmod=5.12.11-xanmod1
+xanmod=5.12.12-xanmod1
 pkgver=${xanmod//-/+}
 #pkgver=5.12.4+pre0
 pkgrel=1
@@ -108,7 +108,7 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "choose-gcc-optimization.sh"
         "https://gitlab.com/asus-linux/fedora-kernel/-/archive/$_fedora_kernel_commit_id/fedora-kernel-$_fedora_kernel_commit_id.zip"
         "5.12-acpi-1of2-turn-off-unused.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=4b9ee772eaa82188b0eb8e05bdd1707c2a992004"
-        # "5.12-acpi-2of2-turn-off-unconditionally.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=7e4fdeafa61f2b653fcf9678f09935e55756aed2"
+        #"5.12-acpi-2of2-turn-off-unconditionally.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=7e4fdeafa61f2b653fcf9678f09935e55756aed2"
         "5.12-acpi-refine-turning-off-unused-power-resources.patch"
         )
 validpgpkeys=(
@@ -131,9 +131,8 @@ _fedora_kernel_patch_skip_list=(
   # upstreamed
   "0001-HID-asus-Filter-keyboard-EC-for-old-ROG-keyboard.patch"
   "0001-ALSA-hda-realtek-GA503-use-same-quirks-as-GA401.patch"
-
-  # patch upstreamed in 5.12.7
   "0001-Add-jack-toggle-support-for-headphones-on-Asus-ROG-Z.patch"
+  "0001-HID-asus-filter-G713-G733-key-event-to-prevent-shutd.patch"
 )
 
 # Archlinux patches
@@ -163,7 +162,7 @@ fi
 
 sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
-            '629f10bd8dd1a3f1427dbc5f2efce7bbe815c3eac1f08a82df80e6d917628f9e'
+            'd92c6a7be9d7dd7086299ba2c8fe14831629a190707e3469b384e9e2d52c309c'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             '73930930d7ade14b0c2615682141840dc6e0c2b698945c6e5593aee21437cc6e'
             '5af4796400245fec2e84d6e3f847b8896600558aa85f5e9c4706dd50994a9802'
