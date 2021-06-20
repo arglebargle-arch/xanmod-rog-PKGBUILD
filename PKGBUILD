@@ -83,7 +83,7 @@ pkgbase=linux-xanmod-rog
 xanmod=5.12.12-xanmod1
 pkgver=${xanmod//-/+}
 #pkgver=5.12.12+pre0
-pkgrel=10
+pkgrel=10.2
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -101,10 +101,8 @@ _major=$(echo $xanmod | cut -d'.' -f1,2)
 _patch=$(echo ${xanmod%-xanmod?} | cut -d'.' -f3)
 _branch="$(echo $xanmod | cut -d'.' -f1).x"
 
-# suspend test branch:
-#_fedora_kernel_commit_id=0bee086d6161b21607e29e6aa080be0ecd6bee35
-# rog branch:
-_fedora_kernel_commit_id=91f97d88231152006764d3c50cc52ddbb508529f
+#_fedora_kernel_commit_id=0bee086d6161b21607e29e6aa080be0ecd6bee35    # suspend test branch:
+_fedora_kernel_commit_id=91f97d88231152006764d3c50cc52ddbb508529f     # rog branch:
 
 source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
