@@ -82,8 +82,8 @@ _makenconfig=
 pkgbase=linux-xanmod-rog
 xanmod=5.12.12-xanmod1
 pkgver=${xanmod//-/+}
-#pkgver=5.12.4+pre0
-pkgrel=1
+#pkgver=5.12.12+pre0
+pkgrel=2
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -101,15 +101,35 @@ _major=$(echo $xanmod | cut -d'.' -f1,2)
 _patch=$(echo ${xanmod%-xanmod?} | cut -d'.' -f3)
 _branch="$(echo $xanmod | cut -d'.' -f1).x"
 
-_fedora_kernel_commit_id=0bee086d6161b21607e29e6aa080be0ecd6bee35
+# use rog branch; we'll handle suspend patches
+_fedora_kernel_commit_id=91f97d88231152006764d3c50cc52ddbb508529f
 
 source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
         "choose-gcc-optimization.sh"
         "https://gitlab.com/asus-linux/fedora-kernel/-/archive/$_fedora_kernel_commit_id/fedora-kernel-$_fedora_kernel_commit_id.zip"
-        "5.12-acpi-1of2-turn-off-unused.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=4b9ee772eaa82188b0eb8e05bdd1707c2a992004"
-        #"5.12-acpi-2of2-turn-off-unconditionally.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=7e4fdeafa61f2b653fcf9678f09935e55756aed2"
-        "5.12-acpi-refine-turning-off-unused-power-resources.patch"
+        "5.13-acpi-1of2-turn-off-unused.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=4b9ee772eaa82188b0eb8e05bdd1707c2a992004"
+        # the second patch in this sequence (2of2) was rejected upstream as it causes problems for some machines
+        "5.13-acpi-refine-turning-off-unused-power-resources.patch"
+
+        "5.14-ACPI-processor-idle-Fix-up-C-state-latency-if-not-ordered.patch"
+        "PCI-quirks-Quirk-PCI-d3hot-delay-for-AMD-xhci.patch"
+        "5.14-nvme-pci-look-for-StorageD3Enable-on-companion-ACPI-device.patch"
+        "5.14-ACPI-Check-StorageD3Enable_DSD-property-in-AHCI-mode.patch"
+        "5.14-ACPI-Add-quirks-for-AMD-Renoir+Lucienne-CPUs-to-force-the-D3-hint.patch"
+        "5.14-ACPI-PM-s2idle-Add-missing-LPS0-functions-for-AMD.patch"
+        "5.14-1of5-ACPI-PM-s2idle-Use-correct-revision-id.patch"
+        "5.14-2of5-ACPI-PM-s2idle-Refactor-common-code.patch"
+        "5.14-3of5-ACPI-PM-s2idle-Add-support-for-multiple-func-mask.patch"
+        "5.14-4of5-ACPI-PM-s2idle-Add-support-for-new-Microsoft-UUID.patch"
+        "5.14-5of5-ACPI-PM-s2idle-Adjust-behavior-for-field-problems-on-AMD-systems.patch"
+
+        "platform-x86-amd-pmc-Fix-command-completion-code.patch"
+        "platform-x86-amd-pmc-Fix-SMU-firmware-reporting-mechanism.patch"
+        "platform-x86-amd-pmc-Add-support-for-logging-SMU-metrics.patch"
+        "platform-x86-amd-pmc-Add-support-for-s0ix-counters.patch"
+        "platform-x86-amd-pmc-Add-support-for-ACPI-ID-AMDI0006.patch"
+        "platform-x86-amd-pmc-Add-new-acpi-for-future-PMC.patch"
         )
 validpgpkeys=(
     'ABAF11C65A2970B130ABE3C479BE3E4300411886' # Linux Torvalds
@@ -133,6 +153,25 @@ _fedora_kernel_patch_skip_list=(
   "0001-ALSA-hda-realtek-GA503-use-same-quirks-as-GA401.patch"
   "0001-Add-jack-toggle-support-for-headphones-on-Asus-ROG-Z.patch"
   "0001-HID-asus-filter-G713-G733-key-event-to-prevent-shutd.patch"
+
+  # filter out suspend patches, we'll use upstream directly
+  "0001-ACPI-processor-idle-Fix-up-C-state-latency-if-not-ordered.patch"
+  "0002-v5-usb-pci-quirks-disable-D3cold-on-xhci-suspend-for-s2idle-on-AMD-Renoir.diff"
+  "0003-PCI-quirks-Quirk-PCI-d3hot-delay-for-AMD-xhci.diff"
+  "0004-nvme-pci_look_for_StorageD3Enable_on_companion_ACPI_device_instead.patch"
+  "0005-v5-1-2-acpi-PM-Move-check-for-_DSD-StorageD3Enable-property-to-acpi.diff"
+  "0006-v5-2-2-acpi-PM-Add-quirks-for-AMD-Renoir-Lucienne-CPUs-to-force-the-D3-hint.diff"
+  "0007-ACPI_PM_s2idle_Add_missing_LPS0_functions_for_AMD.patch"
+  "0008-2-2-V2-platform-x86-force-LPS0-functions-for-AMD.diff"
+
+  # filter suspend patches from 'rog' branch
+  "0002-drm-amdgpu-drop-extraneous-hw_status-update.patch"
+  "0013-ACPI-idle-override-and-update-c-state-latency-when-n.patch"
+  "0014-usb-pci-quirks-disable-D3cold-on-AMD-xhci-suspend-fo.patch"
+  "0015-PCI-quirks-Quirk-PCI-d3hot-delay-for-AMD-xhci.patch"
+  "0016-nvme-put-some-AMD-PCIE-downstream-NVME-device-to-sim.patch"
+  "0017-platform-x86-Add-missing-LPS0-functions-for-AMD.patch"
+  "0018-platform-x86-force-LPS0-functions-for-AMD.patch"
 )
 
 # Archlinux patches
@@ -164,9 +203,26 @@ sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
             'd92c6a7be9d7dd7086299ba2c8fe14831629a190707e3469b384e9e2d52c309c'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
-            '73930930d7ade14b0c2615682141840dc6e0c2b698945c6e5593aee21437cc6e'
+            'f94b12f56e99ebfc87014f9570a987bca7b50400c412ddbbb7035d73c5d8c668'
             '5af4796400245fec2e84d6e3f847b8896600558aa85f5e9c4706dd50994a9802'
             'f3b2dbdfd01d728ca1f4bc130eb227edd1985c2b2f7470c8a95aa75c6a85da10'
+            'b4a563ef30f86b9af0932c00bb3422b95eedbda1ff40a1a725c22a0ae9ab7084'
+            'dab4db308ede1aa35166f31671572eeccf0e7637b3218ce3ae519c2705934f79'
+            '9e83c46bed9059ba78df6c17a2f7c80a1cdb6efbdf64ec643f68573ede891b95'
+            '6c5538dc21a139a4475af6c1acc5d2761923173992568f7c159db971ff3167cd'
+            '84119c2d2beb6d7dc56389f2d1be8052b4fd23022e15edd86ee59130adcd9ab7'
+            '478e908f89ae413c650116681710aed3e974384a2ed5e97be3755189688e5415'
+            '1c58e4fd62cb7034e4fe834b55ffd8e183926571d4056b150bab5725f0ac5e29'
+            '50f6e6a3371eaedd3b649a25c5044e6359853c2e3836a6af683a906abb973fba'
+            '23ada5c29c415c0bb8d14cff213c697c649b438d7427a67a15b0b3f65c66aa6f'
+            '9ea5d38eea3809e85c6f3165f4b410ee53f0fdb813cbbf229e18a87e79c13ad5'
+            'd6113df716cb81f78abc58405648d90f8497e29d79f5fd403eda36af867b50f3'
+            'bc783b22ab5ab75dc28ae10519a9d6da23d80ee291812115555945acd280edc5'
+            'dce87ca35886d075554fe6d8831075237d80526e078431165d2ec0d1a9630c7b'
+            'ad9f485bb262bb1156da57698ccab5a6b8d8ca34b6ae8a185dcd014a34c69557'
+            '3e8c51aff84b6f12e6bc61057982befd82415626fe379e83271ddeb1a9628734'
+            'bd975ab32d6490a4231d6ce4fab0343698b28407799bdaec133671e9fd778eb5'
+            'ae66bbed96b5946b5a20d902bc0282c7dd172650812114b24429f40d5ba225bb'
             '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb'
             '8b2e476ae108255ae5dc6da43cda57620021a8e68da0e3c568eb44afd3d3254a')
 
