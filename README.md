@@ -2,9 +2,9 @@
 Notes:
 
   - 5.12.12-2: added 'Quirk PCI d3hot delay for AMD xhci' patch per GitLab discussion
-  - 5.12.12-2: added the 5.14 ACPI s0ix suspend patchset from upstream, suspend is stable with the caveat below for machines with two NVMe devices
-  - As of 5.12.12/5.13-rc6 Suspend seems to be mostly stable with the included upstream s0ix patches for machines with one NVMe drive and proper StorageD3Enable BIOS support. GA503QR has an ACPI table BIOS bug in BIOS 410 and below that prevents the machine from putting the second drive to sleep and breaks the suspend code path. See the following links for discussion of the issue and a temporary solution on GitHub. If you're using a non-GA503QR machine with broken suspend due to a missing StorageD3Enable definition you can try patching your DSDT in the same way:
-    - https://gitlab.freedesktop.org/drm/amd/-/issues/1230#note_966642 (this takes forever to load, thank GitLab)
+  - 5.12.12-2: added the 5.14 ACPI s0ix suspend patchset from upstream, suspend is stable with the caveat below for machines with buggy NVMe ACPI definitions
+  - As of 5.12.12/5.13-rc6 suspend seems to be mostly stable with the included upstream s0ix patches for machines with proper StorageD3Enable BIOS support. GA503QR has an ACPI table BIOS bug in BIOS 410 and below that prevents the machine from putting the second drive to sleep and breaks the suspend code path. See the following links for discussion of the issue and a temporary solution on GitHub. If you're using a non-GA503QR machine with broken suspend due to a missing StorageD3Enable definition you can try patching your DSDT in the same way:
+    - https://gitlab.freedesktop.org/drm/amd/-/issues/1230#note_966642 (Renoir/Cezanne suspend issues; this takes forever to load, thank GitLab)
     - https://github.com/foundObjects/GA503QR-StorageD3Enable-DSDT-Patch (a short HOWTO on patching your ACPI tables if needed)
   - Errors related to StorageD3Enable issues will look like the following in `dmesg` or the system journal:
     ```log
@@ -18,9 +18,10 @@ Notes:
     Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: Abort status: 0x371
     Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: Abort status: 0x371
     ```
+    If you're seeing messages like this on a ROG laptop join us on Discord for help here: https://discord.gg/qUUm9cWW
   - ~~Since 5.12.7 Suspend has been unstable on 2021 (Cezanne) machines, we're still looking for a solution as the patches we were using up until that point have become an unreliable fix. If this is an issue for you either disable suspend in `/etc/systemd/sleep.conf` or stay with 5.12.6 until a solution is found. You can find more information about the issue by tracking the kernel [bug report](https://gitlab.freedesktop.org/drm/amd/-/issues/1230#note_947255) or help investigate the issue with us [on Discord](https://discord.gg/JW7yywZn). This affects all 2020/2021 Ryzen laptops, not just ASUS machines.~~
-  - 5.12.9-2: Big upstream suspend-related patch set update; this is mostly hidden from git history here because we're pulling patches out of the asus-linux fedora kernel repo during package build
-  - 5.12.8-2: Updated upstream suspend patches
+  - ~~5.12.9-2: Big upstream suspend-related patch set update; this is mostly hidden from git history here because we're pulling patches out of the asus-linux fedora kernel repo during package build~~
+  - ~~5.12.8-2: Updated upstream suspend patches~~
   - 5.12.8: Added Flow x13 audio patch
   - Added support for new GCC-11 microarchitecture feature targets, see [`choose-gcc-optimization.sh`](choose-gcc-optimization.sh) or [`PKGBUILD`](PKGBUILD) for details.
   - Builds now default to the `x86-64-v3` target; this builds for Haswell era and newer CPUs and should be ~10% more performant than a generic `x86_64` while maintaining wide compatibility.
