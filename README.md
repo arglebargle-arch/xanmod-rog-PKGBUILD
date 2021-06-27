@@ -1,6 +1,35 @@
 
+Arch linux `linux-xanmod` derived kernel with hardware enablement patches for ASUS ROG laptops and ACPI backports from mainline enabling s0ix power states
+
+More information about the s0ix enablement effort can be found here: https://gitlab.freedesktop.org/drm/amd/-/issues/1230#note_963056
+
 Notes:
 
+  - Builds now default to the `x86-64-v3` target; this builds for Haswell era and newer CPUs and should be ~10% more performant than a generic `x86_64` while maintaining wide compatibility.
+  - Package now requires GCC >= 11 to support the new default build target. You can edit this out of the PKGBUILD if you're building for some other architecture target, this is really just to prevent confusion if someone tries to build with GCC 10.
+  - Consider adding `cpufreq.default_governor=schedutil` to your boot command line for this kernel, by default Xanmod builds with the performance governor as the default. This is great for performance but doesn't clock down as readily. I suggest making a couple of bash aliases to make switching modes/governors easier and boost performance or save battery power as needed.
+
+    * `alias goboost='set -x; asusctl profile boost -t true -f boost; sudo cpupower frequency-set -g performance >&/dev/null; { set +x; } >&/dev/null'`
+    * `alias gonormal='set -x; asusctl profile normal -t true -f normal; sudo cpupower frequency-set -g schedutil >&/dev/null; { set +x; } >&/dev/null'`
+    * `alias gosilent='set -x; asusctl profile silent -t false -f silent; sudo cpupower frequency-set -g schedutil >&/dev/null; { set +x; } >&/dev/null'`
+
+  - Suggested architecture build targets:
+
+    * `_microarchitecture=14 makepkg ...` Zen2 optimization (AMD 4000 series CPUs)
+    * `_microarchitecture=15 makepkg ...` Zen3 optimizationa (most AMD 5000 series CPUs)
+    * `_microarchitecture=38 makepkg ...` Skylake optimization (Use this for Comet Lake)
+    * `_microarchitecture=92 makepkg ...` x86-64-v2 for compatibility with older (2008 era) machines
+    * `_microarchitecture=93 makepkg ...` x86-64-v3 (this is the default, most machines from 2013/2014 and on are compatible)
+    * `_microarchitecture=98 makepkg ...` Intel -march=native
+    * `_microarchitecture=99 makepkg ...` AMD -march=native 
+
+    * NOTE: Gentoo recommends [Skylake](https://wiki.gentoo.org/wiki/Safe_CFLAGS#Skylake.2C_Kaby_Lake.2C_Kaby_Lake_R.2C_Coffee_Lake.2C_Comet_Lake) optimization for Comet Lake machines
+
+  - UKSM can be disabled by building with `no_uksm=y makepkg ...` to reduce CPU usage by a small amount. I suggest leaving it enabled, when it works well it does a great job of deduping in-use memory.
+
+Notable Changes:
+
+  - 5.12.13-2: revert a couple of drm/amdgpu commits that snuck into stable that cause suspend failures with the new s0ix code
   - 5.12.12-2: added 'Quirk PCI d3hot delay for AMD xhci' patch per GitLab discussion
   - 5.12.12-2: added the 5.14 ACPI s0ix suspend patchset from upstream, suspend is stable with the caveat below for machines with buggy NVMe ACPI definitions
   - As of 5.12.12/5.13-rc6 suspend seems to be mostly stable with the included upstream s0ix patches for machines with proper StorageD3Enable BIOS support. GA503QR has an ACPI table BIOS bug in BIOS 410 and below that prevents the machine from putting the second drive to sleep and breaks the suspend code path. See the following links for discussion of the issue and a temporary solution on GitHub. If you're using a non-GA503QR machine with broken suspend due to a missing StorageD3Enable definition you can try patching your DSDT in the same way:
@@ -24,24 +53,4 @@ Notes:
   - ~~5.12.8-2: Updated upstream suspend patches~~
   - 5.12.8: Added Flow x13 audio patch
   - Added support for new GCC-11 microarchitecture feature targets, see [`choose-gcc-optimization.sh`](choose-gcc-optimization.sh) or [`PKGBUILD`](PKGBUILD) for details.
-  - Builds now default to the `x86-64-v3` target; this builds for Haswell era and newer CPUs and should be ~10% more performant than a generic `x86_64` while maintaining wide compatibility.
-  - Package now requires GCC >= 11 to support the new default build target. You can edit this out of the PKGBUILD if you're building for some other architecture target, this is really just to prevent confusion if someone tries to build with GCC 10.
-  - Consider adding `cpufreq.default_governor=schedutil` to your boot command line for this kernel, by default Xanmod builds with the performance governor as the default. This is great for performance but doesn't clock down as readily. I suggest making a couple of bash aliases to make switching modes/governors easier and boost performance or save battery power as needed.
 
-    * `alias goboost='set -x; asusctl profile boost; sudo cpupower frequency-set -g performance; set +x'`
-    * `alias gonormal='set -x; asusctl profile normal; sudo cpupower frequency-set -g schedutil; set +x'`
-    * `alias gosilent='set -x; asusctl profile silent; sudo cpupower frequency-set -g schedutil; set +x'`
-
-  - Suggested architecture build targets:
-
-    * `_microarchitecture=14 makepkg ...` Zen2 optimization
-    * `_microarchitecture=15 makepkg ...` Zen3 optimization
-    * `_microarchitecture=38 makepkg ...` Skylake optimization
-    * `_microarchitecture=92 makepkg ...` x86-64-v2 for compatibility with older (2008 era) machines
-    * `_microarchitecture=93 makepkg ...` x86-64-v3 (this is the default)
-    * `_microarchitecture=98 makepkg ...` Intel -march=native
-    * `_microarchitecture=99 makepkg ...` AMD -march=native 
-
-    * NOTE: I'm not sure what Comet Lake laptops should target, Gentoo says [Skylake](https://wiki.gentoo.org/wiki/Safe_CFLAGS#Skylake.2C_Kaby_Lake.2C_Kaby_Lake_R.2C_Coffee_Lake.2C_Comet_Lake)
-
-  - UKSM can be disabled by building with `no_uksm=y makepkg ...` to reduce CPU usage by a small amount. I suggest leaving it enabled, when it works well it does a great job of deduping in-use memory.
