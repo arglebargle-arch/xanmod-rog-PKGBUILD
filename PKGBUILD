@@ -6,6 +6,8 @@
 # Contributor: Tobias Powalowski <tpowa@archlinux.org>
 # Contributor: Thomas Baechler <thomas@archlinux.org>
 
+# shellcheck disable=SC2034
+
 ##
 ## Ultra Kernel Samepage Merging, disabling this will increase memory consumption
 ## See: https://github.com/dolohow/uksm
@@ -180,7 +182,7 @@ _fedora_kernel_patch_skip_list=(
 # Archlinux patches
 _commit="be7d4710850020de55bce930c83fa80347c02fc3"
 _patches=("sphinx-workaround.patch")
-for _patch in ${_patches[@]}; do
+for _patch in "${_patches[@]}"; do
     source+=("${_patch}::https://git.archlinux.org/svntogit/packages.git/plain/trunk/${_patch}?h=packages/linux&id=${_commit}")
 done
 
@@ -321,8 +323,8 @@ prepare() {
     fi
   done
 
-  (( ${#p_err[@]} > 0 )) && error "Failed patches:" && for p in ${p_err[@]}; do plain "$p"; done
-  (( ${#p_meh[@]} > 0 )) && warning "Duplicate patches:" && for p in ${p_meh[@]}; do plain "$p"; done
+  (( ${#p_err[@]} > 0 )) && error "Failed patches:" && for p in "${p_err[@]}"; do plain "$p"; done
+  (( ${#p_meh[@]} > 0 )) && warning "Duplicate patches:" && for p in "${p_meh[@]}"; do plain "$p"; done
   [[ -z "$_throw" ]]  # if throw is defined we had a hard patch failure, propagate it and stop so we can address
   # --
 
