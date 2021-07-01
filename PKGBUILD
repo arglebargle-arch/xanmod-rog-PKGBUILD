@@ -257,7 +257,7 @@ prepare() {
   for src in "${source[@]}"; do
     src="${src%%::*}"
     src="${src##*/}"
-    [[ "$src" = *.patch ]] || [[ "$src" = *.diff ]] || continue
+    [[ "$src" =~ .*(patch|diff)$ ]] || continue
     msg2 "Applying patch $src..."
     patch -Np1 < "../$src"
   done
