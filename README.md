@@ -6,7 +6,7 @@ More information about the s0ix enablement effort can be found here: https://git
 Notes:
 
   - Builds now default to the `x86-64-v3` target; this builds for Haswell era and newer CPUs and should be ~10% more performant than a generic `x86_64` while maintaining wide compatibility.
-  - Package now requires GCC >= 11 to support the new default build target. You can edit this out of the PKGBUILD if you're building for some other architecture target, this is really just to prevent confusion if someone tries to build with GCC 10.
+  - Package now requires GCC >= 11 to support the new default build target. You can edit this out of the PKGBUILD if you're building for some other architecture target supported by GCC 10.
   - Consider adding `cpufreq.default_governor=schedutil` to your boot command line for this kernel, by default Xanmod builds with the performance governor as the default. This is great for performance but doesn't clock down as readily. I suggest making a couple of bash aliases to make switching modes/governors easier and boost performance or save battery power as needed.
 
     * `alias goboost='set -x; asusctl profile boost -t true -f boost; sudo cpupower frequency-set -g performance >&/dev/null; { set +x; } >&/dev/null'`
@@ -31,23 +31,46 @@ Notable Changes:
 
   - 5.12.13-2: revert a couple of drm/amdgpu commits that snuck into stable that cause suspend failures with the new s0ix code
   - 5.12.12-2: added 'Quirk PCI d3hot delay for AMD xhci' patch per GitLab discussion
-  - 5.12.12-2: added the 5.14 ACPI s0ix suspend patchset from upstream, suspend is stable with the caveat below for machines with buggy NVMe ACPI definitions
-  - As of 5.12.12/5.13-rc6 suspend seems to be mostly stable with the included upstream s0ix patches for machines with proper StorageD3Enable BIOS support. GA503QR has an ACPI table BIOS bug in BIOS 410 and below that prevents the machine from putting the second drive to sleep and breaks the suspend code path. See the following links for discussion of the issue and a temporary solution on GitHub. If you're using a non-GA503QR machine with broken suspend due to a missing StorageD3Enable definition you can try patching your DSDT in the same way:
-    - https://gitlab.freedesktop.org/drm/amd/-/issues/1230#note_966642 (Renoir/Cezanne suspend issues; this takes forever to load, thank GitLab)
-    - https://github.com/foundObjects/GA503QR-StorageD3Enable-DSDT-Patch (a short HOWTO on patching your ACPI tables if needed)
-  - Errors related to StorageD3Enable issues will look like the following in `dmesg` or the system journal:
-    ```log
-    Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: I/O 460 QID 3 timeout, aborting
-    Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: I/O 461 QID 3 timeout, aborting
-    Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: I/O 462 QID 3 timeout, aborting
-    Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: I/O 463 QID 3 timeout, aborting
-    Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: I/O 0 QID 0 timeout, reset controller
-    Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: Abort status: 0x371
-    Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: Abort status: 0x371
-    Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: Abort status: 0x371
-    Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: Abort status: 0x371
-    ```
-    If you're seeing messages like this on a ROG laptop join us on Discord for help here: https://discord.gg/qUUm9cWW
+  - 5.12.12-2: added the 5.14 ACPI s0ix suspend patchset from upstream, suspend is mostly stable with some caveats: there seem to be a few machines with firmware issues that are still causing problems:
+    - GA503QR has an ACPI table BIOS bug in BIOS 410 and below that prevents the machine from putting the second drive to sleep and breaks the suspend code path.
+      Errors related to StorageD3Enable issues will look like the following in `dmesg` or the system journal:
+      ```log
+      Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: I/O 460 QID 3 timeout, aborting
+      Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: I/O 461 QID 3 timeout, aborting
+      Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: I/O 462 QID 3 timeout, aborting
+      Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: I/O 463 QID 3 timeout, aborting
+      Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: I/O 0 QID 0 timeout, reset controller
+      Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: Abort status: 0x371
+      Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: Abort status: 0x371
+      Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: Abort status: 0x371
+      Jun 19 18:56:26 arch-zephyrus kernel: nvme nvme0: Abort status: 0x371
+      ```
+      See this project on github for a short how-to on fixing this yourself while you wait for ASUS to publish a fixed BIOS:
+      https://github.com/foundObjects/GA503QR-StorageD3Enable-DSDT-Patch
+
+    - GA401QM may be having other ACPI/firmware related suspend/wake issues
+
+    - If you're experiencing errors like the following during resume/wake please visit the gitlab link below; your BIOS most likely has bugs.
+      ```log
+      [16305.645129] amdgpu 0000:04:00.0: amdgpu: failed to write reg 28b4 wait reg 28c6
+      [16318.651117] amdgpu 0000:04:00.0: amdgpu: failed to write reg 1a6f4 wait reg 1a706
+      [16327.200382] [drm] PCIE GART of 1024M enabled (table at 0x000000F400900000).
+      [16327.200439] amdgpu 0000:04:00.0: amdgpu: SMU is resuming...
+      [16329.682185] amdgpu 0000:04:00.0: amdgpu: message: SetDriverDramAddrHigh (26) 	param: 0x000000f4 is timeout (no response)
+      [16329.682191] amdgpu 0000:04:00.0: amdgpu: Failed to SetDriverDramAddr!
+      [16329.682193] amdgpu 0000:04:00.0: amdgpu: Failed to setup smc hw!
+      [16329.682195] [drm:amdgpu_device_ip_resume_phase2 [amdgpu]] *ERROR* resume of IP block <smu> failed -62
+      [16329.682461] amdgpu 0000:04:00.0: amdgpu: amdgpu_device_ip_resume failed (-62).
+      [16329.682463] PM: dpm_run_callback(): pci_pm_resume+0x0/0xe0 returns -62
+      [16329.682478] amdgpu 0000:04:00.0: PM: failed to resume async: error -62
+      [16329.685538] PM: resume of devices complete after 37180.901 msecs
+      [16329.685960] PM: resume devices took 37.182 seconds
+      ```
+      see: https://gitlab.freedesktop.org/drm/amd/-/issues/1629#
+
+    If you're seeing any of these messages on a ROG laptop join us on Discord in the Suspend Issues channel for help here: https://discord.gg/qUUm9cWW
+    and *please* go make a vendor support ticket and yell at them until they publish a fixed BIOS
+
   - ~~Since 5.12.7 Suspend has been unstable on 2021 (Cezanne) machines, we're still looking for a solution as the patches we were using up until that point have become an unreliable fix. If this is an issue for you either disable suspend in `/etc/systemd/sleep.conf` or stay with 5.12.6 until a solution is found. You can find more information about the issue by tracking the kernel [bug report](https://gitlab.freedesktop.org/drm/amd/-/issues/1230#note_947255) or help investigate the issue with us [on Discord](https://discord.gg/JW7yywZn). This affects all 2020/2021 Ryzen laptops, not just ASUS machines.~~
   - ~~5.12.9-2: Big upstream suspend-related patch set update; this is mostly hidden from git history here because we're pulling patches out of the asus-linux fedora kernel repo during package build~~
   - ~~5.12.8-2: Updated upstream suspend patches~~
