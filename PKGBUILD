@@ -78,9 +78,6 @@ _makenconfig=
 
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
-#_major="5.11"
-# curl -s "https://api.github.com/repos/xanmod/linux/releases" | jq -r '[.[] | select(.target_commitish == "$_major")][].tag_name' | sort -V | tail -n1
-
 pkgbase=linux-xanmod-rog
 xanmod=5.12.13-xanmod1
 pkgver=${xanmod//-/.}
@@ -171,7 +168,6 @@ done
 # apply UKSM patch
 #
 _uksm_patch="https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-${_major}.patch"
-#_uksm_patch="https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-5.12.patch"
 if [[ ! -v no_uksm ]]; then
   source+=("${_uksm_patch##*/}::${_uksm_patch}")
 fi
