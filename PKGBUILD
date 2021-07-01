@@ -265,8 +265,10 @@ prepare() {
 
   # Rewrute xanmod release to 0 if we're pre-releasing
   tag=${pkgver#*+}
+  tag=$(echo $pkgver | cut -d'.' -f4)
   [[ ${xanmod%-xanmod?} != ${pkgver%%\.xan*} ]] &&
-    sed -Ei "s/xanmod[0-9]+/${tag//+/-}/" localversion
+    sed -Ei "s/xanmod[0-9]+/${tag}/" localversion               # TODO: >> test this <<
+    #sed -Ei "s/xanmod[0-9]+/${tag//+/-}/" localversion
 
   # Archlinux patches
   local src
