@@ -79,10 +79,10 @@ _makenconfig=
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod-rog
-xanmod=5.12.13-xanmod1
+xanmod=5.12.14-xanmod1
 pkgver=${xanmod//-/.}
 #pkgver=5.12.12.xanpre0
-pkgrel=3
+pkgrel=1
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -107,9 +107,6 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
         "choose-gcc-optimization.sh"
         "https://gitlab.com/asus-linux/fedora-kernel/-/archive/$_fedora_kernel_commit_id/fedora-kernel-$_fedora_kernel_commit_id.zip"
-
-        # 5.12.13 introduced two buggy amdgpu patches, revert them
-        "hotfix-5.12.13-revert-amdgpu-commits.patch"
 
         # ACPI turn off unused hardware patch series from 5.13; includes 3rd patch
         "backport-from-5.13-acpi-turn-off-unused+refined.diff"
@@ -187,10 +184,9 @@ fi
 
 sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
-            'd92f080fffa287fbdbc0a9c58dec0031d1368d94401d5ebeb9fce56a34ea35d3'
+            '0006a71592950f37ecfa7f8e2560699731b92712ddfb7639922bc260ccd1552b'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             'f94b12f56e99ebfc87014f9570a987bca7b50400c412ddbbb7035d73c5d8c668'
-            'e213f6c30c0ec2d657912d8fd19c50b1ae281f0fbc91f554a913748086499a91'
             '2538941e760cb0ff8e197a46695f6709b7520f0617fb565e5d2d5d28fe125afe'
             'e4cbedbcf939961af425135bb208266c726178c4017309719341f8c37f65c273'
             'dab4db308ede1aa35166f31671572eeccf0e7637b3218ce3ae519c2705934f79'
