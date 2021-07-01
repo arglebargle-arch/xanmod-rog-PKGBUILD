@@ -114,27 +114,12 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         # the second patch in this sequence (2of2) was rejected upstream as it causes problems for some machines
         "5.13-acpi-refine-turning-off-unused-power-resources.patch"
 
-        "revert-4cbbe34807938e6e494e535a68d5ff64edac3f20.patch"
-        "revert-1c0b0efd148d5b24c4932ddb3fa03c8edd6097b3.patch"
-
-        "5.14-ACPI-processor-idle-Fix-up-C-state-latency-if-not-ordered.patch"
+        # squash our 10 patch s0ix series that's in next; the d3hot quirk is the only thing not going into 5.14
+        "backport-from-5.14-s0ix-enablement-no-d3hot.diff"
         "PCI-quirks-Quirk-PCI-d3hot-delay-for-AMD-xhci.patch"
-        "5.14-nvme-pci-look-for-StorageD3Enable-on-companion-ACPI-device.patch"
-        "5.14-ACPI-Check-StorageD3Enable_DSD-property-in-AHCI-mode.patch"
-        "5.14-ACPI-Add-quirks-for-AMD-Renoir+Lucienne-CPUs-to-force-the-D3-hint.patch"
-        "5.14-ACPI-PM-s2idle-Add-missing-LPS0-functions-for-AMD.patch"
-        "5.14-1of5-ACPI-PM-s2idle-Use-correct-revision-id.patch"
-        "5.14-2of5-ACPI-PM-s2idle-Refactor-common-code.patch"
-        "5.14-3of5-ACPI-PM-s2idle-Add-support-for-multiple-func-mask.patch"
-        "5.14-4of5-ACPI-PM-s2idle-Add-support-for-new-Microsoft-UUID.patch"
-        "5.14-5of5-ACPI-PM-s2idle-Adjust-behavior-for-field-problems-on-AMD-systems.patch"
 
-        "platform-x86-amd-pmc-Fix-command-completion-code.patch"
-        "platform-x86-amd-pmc-Fix-SMU-firmware-reporting-mechanism.patch"
-        "platform-x86-amd-pmc-Add-support-for-logging-SMU-metrics.patch"
-        "platform-x86-amd-pmc-Add-support-for-s0ix-counters.patch"
-        "platform-x86-amd-pmc-Add-support-for-ACPI-ID-AMDI0006.patch"
-        "platform-x86-amd-pmc-Add-new-acpi-for-future-PMC.patch"
+        # v5 of the platform-x86 amd-pmc diagnostics patch sequence from lkml patchwork
+        "v5-platform-x86-amd-pmc-s0ix+smu-counters.diff"
         )
 validpgpkeys=(
     'ABAF11C65A2970B130ABE3C479BE3E4300411886' # Linux Torvalds
