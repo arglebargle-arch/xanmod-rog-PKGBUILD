@@ -132,11 +132,8 @@ _fedora_kernel_patch_skip_list=(
 
   # 00{03,05,08}-drm-amdgpu*.patch      # example multi-select
   # 00{01..12}-drm-amdgpu*.patch        # example range select
-  # patch-*-redhat.patch                # example wildcard match
-  
-  "linux-kernel-test.patch"           # test patch, please ignore
-  patch-*-redhat.patch                # wildcard match any redhat patch version
-  # 00{01..12}-drm-amdgpu*.patch        # upstreamed in 5.12
+  "linux-kernel-test.patch"             # test patch, please ignore
+  patch-*-redhat.patch                  # wildcard match any redhat patch version
 
   # upstreamed
   "0001-HID-asus-Filter-keyboard-EC-for-old-ROG-keyboard.patch"
