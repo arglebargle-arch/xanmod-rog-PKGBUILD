@@ -110,9 +110,9 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
         "choose-gcc-optimization.sh"
         "https://gitlab.com/asus-linux/fedora-kernel/-/archive/$_fedora_kernel_commit_id/fedora-kernel-$_fedora_kernel_commit_id.zip"
-        "5.13-acpi-1of2-turn-off-unused.patch"::"https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git/patch/?id=4b9ee772eaa82188b0eb8e05bdd1707c2a992004"
-        # the second patch in this sequence (2of2) was rejected upstream as it causes problems for some machines
-        "5.13-acpi-refine-turning-off-unused-power-resources.patch"
+
+        # ACPI turn off unused hardware patch series from 5.13; includes 3rd patch
+        "backport-from-5.13-acpi-turn-off-unused+refined.diff"
 
         # squash our 10 patch s0ix series that's in next; the d3hot quirk is the only thing not going into 5.14
         "backport-from-5.14-s0ix-enablement-no-d3hot.diff"
