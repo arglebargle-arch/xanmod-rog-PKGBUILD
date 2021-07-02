@@ -108,6 +108,9 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "choose-gcc-optimization.sh"
         "https://gitlab.com/asus-linux/fedora-kernel/-/archive/$_fedora_kernel_commit_id/fedora-kernel-$_fedora_kernel_commit_id.zip"
 
+        # The Arch Linux git repo has changed URLs, include this temporarily
+        #"sphinx-workaround.patch"
+
         # ACPI turn off unused hardware patch series from 5.13; includes 3rd patch
         "backport-from-5.13-acpi-turn-off-unused+refined.diff"
 
@@ -158,12 +161,14 @@ _fedora_kernel_patch_skip_list=(
   "0018-platform-x86-force-LPS0-functions-for-AMD.patch"
 )
 
+# TODO: The Arch Linux git repo has moved to GitHub; find this URL at some point
+# NOTE: We aren't even building the documentation; do we actually need this?
 # Archlinux patches
-_commit="be7d4710850020de55bce930c83fa80347c02fc3"
-_patches=("sphinx-workaround.patch")
-for _patch in "${_patches[@]}"; do
-    source+=("${_patch}::https://git.archlinux.org/svntogit/packages.git/plain/trunk/${_patch}?h=packages/linux&id=${_commit}")
-done
+#_commit="be7d4710850020de55bce930c83fa80347c02fc3"
+#_patches=("sphinx-workaround.patch")
+#for _patch in "${_patches[@]}"; do
+#    source+=("${_patch}::https://git.archlinux.org/svntogit/packages.git/plain/trunk/${_patch}?h=packages/linux&id=${_commit}")
+#done
 
 # apply UKSM patch
 #
@@ -191,7 +196,6 @@ sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'e4cbedbcf939961af425135bb208266c726178c4017309719341f8c37f65c273'
             'dab4db308ede1aa35166f31671572eeccf0e7637b3218ce3ae519c2705934f79'
             'b108959c4a53d771eb2d860a7d52b4a6701e0af9405bef325905c0e273b4d4fe'
-            '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb'
             '8b2e476ae108255ae5dc6da43cda57620021a8e68da0e3c568eb44afd3d3254a')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}

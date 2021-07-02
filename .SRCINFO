@@ -22,7 +22,6 @@ pkgbase = linux-xanmod-rog
 	source = backport-from-5.14-s0ix-enablement-no-d3hot.diff
 	source = PCI-quirks-Quirk-PCI-d3hot-delay-for-AMD-xhci.patch
 	source = v5-platform-x86-amd-pmc-s0ix+smu-counters.diff
-	source = sphinx-workaround.patch::https://git.archlinux.org/svntogit/packages.git/plain/trunk/sphinx-workaround.patch?h=packages/linux&id=be7d4710850020de55bce930c83fa80347c02fc3
 	source = uksm-5.12.patch::https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-5.12.patch
 	validpgpkeys = ABAF11C65A2970B130ABE3C479BE3E4300411886
 	validpgpkeys = 647F28654894E3BD457199BE38DBBDC86092693E
@@ -35,7 +34,6 @@ pkgbase = linux-xanmod-rog
 	sha256sums = e4cbedbcf939961af425135bb208266c726178c4017309719341f8c37f65c273
 	sha256sums = dab4db308ede1aa35166f31671572eeccf0e7637b3218ce3ae519c2705934f79
 	sha256sums = b108959c4a53d771eb2d860a7d52b4a6701e0af9405bef325905c0e273b4d4fe
-	sha256sums = 52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb
 	sha256sums = 8b2e476ae108255ae5dc6da43cda57620021a8e68da0e3c568eb44afd3d3254a
 
 pkgname = linux-xanmod-rog
