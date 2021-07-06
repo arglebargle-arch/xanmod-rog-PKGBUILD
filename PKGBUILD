@@ -325,9 +325,6 @@ prepare() {
     scripts/config --disable CONFIG_NUMA
   fi
 
-  # Let's user choose microarchitecture optimization in GCC
-  sh ${srcdir}/choose-gcc-optimization.sh $_microarchitecture
-
   # This is intended for the people that want to build this package with their own config
   # Put the file "myconfig" at the package folder (this will take preference) or "${XDG_CONFIG_HOME}/linux-xanmod/myconfig"
   # If we detect partial file with scripts/config commands, we execute as a script
@@ -362,6 +359,11 @@ prepare() {
   fi
 
   make LLVM=$_LLVM LLVM_IAS=$_LLVM olddefconfig
+
+  # Let's user choose microarchitecture optimization in GCC
+  # NOTE: we want to run this *after* olddefconfig in case the user supplies a config that doesn't have
+  #       our selected architectures added yet
+  sh ${srcdir}/choose-gcc-optimization.sh $_microarchitecture
 
   make -s kernelrelease > version
   msg2 "Prepared %s version %s" "$pkgbase" "$(<version)"
