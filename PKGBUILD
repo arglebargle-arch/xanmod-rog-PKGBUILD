@@ -79,7 +79,7 @@ _makenconfig=
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod-rog
-xanmod=5.12.14-xanmod1
+xanmod=5.13.0-xanmod2
 pkgver=${xanmod//-/.}
 #pkgver=5.12.12.xanpre0
 pkgrel=1
@@ -106,16 +106,13 @@ _fedora_kernel_commit_id=91f97d88231152006764d3c50cc52ddbb508529f
 source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
         "choose-gcc-optimization.sh"
-        "https://gitlab.com/asus-linux/fedora-kernel/-/archive/$_fedora_kernel_commit_id/fedora-kernel-$_fedora_kernel_commit_id.zip"
+        #"https://gitlab.com/asus-linux/fedora-kernel/-/archive/$_fedora_kernel_commit_id/fedora-kernel-$_fedora_kernel_commit_id.zip"
 
         # pull this in from Arch
-        "ZEN-disallow-unprivileged-CLONE_NEWUSER.patch"
+        #"ZEN-disallow-unprivileged-CLONE_NEWUSER.patch"
 
         # The Arch Linux git repo has changed URLs, include this temporarily
         #"sphinx-workaround.patch"
-
-        # ACPI turn off unused hardware patch series from 5.13; includes 3rd patch
-        "backport-from-5.13-acpi-turn-off-unused+refined.diff"
 
         # squash our 10 patch s0ix series that's in next; the d3hot quirk is the only thing not going into 5.14
         "backport-from-5.14-s0ix-enablement-no-d3hot.diff"
@@ -124,6 +121,13 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "ACPI-PM-Only-mark-EC-GPE-for-wakeup-on-Intel-systems.patch"
         # v5 of the platform-x86 amd-pmc diagnostics patch sequence from lkml patchwork
         "v5-platform-x86-amd-pmc-s0ix+smu-counters.diff"
+
+        # for now let's just pull the 5 asus-linux patches we need directly and skip all of the git filtering
+        "0001-asus-wmi-Add-panel-overdrive-functionality.patch"
+        "0002-asus-wmi-Add-dgpu-disable-method.patch"
+        "0003-asus-wmi-Add-egpu-enable-method.patch"
+        "0006-HID-asus-Remove-check-for-same-LED-brightness-on-set.patch"
+        "0007-ALSA-hda-realtek-Fix-speakers-not-working-on-Asus-Fl.patch"
         )
 validpgpkeys=(
     'ABAF11C65A2970B130ABE3C479BE3E4300411886' # Linux Torvalds
@@ -144,6 +148,9 @@ _fedora_kernel_patch_skip_list=(
   "0001-ALSA-hda-realtek-GA503-use-same-quirks-as-GA401.patch"
   "0001-Add-jack-toggle-support-for-headphones-on-Asus-ROG-Z.patch"
   "0001-HID-asus-filter-G713-G733-key-event-to-prevent-shutd.patch"
+  "0001-ACPI-video-use-native-backlight-for-GA401-GA502-GA50.patch"
+  "0002-Revert-platform-x86-asus-nb-wmi-Drop-duplicate-DMI-q.patch"
+  "0003-Revert-platform-x86-asus-nb-wmi-add-support-for-ASUS.patch"
 
   # filter out suspend patches, we'll use upstream directly
   "0001-ACPI-processor-idle-Fix-up-C-state-latency-if-not-ordered.patch"
@@ -191,18 +198,20 @@ if [[ ${xanmod%-xanmod?} != ${pkgver%%\.xan*} ]]; then
   done
 fi
 
-sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
+sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'SKIP'
-            '0006a71592950f37ecfa7f8e2560699731b92712ddfb7639922bc260ccd1552b'
+            '42cb550e7b9900820bdc9f528eb60c726f19294417065bf3a0b94be06388aeb1'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
-            'f94b12f56e99ebfc87014f9570a987bca7b50400c412ddbbb7035d73c5d8c668'
-            '5723f61e6811cd3db649f08aafb7b1cd08cd5e66433d349bf2500d7beabbd0cd'
-            '2538941e760cb0ff8e197a46695f6709b7520f0617fb565e5d2d5d28fe125afe'
             'e4cbedbcf939961af425135bb208266c726178c4017309719341f8c37f65c273'
             'dab4db308ede1aa35166f31671572eeccf0e7637b3218ce3ae519c2705934f79'
             '30c3ebf86e6b70ca9e35b5b9bcf39a3b3d14cb9ca18b261016b7d02ed37a0c4b'
             'b108959c4a53d771eb2d860a7d52b4a6701e0af9405bef325905c0e273b4d4fe'
-            '8b2e476ae108255ae5dc6da43cda57620021a8e68da0e3c568eb44afd3d3254a')
+            '09cf9fa947e58aacf25ff5c36854b82d97ad8bda166a7e00d0f3f4df7f60a695'
+            '7a685e2e2889af744618a95ef49593463cd7e12ae323f964476ee9564c208b77'
+            '663b664f4a138ccca6c4edcefde6a045b79a629d3b721bfa7b9cc115f704456e'
+            '034743a640c26deca0a8276fa98634e7eac1328d50798a3454c4662cff97ccc9'
+            '32bbcde83406810f41c9ed61206a7596eb43707a912ec9d870fd94f160d247c1'
+            'd38e2ee1f43bd6ca18845c80f5e68c0e597db01780004ff47607dd605e9aa086')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
 export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-makepkg}
@@ -251,55 +260,56 @@ prepare() {
     patch -Np1 < "../$src"
   done
 
-  # ASUS-linux patches
-  # --
+  # XXX: temporarily skip all of this and just apply the 5 patches directly
+  ## ASUS-linux patches
+  ## --
 
-  # these patches are a moving target and we're not guaranteed that Luke is building a fedora kernel for our kernel version yet.
-  # we'll make a best effort at patching against our kernel sources and use _fkernel_skip_patches=() list above to filter any
-  # patches that have already been upstreamed or are broken for us
+  ## these patches are a moving target and we're not guaranteed that Luke is building a fedora kernel for our kernel version yet.
+  ## we'll make a best effort at patching against our kernel sources and use _fkernel_skip_patches=() list above to filter any
+  ## patches that have already been upstreamed or are broken for us
 
-  local p_err=()
-  local p_meh=()
-  local _fkernel_path="../fedora-kernel-${_fedora_kernel_commit_id}"
-  msg2 "Applying asus-linux patches..."
+  #local p_err=()
+  #local p_meh=()
+  #local _fkernel_path="../fedora-kernel-${_fedora_kernel_commit_id}"
+  #msg2 "Applying asus-linux patches..."
 
-  # this will apply all enabled patches from the fedora-linux kernel.spec
-  for src in $(awk -F ' ' '/^ApplyOptionalPatch.*(patch|diff)$/{print $2}' "${_fkernel_path}/kernel.spec"); do
+  ## this will apply all enabled patches from the fedora-linux kernel.spec
+  #for src in $(awk -F ' ' '/^ApplyOptionalPatch.*(patch|diff)$/{print $2}' "${_fkernel_path}/kernel.spec"); do
 
-    # skip patches in our skip list
-    _fedora_patch_in_skip_list "$src" && continue
+  #  # skip patches in our skip list
+  #  _fedora_patch_in_skip_list "$src" && continue
 
-    # the redhat patch needs special handling
-    if [[ "$src" == patch*-redhat.patch ]]; then
-      src=${src/\%\{stableversion\}/$_major} ## fixup filename first
-      if [[ ! -v redhat_patch ]]; then
-        plain "Skipping optional redhat patch $src ..."
-        continue
-      fi
-      if [[ ! -f "${_fkernel_path}/$src" ]]; then
-        plain "Skipping redhat patch, no patch available for this kernel ..."
-        continue
-      fi
-    fi
+  #  # the redhat patch needs special handling
+  #  if [[ "$src" == patch*-redhat.patch ]]; then
+  #    src=${src/\%\{stableversion\}/$_major} ## fixup filename first
+  #    if [[ ! -v redhat_patch ]]; then
+  #      plain "Skipping optional redhat patch $src ..."
+  #      continue
+  #    fi
+  #    if [[ ! -f "${_fkernel_path}/$src" ]]; then
+  #      plain "Skipping redhat patch, no patch available for this kernel ..."
+  #      continue
+  #    fi
+  #  fi
 
-    echo "Applying patch $src..."
-    if OUT="$(patch --forward -Np1 < "${_fkernel_path}/$src")"; then
-      : #plain "Applied patch $src..."
-    else
-      # if you want to ignore a specific patch failure for some reason do it right here
-      # then 'continue'
-      if { echo "$OUT" | grep -qiE 'hunk(|s) FAILED'; }; then
-        error "Patch failed $src" && echo "$OUT" && p_err+=("$src") && _throw=y
-      else
-        warning "Duplicate patch $src" && p_meh+=("$src")
-      fi
-    fi
-  done
+  #  echo "Applying patch $src..."
+  #  if OUT="$(patch --forward -Np1 < "${_fkernel_path}/$src")"; then
+  #    : #plain "Applied patch $src..."
+  #  else
+  #    # if you want to ignore a specific patch failure for some reason do it right here
+  #    # then 'continue'
+  #    if { echo "$OUT" | grep -qiE 'hunk(|s) FAILED'; }; then
+  #      error "Patch failed $src" && echo "$OUT" && p_err+=("$src") && _throw=y
+  #    else
+  #      warning "Duplicate patch $src" && p_meh+=("$src")
+  #    fi
+  #  fi
+  #done
 
-  (( ${#p_err[@]} > 0 )) && error "Failed patches:" && for p in "${p_err[@]}"; do plain "$p"; done
-  (( ${#p_meh[@]} > 0 )) && warning "Duplicate patches:" && for p in "${p_meh[@]}"; do plain "$p"; done
-  [[ -z "$_throw" ]]  # if throw is defined we had a hard patch failure, propagate it and stop so we can address
-  # --
+  #(( ${#p_err[@]} > 0 )) && error "Failed patches:" && for p in "${p_err[@]}"; do plain "$p"; done
+  #(( ${#p_meh[@]} > 0 )) && warning "Duplicate patches:" && for p in "${p_meh[@]}"; do plain "$p"; done
+  #[[ -z "$_throw" ]]  # if throw is defined we had a hard patch failure, propagate it and stop so we can address
+  ## --
 
   # Applying configuration
   cp -vf CONFIGS/xanmod/${_compiler}/config .config
@@ -366,10 +376,28 @@ prepare() {
 
   make LLVM=$_LLVM LLVM_IAS=$_LLVM olddefconfig
 
-  # Let's user choose microarchitecture optimization in GCC
-  # NOTE: we want to run this *after* olddefconfig in case the user supplies a config that doesn't have
-  #       our selected architectures added yet
+  # NOTE: let user choose microarchitecture optimization in GCC; run *after* make olddefconfig so our new uarch macros exist
   sh ${srcdir}/choose-gcc-optimization.sh $_microarchitecture
+
+  # package is throwing a warning re: lack of binutils support
+  scripts/config --disable CONFIG_X86_X32
+  # larger log buffer
+  scripts/config --set-val CONFIG_LOG_BUF_SHIFT 18
+  # msr as a module
+  scripts/config --module CONFIG_X86_MSR
+  # enable EFI var access
+  scripts/config --enable CONFIG_EFI_VARS
+  # enable module versioning
+  scripts/config --enable CONFIG_MODVERSIONS
+  # use a smaller connection tracking table
+  scripts/config --set-val CONFIG_IP_VS_TAB_BITS 12
+  # enable bluetooth high speed
+  scripts/config --enable CONFIG_BT_HS
+  # nein
+  scripts/config --disable CONFIG_UEVENT_HELPER
+  scripts/config --disable CONFIG_FW_LOADER_USER_HELPER
+  # enable zram memory tracking
+  scripts/config --enable CONFIG_ZRAM_MEMORY_TRACKING
 
   make -s kernelrelease > version
   msg2 "Prepared %s version %s" "$pkgbase" "$(<version)"
