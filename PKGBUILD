@@ -106,9 +106,10 @@ _fedora_kernel_commit_id=91f97d88231152006764d3c50cc52ddbb508529f
 source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
         "choose-gcc-optimization.sh"
+        # temporarily (permanently?) disable pulling from asus-linux git
         #"https://gitlab.com/asus-linux/fedora-kernel/-/archive/$_fedora_kernel_commit_id/fedora-kernel-$_fedora_kernel_commit_id.zip"
 
-        # pull this in from Arch
+        # pull this in from Arch; XXX: this is causing build failures, I'm not sure why yet
         #"ZEN-disallow-unprivileged-CLONE_NEWUSER.patch"
 
         # The Arch Linux git repo has changed URLs, include this temporarily
@@ -188,7 +189,7 @@ if [[ ! -v no_uksm ]]; then
   source+=("${_uksm_patch##*/}::${_uksm_patch}")
 fi
 
-# Support stacking incremental point releases from kernel.org when we're building ahead of Xanmod
+# Monkey patch: support stacking incremental point releases from kernel.org when we're building ahead of Xanmod
 #
 if [[ ${xanmod%-xanmod?} != ${pkgver%%\.xan*} ]]; then
   _patch_start=$(echo ${xanmod%-xanmod?} | cut -d'.' -f3)
@@ -229,7 +230,7 @@ prepare() {
   msg2 "Applying Xanmod patch..."
   patch -Np1 -i ../patch-${xanmod}
 
-  # Apply kernel.org patches when mainline is slightly ahead of Xanmod
+  # Monkey patch: apply kernel.org patches when mainline is slightly ahead of Xanmod official
   if [[ ${xanmod%-xanmod?} != ${pkgver%%\.xan*} ]]; then
       msg2 "Applying kernel.org point-release patches..."
       for (( _i=_patch_start; _i < _patch_end; _i++ )); do
@@ -404,7 +405,7 @@ prepare() {
 
   [[ -z "$_makenconfig" ]] || make LLVM=$_LLVM LLVM_IAS=$_LLVM nconfig
 
-  # save configuration for later reuse
+  # save configuration for later reuse or inspection
   cat .config > "${SRCDEST}/config.last"
 }
 
