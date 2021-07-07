@@ -81,7 +81,7 @@ _makenconfig=
 pkgbase=linux-xanmod-rog
 xanmod=5.13.0-xanmod2
 #pkgver=${xanmod//-/.}
-pkgver=5.13.1.xanpre0     # start 4th position with 'xan...', we rely on parsing for '.xan...' later
+pkgver=5.13.1.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
 pkgrel=1
 
 pkgdesc='Linux Xanmod'
@@ -110,10 +110,11 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         # temporarily (permanently?) disable pulling from asus-linux git
         #"https://gitlab.com/asus-linux/fedora-kernel/-/archive/$_fedora_kernel_commit_id/fedora-kernel-$_fedora_kernel_commit_id.zip"
 
-        # pull this in from Arch; XXX: this is causing build failures, I'm not sure why yet
+        # pull this in from Arch;                                     XXX: <-- this is causing build failures, I'm not sure why yet
         #"ZEN-disallow-unprivileged-CLONE_NEWUSER.patch"
 
         # The Arch Linux git repo has changed URLs, include this temporarily
+        # NOTE: we're not even building the documentation, it's probably safe to just drop this entirely
         #"sphinx-workaround.patch"
 
         # squash our 10 patch s0ix series that's in next; the d3hot quirk is the only thing not going into 5.14
@@ -385,8 +386,8 @@ prepare() {
 
   make LLVM=$_LLVM LLVM_IAS=$_LLVM olddefconfig
 
-  # NOTE: let user choose microarchitecture optimization in GCC; run *after* make olddefconfig so our new uarch macros exist
-  sh ${srcdir}/choose-gcc-optimization.sh $_microarchitecture
+  # let user choose microarchitecture optimization in GCC;        NOTE: run *after* make olddefconfig so any new uarch macros exist
+  sh "${srcdir}/choose-gcc-optimization.sh" $_microarchitecture
 
   make -s kernelrelease > version
   msg2 "Prepared %s version %s" "$pkgbase" "$(<version)"
