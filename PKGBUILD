@@ -380,26 +380,6 @@ prepare() {
   # NOTE: let user choose microarchitecture optimization in GCC; run *after* make olddefconfig so our new uarch macros exist
   sh ${srcdir}/choose-gcc-optimization.sh $_microarchitecture
 
-  # package is throwing a warning re: lack of binutils support
-  scripts/config --disable CONFIG_X86_X32
-  # larger log buffer
-  scripts/config --set-val CONFIG_LOG_BUF_SHIFT 18
-  # msr as a module
-  scripts/config --module CONFIG_X86_MSR
-  # enable EFI var access
-  scripts/config --enable CONFIG_EFI_VARS
-  # enable module versioning
-  scripts/config --enable CONFIG_MODVERSIONS
-  # use a smaller connection tracking table
-  scripts/config --set-val CONFIG_IP_VS_TAB_BITS 12
-  # enable bluetooth high speed
-  scripts/config --enable CONFIG_BT_HS
-  # nein
-  scripts/config --disable CONFIG_UEVENT_HELPER
-  scripts/config --disable CONFIG_FW_LOADER_USER_HELPER
-  # enable zram memory tracking
-  scripts/config --enable CONFIG_ZRAM_MEMORY_TRACKING
-
   make -s kernelrelease > version
   msg2 "Prepared %s version %s" "$pkgbase" "$(<version)"
 
