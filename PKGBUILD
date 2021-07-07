@@ -6,7 +6,7 @@
 # Contributor: Tobias Powalowski <tpowa@archlinux.org>
 # Contributor: Thomas Baechler <thomas@archlinux.org>
 
-# shellcheck disable=SC2034
+# shellcheck disable=SC2034,SC2164
 
 ##
 ## Ultra Kernel Samepage Merging, disabling this will increase memory consumption
@@ -69,7 +69,7 @@ fi
 # This PKGBUILD read the database kept if it exists
 #
 # More at this wiki page ---> https://wiki.archlinux.org/index.php/Modprobed-db
-if [ -z ${_localmodcfg} ]; then
+if [ -z "${_localmodcfg}" ]; then
   _localmodcfg=n
 fi
 
@@ -193,7 +193,7 @@ fi
 
 # Monkey patch: support stacking incremental point releases from kernel.org when we're building ahead of Xanmod
 #
-if [[ ${xanmod%-xanmod?} != ${pkgver%%\.xan*} ]]; then
+if [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]]; then
   _patch_start=$(echo ${xanmod%-xanmod?} | cut -d'.' -f3)
   _patch_end=$(echo ${pkgver%%\.xan*} | cut -d'.' -f3)
   for (( _i=_patch_start; _i < _patch_end; _i++ )); do
@@ -226,27 +226,28 @@ export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-makepkg}
 export KBUILD_BUILD_TIMESTAMP=${KBUILD_BUILD_TIMESTAMP:-$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})}
 
 _fedora_patch_in_skip_list() {
-  for p in "${_fedora_kernel_patch_skip_list[@]}"; do [[ "$1" == $p ]] && return 0; done
+  for p in "${_fedora_kernel_patch_skip_list[@]}"; do [[ "$1" == "$p" ]] && return 0; done
   return 1
 }
 
+# shellcheck disable=SC2154,SC2155
 prepare() {
-  cd linux-${_major}
+  cd "linux-${_major}"
 
   # Apply Xanmod patch
   msg2 "Applying Xanmod patch..."
-  patch -Np1 -i ../patch-${xanmod}
+  patch -Np1 -i "../patch-${xanmod}"
 
   # Monkey patch: apply kernel.org patches when mainline is slightly ahead of Xanmod official
-  if [[ ${xanmod%-xanmod?} != ${pkgver%%\.xan*} ]]; then
+  if [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]]; then
     msg2 "Applying kernel.org point-release patches..."
     for (( _i=_patch_start; _i < _patch_end; _i++ )); do
       if (( _i == 0 )); then
         echo "Applying patch ${_major} -> ${_major}.$((_i+1))..."
-        patch -Np1 -i ../patch-${_major}.$((_i+1))
+        patch -Np1 -i "../patch-${_major}.$((_i+1))"
       else
         echo "Applying patch ${_major}.${_i} -> ${_major}.$((_i+1))..."
-        patch -Np1 -i ../patch-${_major}.${_i}-$((_i+1))
+        patch -Np1 -i "../patch-${_major}.${_i}-$((_i+1))"
       fi
     done
   fi
@@ -257,8 +258,8 @@ prepare() {
   echo "${pkgbase#linux-xanmod}" > localversion.20-pkgname
 
   # Monkey patch: rewrite Xanmod release to $_localversion if we're pre-releasing
-  [[ ${xanmod%-xanmod?} != ${pkgver%%\.xan*} ]] &&
-    sed -Ei "s/xanmod[0-9]+/${_localversion}/" localversion               # TODO: >> test this <<
+  [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]] &&
+    sed -Ei "s/xanmod[0-9]+/${_localversion}/" localversion
 
   # Archlinux patches
   local src
@@ -375,9 +376,9 @@ prepare() {
   ### Optionally load needed modules for the make localmodconfig
   # See https://aur.archlinux.org/packages/modprobed-db
   if [ "$_localmodcfg" = "y" ]; then
-    if [ -f $HOME/.config/modprobed.db ]; then
+    if [ -f "$HOME/.config/modprobed.db" ]; then
       msg2 "Running Steven Rostedt's make localmodconfig now"
-      make LLVM=$_LLVM LLVM_IAS=$_LLVM LSMOD=$HOME/.config/modprobed.db localmodconfig
+      make LLVM=$_LLVM LLVM_IAS=$_LLVM LSMOD="$HOME/.config/modprobed.db" localmodconfig
     else
       msg2 "No modprobed.db data found"
       exit
@@ -399,10 +400,11 @@ prepare() {
 }
 
 build() {
-  cd linux-${_major}
+  cd "linux-${_major}"
   make LLVM=$_LLVM LLVM_IAS=$_LLVM all
 }
 
+# shellcheck disable=SC2154,SC2155
 _package() {
   pkgdesc="The Linux kernel and modules with Xanmod and ASUS ROG laptop patches (Zephyrus G14, G15, etc)"
   depends=(coreutils kmod initramfs)
@@ -411,7 +413,7 @@ _package() {
   provides+=(linux-xanmod-g14)
   conflicts+=(linux-xanmod-g14)
 
-  cd linux-${_major}
+  cd "linux-${_major}"
   local kernver="$(<version)"
   local modulesdir="$pkgdir/usr/lib/modules/$kernver"
 
@@ -430,13 +432,14 @@ _package() {
   rm "$modulesdir"/{source,build}
 }
 
+# shellcheck disable=SC2154,SC2155
 _package-headers() {
   pkgdesc="Headers and scripts for building modules for the $pkgdesc kernel"
   depends=(pahole)
   provides+=(linux-xanmod-g14-headers)
   conflicts+=(linux-xanmod-g14-headers)
 
-  cd linux-${_major}
+  cd "linux-${_major}"
   local builddir="$pkgdir/usr/lib/modules/$(<version)/build"
 
   msg2 "Installing build files..."
@@ -493,18 +496,18 @@ _package-headers() {
   while read -rd '' file; do
     case "$(file -bi "$file")" in
       application/x-sharedlib\;*)      # Libraries (.so)
-        strip -v $STRIP_SHARED "$file" ;;
+        strip -v "$STRIP_SHARED" "$file" ;;
       application/x-archive\;*)        # Libraries (.a)
-        strip -v $STRIP_STATIC "$file" ;;
+        strip -v "$STRIP_STATIC" "$file" ;;
       application/x-executable\;*)     # Binaries
-        strip -v $STRIP_BINARIES "$file" ;;
+        strip -v "$STRIP_BINARIES" "$file" ;;
       application/x-pie-executable\;*) # Relocatable binaries
-        strip -v $STRIP_SHARED "$file" ;;
+        strip -v "$STRIP_SHARED" "$file" ;;
     esac
   done < <(find "$builddir" -type f -perm -u+x ! -name vmlinux -print0)
 
   msg2 "Stripping vmlinux..."
-  strip -v $STRIP_STATIC "$builddir/vmlinux"
+  strip -v "$STRIP_STATIC" "$builddir/vmlinux"
   msg2 "Adding symlink..."
   mkdir -p "$pkgdir/usr/src"
   ln -sr "$builddir" "$pkgdir/usr/src/$pkgbase"
