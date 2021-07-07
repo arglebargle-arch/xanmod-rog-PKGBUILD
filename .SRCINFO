@@ -1,7 +1,7 @@
 pkgbase = linux-xanmod-rog
 	pkgdesc = Linux Xanmod
-	pkgver = 5.13.0.xanmod2
-	pkgrel = 2
+	pkgver = 5.13.1.xanpre0
+	pkgrel = 1
 	url = http://www.xanmod.org/
 	arch = x86_64
 	license = GPL2
@@ -27,6 +27,7 @@ pkgbase = linux-xanmod-rog
 	source = 0006-HID-asus-Remove-check-for-same-LED-brightness-on-set.patch
 	source = 0007-ALSA-hda-realtek-Fix-speakers-not-working-on-Asus-Fl.patch
 	source = uksm-5.13.patch::https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-5.13.patch
+	source = https://cdn.kernel.org/pub/linux/kernel/v5.x/patch-5.13.1.xz
 	validpgpkeys = ABAF11C65A2970B130ABE3C479BE3E4300411886
 	validpgpkeys = 647F28654894E3BD457199BE38DBBDC86092693E
 	sha256sums = 3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9
@@ -43,6 +44,7 @@ pkgbase = linux-xanmod-rog
 	sha256sums = 034743a640c26deca0a8276fa98634e7eac1328d50798a3454c4662cff97ccc9
 	sha256sums = 32bbcde83406810f41c9ed61206a7596eb43707a912ec9d870fd94f160d247c1
 	sha256sums = d38e2ee1f43bd6ca18845c80f5e68c0e597db01780004ff47607dd605e9aa086
+	sha256sums = b356073468ffaee4e2ff507a521b70d130eab6542c8d9012168548f2cf554a79
 
 pkgname = linux-xanmod-rog
 	pkgdesc = The Linux kernel and modules with Xanmod and ASUS ROG laptop patches (Zephyrus G14, G15, etc)

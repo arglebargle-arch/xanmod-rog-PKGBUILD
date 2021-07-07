@@ -80,9 +80,9 @@ _makenconfig=
 
 pkgbase=linux-xanmod-rog
 xanmod=5.13.0-xanmod2
-pkgver=${xanmod//-/.}
-#pkgver=5.12.12.xanpre0
-pkgrel=2
+#pkgver=${xanmod//-/.}
+pkgver=5.13.1.xanpre0     # start 4th position with 'xan...', we rely on parsing for '.xan...' later
+pkgrel=1
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -97,8 +97,9 @@ if [ "${_compiler}" = "clang" ]; then
 fi
 options=('!strip')
 _major=$(echo $xanmod | cut -d'.' -f1,2)
-_patch=$(echo ${xanmod%-xanmod?} | cut -d'.' -f3)
+_patchver=$(echo $pkgver | cut -d'.' -f3)
 _branch="$(echo $xanmod | cut -d'.' -f1).x"
+_localversion=$(echo $pkgver | cut -d'.' -f4)
 
 # use rog branch; we'll handle suspend patches
 _fedora_kernel_commit_id=91f97d88231152006764d3c50cc52ddbb508529f
@@ -195,7 +196,11 @@ if [[ ${xanmod%-xanmod?} != ${pkgver%%\.xan*} ]]; then
   _patch_start=$(echo ${xanmod%-xanmod?} | cut -d'.' -f3)
   _patch_end=$(echo ${pkgver%%\.xan*} | cut -d'.' -f3)
   for (( _i=_patch_start; _i < _patch_end; _i++ )); do
-    source+=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/incr/patch-${_major}.${_i}-$((_i +1)).xz")
+    if (( _i == 0 )); then
+      source+=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/patch-${_major}.$((_i +1)).xz")
+    else
+      source+=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/incr/patch-${_major}.${_i}-$((_i +1)).xz")
+    fi
   done
 fi
 
@@ -212,7 +217,8 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             '663b664f4a138ccca6c4edcefde6a045b79a629d3b721bfa7b9cc115f704456e'
             '034743a640c26deca0a8276fa98634e7eac1328d50798a3454c4662cff97ccc9'
             '32bbcde83406810f41c9ed61206a7596eb43707a912ec9d870fd94f160d247c1'
-            'd38e2ee1f43bd6ca18845c80f5e68c0e597db01780004ff47607dd605e9aa086')
+            'd38e2ee1f43bd6ca18845c80f5e68c0e597db01780004ff47607dd605e9aa086'
+            'b356073468ffaee4e2ff507a521b70d130eab6542c8d9012168548f2cf554a79')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
 export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-makepkg}
@@ -232,11 +238,16 @@ prepare() {
 
   # Monkey patch: apply kernel.org patches when mainline is slightly ahead of Xanmod official
   if [[ ${xanmod%-xanmod?} != ${pkgver%%\.xan*} ]]; then
-      msg2 "Applying kernel.org point-release patches..."
-      for (( _i=_patch_start; _i < _patch_end; _i++ )); do
+    msg2 "Applying kernel.org point-release patches..."
+    for (( _i=_patch_start; _i < _patch_end; _i++ )); do
+      if (( _i == 0 )); then
+        echo "Applying patch ${_major} -> ${_major}.$((_i+1))..."
+        patch -Np1 -i ../patch-${_major}.$((_i+1))
+      else
         echo "Applying patch ${_major}.${_i} -> ${_major}.$((_i+1))..."
         patch -Np1 -i ../patch-${_major}.${_i}-$((_i+1))
-      done
+      fi
+    done
   fi
 
   msg2 "Setting version..."
@@ -244,12 +255,9 @@ prepare() {
   echo "-$pkgrel" > localversion.99-pkgrel
   echo "${pkgbase#linux-xanmod}" > localversion.20-pkgname
 
-  # Rewrite xanmod release to 0 if we're pre-releasing
-  tag=${pkgver#*+}
-  tag=$(echo $pkgver | cut -d'.' -f4)
+  # Monkey patch: rewrite Xanmod release to $_localversion if we're pre-releasing
   [[ ${xanmod%-xanmod?} != ${pkgver%%\.xan*} ]] &&
-    sed -Ei "s/xanmod[0-9]+/${tag}/" localversion               # TODO: >> test this <<
-    #sed -Ei "s/xanmod[0-9]+/${tag//+/-}/" localversion
+    sed -Ei "s/xanmod[0-9]+/${_localversion}/" localversion               # TODO: >> test this <<
 
   # Archlinux patches
   local src
