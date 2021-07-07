@@ -187,9 +187,8 @@ _fedora_kernel_patch_skip_list=(
 # apply UKSM patch
 #
 _uksm_patch="https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-${_major}.patch"
-if [[ ! -v no_uksm ]]; then
+[[ -v no_uksm ]] ||
   source+=("${_uksm_patch##*/}::${_uksm_patch}")
-fi
 
 # Monkey patch: support stacking incremental point releases from kernel.org when we're building ahead of Xanmod
 #
