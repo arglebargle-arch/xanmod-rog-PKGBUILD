@@ -82,7 +82,7 @@ pkgbase=linux-xanmod-rog
 xanmod=5.13.0-xanmod2
 pkgver=${xanmod//-/.}
 #pkgver=5.12.12.xanpre0
-pkgrel=1
+pkgrel=2
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -93,7 +93,7 @@ makedepends=(
   "gcc>=11.0"
 )
 if [ "${_compiler}" = "clang" ]; then
-  makedepends+=(clang llvm)
+  makedepends+=(clang llvm lld python)
 fi
 options=('!strip')
 _major=$(echo $xanmod | cut -d'.' -f1,2)
