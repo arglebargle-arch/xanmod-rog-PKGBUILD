@@ -82,7 +82,7 @@ pkgbase=linux-xanmod-rog
 xanmod=5.13.1-xanmod1
 pkgver=${xanmod//-/.}
 #pkgver=5.13.1.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
-pkgrel=2
+pkgrel=3
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -110,9 +110,6 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         # temporarily (permanently?) disable pulling from asus-linux git
         #"https://gitlab.com/asus-linux/fedora-kernel/-/archive/$_fedora_kernel_commit_id/fedora-kernel-$_fedora_kernel_commit_id.zip"
 
-        # pull this in from Arch;                                     XXX: <-- this is causing build failures, I'm not sure why yet
-        #"ZEN-disallow-unprivileged-CLONE_NEWUSER.patch"
-
         # The Arch Linux git repo has changed URLs, include this temporarily
         # NOTE: we're not even building the documentation, it's probably safe to just drop this entirely
         #"sphinx-workaround.patch"
@@ -120,6 +117,8 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         # squashed s0ix enablement through 2021-06-30: 11 patch s0ix series (inc EC GPE), 7 patch amd_pmc v5 series
         "backport-from-5.14-s0ix-enablement-no-d3hot-2021-06-30.patch"
         "PCI-quirks-Quirk-PCI-d3hot-delay-for-AMD-xhci.patch"
+        # 2021-07-07 patch ...
+        "platform-x86-amd-pmc-Use-return-code-on-suspend.patch"
 
         # for now let's just pull the 5 asus-linux patches we need directly and skip all of the git filtering
         "0001-asus-wmi-Add-panel-overdrive-functionality.patch"
@@ -206,6 +205,7 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             'ea96d0cc98ba34396a100f0afc10e392c60415f08c4b1ddfd99f2ca532d5ac12'
             'dab4db308ede1aa35166f31671572eeccf0e7637b3218ce3ae519c2705934f79'
+            '8825ad8161336d2f08b37b59bfe6c66a3c46e6e7d35dc19122fb92a2c1e4a447'
             '09cf9fa947e58aacf25ff5c36854b82d97ad8bda166a7e00d0f3f4df7f60a695'
             '7a685e2e2889af744618a95ef49593463cd7e12ae323f964476ee9564c208b77'
             '663b664f4a138ccca6c4edcefde6a045b79a629d3b721bfa7b9cc115f704456e'
@@ -214,7 +214,7 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'd38e2ee1f43bd6ca18845c80f5e68c0e597db01780004ff47607dd605e9aa086')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
-export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-makepkg}
+export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-"$pkgbase"}
 export KBUILD_BUILD_TIMESTAMP=${KBUILD_BUILD_TIMESTAMP:-$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})}
 
 _fedora_patch_in_skip_list() {
