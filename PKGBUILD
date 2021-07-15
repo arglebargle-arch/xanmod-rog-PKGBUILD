@@ -82,7 +82,7 @@ pkgbase=linux-xanmod-rog
 xanmod=5.13.2-xanmod1
 pkgver=${xanmod//-/.}
 #pkgver=5.13.1.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
-pkgrel=1
+pkgrel=2
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -113,6 +113,10 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         # The Arch Linux git repo has changed URLs, include this temporarily
         # NOTE: we're not even building the documentation, it's probably safe to just drop this entirely
         #"sphinx-workaround.patch"
+
+        # k10temp support for Zen3 APUs
+        "8001-x86-amd_nb-Add-AMD-family-19h-model-50h-PCI-ids.patch"
+        "8002-hwmon-k10temp-support-Zen3-APUs.patch"
 
         # squashed s0ix enablement through 2021-07-14; all current patches
         "9001-v5.13.2-s0ix-patch-2021-07-14.patch"
@@ -200,6 +204,8 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'SKIP'
             '946fdfeeddfad6591cee21471dced2cddd06cf9cf249e549319885cd8d2b4aa9'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
+            'ed28a8051514f8c228717a5cdd13191b1c58181e0228d972fbe2af5ee1d013d7'
+            'de8c9747637768c4356c06aa65c3f157c526aa420f21fdd5edd0ed06f720a62e'
             'e5d1bfe9d309f292d41bb06b98b94df168e0004f6e8ace45b310c6829a803d03'
             '09cf9fa947e58aacf25ff5c36854b82d97ad8bda166a7e00d0f3f4df7f60a695'
             '7a685e2e2889af744618a95ef49593463cd7e12ae323f964476ee9564c208b77'
