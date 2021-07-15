@@ -1,29 +1,36 @@
-From 42b2e2ffb3a9e421050893c8a3786210fb541ae1 Mon Sep 17 00:00:00 2001
+From c5c4ea6d73b96660a0c7a4acfa20260a009eaded Mon Sep 17 00:00:00 2001
 From: Scott B <28817345+foundObjects@users.noreply.github.com>
-Date: Thu, 8 Jul 2021 03:24:48 -0700
-Subject: [PATCH] Squashed commit of the following:
+Date: Wed, 14 Jul 2021 21:52:37 -0700
+Subject: [PATCH] v5.13.2-s0ix patch 2021-07-14
 
-all mainline s0ix support up to 2021-06-30:
-    11 s0ix patches, including EC GPE patch
-    7 amd_pmc v5 patchset diagnostics
+Squashed commit of the following:
 
-Does not include AMD XHCI D3hot Quirk
+commit dfd19418b30dd4b44909fc2c4b6a9b06c2554d9b
+Author: Marcin Bachry <hegel666@gmail.com>
+Date:   Tue Mar 16 15:28:51 2021 -0400
 
-commit 2b513555a462fc9233355d44789833a9be300a2f
-Merge: ebf1d8bcad36 b072ea5d76db
-Author: Scott B <28817345+foundObjects@users.noreply.github.com>
-Date:   Thu Jul 8 03:16:14 2021 -0700
+    PCI: quirks: Quirk PCI d3hot delay for AMD xhci
 
-    Merge branch 'patchwork-amd-pmc-logging-v5' into TEMP-s0ix-on-5.13
+    Renoir needs a similar delay.
 
-commit ebf1d8bcad366f451d54bda9e15943f173003551
-Merge: 62fb9874f5da 35f01a4422b1
-Author: Scott B <28817345+foundObjects@users.noreply.github.com>
-Date:   Thu Jul 8 03:15:32 2021 -0700
+    Signed-off-by: Marcin Bachry <hegel666@gmail.com>
+    Signed-off-by: Alex Deucher <alexander.deucher@amd.com>
 
-    Merge branch 'DO-NOT-USE-backport-from-5.14-s0ix-no-d3hot' into HEAD
+commit 1d4a9adf12b2f2e175f937cd8b056b7e382bbc2d
+Author: Mario Limonciello <mario.limonciello@amd.com>
+Date:   Wed Jul 7 09:16:47 2021 -0500
 
-commit 35f01a4422b180806c6106b5696ab9626b5dac41
+    platform/x86: amd-pmc: Use return code on suspend
+
+    Right now the driver will still return success even if the OS_HINT
+    command failed to send to the SMU. In the rare event of a failure,
+    the suspend should really be aborted here so that relevant logs
+    can may be captured.
+
+    Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
+    Acked-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
+
+commit 5d419d5edb6c52b50a6883496e545dea2108f7ab
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Wed Jun 30 14:46:06 2021 -0500
 
@@ -64,7 +71,118 @@ Date:   Wed Jun 30 14:46:06 2021 -0500
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
     Acked-by: Alex Deucher <alexander.deucher@amd.com>
 
-commit 5032c30b7d44b5b9d68f7a8d3bbcb6238484b2a6
+commit 027e28cf9b134b6c9996ba586a5e501953db6c75
+Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
+Date:   Tue Jun 29 14:18:03 2021 +0530
+
+    platform/x86: amd-pmc: Add new acpi id for future PMC controllers
+
+    The upcoming PMC controller would have a newer acpi id, add that to
+    the supported acpid device list.
+
+    Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
+    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
+
+commit d659780411974015aa21e8740cdf90a6c1821cbb
+Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
+Date:   Tue Jun 29 14:18:02 2021 +0530
+
+    platform/x86: amd-pmc: Add support for ACPI ID AMDI0006
+
+    Some newer BIOSes have added another ACPI ID for the uPEP device.
+    SMU statistics behave identically on this device.
+
+    Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
+    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
+
+commit 92df7f17d7461ae779957ebbe64797caaab680ff
+Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
+Date:   Tue Jun 29 14:18:01 2021 +0530
+
+    amd-pmc: Add support for logging s0ix counters
+
+    Even the FCH SSC registers provides certain level of information
+    about the s0ix entry and exit times which comes handy when the SMU
+    fails to report the statistics via the mailbox communication.
+
+    This information is captured via a new debugfs file "s0ix_stats".
+    A non-zero entry in this counters would mean that the system entered
+    the s0ix state.
+
+    If s0ix entry time and exit time don't change during suspend to idle,
+    the silicon has not entered the deepest state.
+
+    Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
+    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
+
+commit ce4b6d7cca5300babedff9030592628ae24e5795
+Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
+Date:   Tue Jun 29 14:18:00 2021 +0530
+
+    platform/x86: amd-pmc: Add support for logging SMU metrics
+
+    SMU provides a way to dump the s0ix debug statistics in the form of a
+    metrics table via a of set special mailbox commands.
+
+    Add support to the driver which can send these commands to SMU and expose
+    the information received via debugfs. The information contains the s0ix
+    entry/exit, active time of each IP block etc.
+
+    As a side note, SMU subsystem logging is not supported on Picasso based
+    SoC's.
+
+    Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
+    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
+
+commit 8236650e7af934a9912f5810c95506e638ede06c
+Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
+Date:   Tue Jun 29 14:17:59 2021 +0530
+
+    platform/x86: amd-pmc: call dump registers only once
+
+    Currently amd_pmc_dump_registers() routine is being called at
+    multiple places. The best to call it is after command submission
+    to SMU.
+
+    Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
+
+commit 46400a2beb5c6c819db50eaeae0a7640c1273a70
+Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
+Date:   Tue Jun 29 14:17:58 2021 +0530
+
+    platform/x86: amd-pmc: Fix SMU firmware reporting mechanism
+
+    It was lately understood that the current mechanism available in the
+    driver to get SMU firmware info works only on internal SMU builds and
+    there is a separate way to get all the SMU logging counters (addressed
+    in the next patch). Hence remove all the smu info shown via debugfs as it
+    is no more useful.
+
+    Fixes: 156ec4731cb2 ("platform/x86: amd-pmc: Add AMD platform support for S2Idle")
+    Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
+
+commit bd06b697a1e6a136b2e305634e9f312762059909
+Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
+Date:   Tue Jun 29 14:17:57 2021 +0530
+
+    platform/x86: amd-pmc: Fix command completion code
+
+    The protocol to submit a job request to SMU is to wait for
+    AMD_PMC_REGISTER_RESPONSE to return 1,meaning SMU is ready to take
+    requests. PMC driver has to make sure that the response code is always
+    AMD_PMC_RESULT_OK before making any command submissions.
+
+    When we submit a message to SMU, we have to wait until it processes
+    the request. Adding a read_poll_timeout() check as this was missing in
+    the existing code.
+
+    Also, add a mutex to protect amd_pmc_send_cmd() calls to SMU.
+
+    Fixes: 156ec4731cb2 ("platform/x86: amd-pmc: Add AMD platform support for S2Idle")
+    Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
+    Acked-by: Raul E Rangel <rrangel@chromium.org>
+
+commit e8ef1eac2ff5426b9b35f49a587bc3a7d9397659
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Thu Jun 17 11:42:12 2021 -0500
 
@@ -80,7 +198,7 @@ Date:   Thu Jun 17 11:42:12 2021 -0500
 
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
 
-commit 6ad8efa21132a0c53372a615c91f5f24b6e2ed63
+commit 864a6b01761b2000ec7bc9fff388c61efceaf353
 Author: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 Date:   Thu Jun 17 11:42:11 2021 -0500
 
@@ -94,7 +212,7 @@ Date:   Thu Jun 17 11:42:11 2021 -0500
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
     Signed-off-by: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 
-commit 1c22e7dec26ea42a98b0c87d97a150a415978ec1
+commit 8b4804c4344b418f9d626814e920ccf95e364024
 Author: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 Date:   Thu Jun 17 11:42:10 2021 -0500
 
@@ -105,7 +223,7 @@ Date:   Thu Jun 17 11:42:10 2021 -0500
 
     Signed-off-by: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 
-commit aa430a0319ce9ac4629735ac6a5b86bd48517dff
+commit 3715cebc4d1c47cf135944773fa9ff284542910e
 Author: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 Date:   Thu Jun 17 11:42:09 2021 -0500
 
@@ -123,7 +241,7 @@ Date:   Thu Jun 17 11:42:09 2021 -0500
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
     Signed-off-by: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 
-commit a71e52e9ea22c0b976014a6f7eb2ed93f65aa4ca
+commit 67e6dbc2f704df510523cd62d0b70a33096d565f
 Author: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 Date:   Thu Jun 17 11:42:08 2021 -0500
 
@@ -134,24 +252,7 @@ Date:   Thu Jun 17 11:42:08 2021 -0500
 
     Signed-off-by: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 
-commit e5b15e24f169d15b231581cccb2bfa9820225cff
-Author: Alex Deucher <alexander.deucher@amd.com>
-Date:   Wed May 5 09:20:32 2021 -0400
-
-    ACPI: PM: s2idle: Add missing LPS0 functions for AMD
-
-    These are supposedly not required for AMD platforms,
-    but at least some HP laptops seem to require it to
-    properly turn off the keyboard backlight.
-
-    Based on a patch from Marcin Bachry <hegel666@gmail.com>.
-
-    Bug: https://gitlab.freedesktop.org/drm/amd/-/issues/1230
-    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
-    Signed-off-by: Alex Deucher <alexander.deucher@amd.com>
-    Signed-off-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
-
-commit 526bf2ffedece1257d3742a2ad633e00bb1778a7
+commit f207e3ee5d44caa2626e08f3d331dc3d994d9ff1
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Wed Jun 9 13:40:18 2021 -0500
 
@@ -198,7 +299,7 @@ Date:   Wed Jun 9 13:40:18 2021 -0500
     Tested-by: Julian Sikorski <belegdol@gmail.com>
     Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-commit 8b763d23606ce256a5ec9db81d8177ad5e90bbf9
+commit 4707d17911041378604fa53b28e09b5aab2d2a5c
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Wed Jun 9 13:40:17 2021 -0500
 
@@ -219,184 +320,22 @@ Date:   Wed Jun 9 13:40:17 2021 -0500
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
     Reviewed-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
     Signed-off-by: Christoph Hellwig <hch@lst.de>
-
-commit b12b48eb29c8a392f4093898877a02f271b93355
-Author: Mario Limonciello <mario.limonciello@amd.com>
-Date:   Fri May 28 11:02:34 2021 -0500
-
-    nvme-pci: look for StorageD3Enable on companion ACPI device instead
-
-    The documentation around the StorageD3Enable property hints that it
-    should be made on the PCI device.  This is where newer AMD systems set
-    the property and it's required for S0i3 support.
-
-    So rather than look for nodes of the root port only present on Intel
-    systems, switch to the companion ACPI device for all systems.
-    David Box from Intel indicated this should work on Intel as well.
-
-    Link: https://lore.kernel.org/linux-nvme/YK6gmAWqaRmvpJXb@google.com/T/#m900552229fa455867ee29c33b854845fce80ba70
-    Link: https://docs.microsoft.com/en-us/windows-hardware/design/component-guidelines/power-management-for-storage-hardware-devices-intro
-    Fixes: df4f9bc4fb9c ("nvme-pci: add support for ACPI StorageD3Enable property")
-    Suggested-by: Liang Prike <Prike.Liang@amd.com>
-    Acked-by: Raul E Rangel <rrangel@chromium.org>
-    Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
-    Reviewed-by: David E. Box <david.e.box@linux.intel.com>
-    Signed-off-by: Christoph Hellwig <hch@lst.de>
-
-commit e54f80e62f9d3412a7add7f3753c7c2604cbfe78
-Author: Mario Limonciello <mario.limonciello@amd.com>
-Date:   Wed May 12 17:15:14 2021 -0500
-
-    ACPI: processor idle: Fix up C-state latency if not ordered
-
-    Generally, the C-state latency is provided by the _CST method or
-    FADT, but some OEM platforms using AMD Picasso, Renoir, Van Gogh,
-    and Cezanne set the C2 latency greater than C3's which causes the
-    C2 state to be skipped.
-
-    That will block the core entering PC6, which prevents S0ix working
-    properly on Linux systems.
-
-    In other operating systems, the latency values are not validated and
-    this does not cause problems by skipping states.
-
-    To avoid this issue on Linux, detect when latencies are not an
-    arithmetic progression and sort them.
-
-    Link: https://gitlab.freedesktop.org/agd5f/linux/-/commit/026d186e4592c1ee9c1cb44295912d0294508725
-    Link: https://gitlab.freedesktop.org/drm/amd/-/issues/1230#note_712174
-    Suggested-by: Prike Liang <Prike.Liang@amd.com>
-    Suggested-by: Alex Deucher <alexander.deucher@amd.com>
-    Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
-    [ rjw: Subject and changelog edits ]
-    Signed-off-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
-
-commit b072ea5d76db90c1316aa04a15f77744ac1bafa1
-Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
-Date:   Tue Jun 29 14:18:03 2021 +0530
-
-    platform/x86: amd-pmc: Add new acpi id for future PMC controllers
-
-    The upcoming PMC controller would have a newer acpi id, add that to
-    the supported acpid device list.
-
-    Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
-    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
-
-commit 4f025bcec084eb0624b3a34a03b0ff00a14a2fa0
-Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
-Date:   Tue Jun 29 14:18:02 2021 +0530
-
-    platform/x86: amd-pmc: Add support for ACPI ID AMDI0006
-
-    Some newer BIOSes have added another ACPI ID for the uPEP device.
-    SMU statistics behave identically on this device.
-
-    Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
-    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
-
-commit a3ccb3605aac3f650732a55adea7e666d9df24c5
-Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
-Date:   Tue Jun 29 14:18:01 2021 +0530
-
-    amd-pmc: Add support for logging s0ix counters
-
-    Even the FCH SSC registers provides certain level of information
-    about the s0ix entry and exit times which comes handy when the SMU
-    fails to report the statistics via the mailbox communication.
-
-    This information is captured via a new debugfs file "s0ix_stats".
-    A non-zero entry in this counters would mean that the system entered
-    the s0ix state.
-
-    If s0ix entry time and exit time don't change during suspend to idle,
-    the silicon has not entered the deepest state.
-
-    Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
-    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
-
-commit 826b61ec6a7785614435fcdeb951290981eff6f1
-Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
-Date:   Tue Jun 29 14:18:00 2021 +0530
-
-    platform/x86: amd-pmc: Add support for logging SMU metrics
-
-    SMU provides a way to dump the s0ix debug statistics in the form of a
-    metrics table via a of set special mailbox commands.
-
-    Add support to the driver which can send these commands to SMU and expose
-    the information received via debugfs. The information contains the s0ix
-    entry/exit, active time of each IP block etc.
-
-    As a side note, SMU subsystem logging is not supported on Picasso based
-    SoC's.
-
-    Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
-    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
-
-commit dd120f506eea9bee584cf0f7d737631554ba17a3
-Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
-Date:   Tue Jun 29 14:17:59 2021 +0530
-
-    platform/x86: amd-pmc: call dump registers only once
-
-    Currently amd_pmc_dump_registers() routine is being called at
-    multiple places. The best to call it is after command submission
-    to SMU.
-
-    Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
-
-commit 87390ff9f263e0aa586d9a33198e79b47e5f85d1
-Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
-Date:   Tue Jun 29 14:17:58 2021 +0530
-
-    platform/x86: amd-pmc: Fix SMU firmware reporting mechanism
-
-    It was lately understood that the current mechanism available in the
-    driver to get SMU firmware info works only on internal SMU builds and
-    there is a separate way to get all the SMU logging counters (addressed
-    in the next patch). Hence remove all the smu info shown via debugfs as it
-    is no more useful.
-
-    Fixes: 156ec4731cb2 ("platform/x86: amd-pmc: Add AMD platform support for S2Idle")
-    Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
-
-commit 65581db92e5e4d5fa941cc6bb91e702e3ed97b74
-Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
-Date:   Tue Jun 29 14:17:57 2021 +0530
-
-    platform/x86: amd-pmc: Fix command completion code
-
-    The protocol to submit a job request to SMU is to wait for
-    AMD_PMC_REGISTER_RESPONSE to return 1,meaning SMU is ready to take
-    requests. PMC driver has to make sure that the response code is always
-    AMD_PMC_RESULT_OK before making any command submissions.
-
-    When we submit a message to SMU, we have to wait until it processes
-    the request. Adding a read_poll_timeout() check as this was missing in
-    the existing code.
-
-    Also, add a mutex to protect amd_pmc_send_cmd() calls to SMU.
-
-    Fixes: 156ec4731cb2 ("platform/x86: amd-pmc: Add AMD platform support for S2Idle")
-    Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
-    Acked-by: Raul E Rangel <rrangel@chromium.org>
 ---
  drivers/acpi/device_pm.c       |  32 +++++
  drivers/acpi/internal.h        |   9 ++
- drivers/acpi/processor_idle.c  |  40 ++++++
  drivers/acpi/x86/s2idle.c      | 157 ++++++++++++++-------
  drivers/acpi/x86/utils.c       |  25 ++++
- drivers/nvme/host/pci.c        |  50 +------
- drivers/platform/x86/amd-pmc.c | 244 ++++++++++++++++++++++++++++++---
+ drivers/nvme/host/pci.c        |  28 +---
+ drivers/pci/quirks.c           |   3 +
+ drivers/platform/x86/amd-pmc.c | 246 ++++++++++++++++++++++++++++++---
  include/linux/acpi.h           |   5 +
- 8 files changed, 443 insertions(+), 119 deletions(-)
+ 8 files changed, 405 insertions(+), 100 deletions(-)
 
 diff --git a/drivers/acpi/device_pm.c b/drivers/acpi/device_pm.c
-index d260bc1f3e6e..6dd9bd64903e 100644
+index 9d2d3b9bb8b5..0cfdef2fc3ad 100644
 --- a/drivers/acpi/device_pm.c
 +++ b/drivers/acpi/device_pm.c
-@@ -1340,4 +1340,36 @@ int acpi_dev_pm_attach(struct device *dev, bool power_on)
+@@ -1338,4 +1338,36 @@ int acpi_dev_pm_attach(struct device *dev, bool power_on)
  	return 1;
  }
  EXPORT_SYMBOL_GPL(acpi_dev_pm_attach);
@@ -453,83 +392,8 @@ index e21611c9a170..7ac01b03ba67 100644
  /*--------------------------------------------------------------------------
  				Device properties
    -------------------------------------------------------------------------- */
-diff --git a/drivers/acpi/processor_idle.c b/drivers/acpi/processor_idle.c
-index 45a019619e4a..095c8aca141e 100644
---- a/drivers/acpi/processor_idle.c
-+++ b/drivers/acpi/processor_idle.c
-@@ -16,6 +16,7 @@
- #include <linux/acpi.h>
- #include <linux/dmi.h>
- #include <linux/sched.h>       /* need_resched() */
-+#include <linux/sort.h>
- #include <linux/tick.h>
- #include <linux/cpuidle.h>
- #include <linux/cpu.h>
-@@ -384,10 +385,37 @@ static void acpi_processor_power_verify_c3(struct acpi_processor *pr,
- 	return;
- }
- 
-+static int acpi_cst_latency_cmp(const void *a, const void *b)
-+{
-+	const struct acpi_processor_cx *x = a, *y = b;
-+
-+	if (!(x->valid && y->valid))
-+		return 0;
-+	if (x->latency > y->latency)
-+		return 1;
-+	if (x->latency < y->latency)
-+		return -1;
-+	return 0;
-+}
-+static void acpi_cst_latency_swap(void *a, void *b, int n)
-+{
-+	struct acpi_processor_cx *x = a, *y = b;
-+	u32 tmp;
-+
-+	if (!(x->valid && y->valid))
-+		return;
-+	tmp = x->latency;
-+	x->latency = y->latency;
-+	y->latency = tmp;
-+}
-+
- static int acpi_processor_power_verify(struct acpi_processor *pr)
- {
- 	unsigned int i;
- 	unsigned int working = 0;
-+	unsigned int last_latency = 0;
-+	unsigned int last_type = 0;
-+	bool buggy_latency = false;
- 
- 	pr->power.timer_broadcast_on_state = INT_MAX;
- 
-@@ -411,12 +439,24 @@ static int acpi_processor_power_verify(struct acpi_processor *pr)
- 		}
- 		if (!cx->valid)
- 			continue;
-+		if (cx->type >= last_type && cx->latency < last_latency)
-+			buggy_latency = true;
-+		last_latency = cx->latency;
-+		last_type = cx->type;
- 
- 		lapic_timer_check_state(i, pr, cx);
- 		tsc_check_state(cx->type);
- 		working++;
- 	}
- 
-+	if (buggy_latency) {
-+		pr_notice("FW issue: working around C-state latencies out of order\n");
-+		sort(&pr->power.states[1], max_cstate,
-+		     sizeof(struct acpi_processor_cx),
-+		     acpi_cst_latency_cmp,
-+		     acpi_cst_latency_swap);
-+	}
-+
- 	lapic_timer_propagate_broadcast(pr);
- 
- 	return (working);
 diff --git a/drivers/acpi/x86/s2idle.c b/drivers/acpi/x86/s2idle.c
-index 2b69536cdccb..1c507804fb10 100644
+index 2d7ddb8a8cb6..1c507804fb10 100644
 --- a/drivers/acpi/x86/s2idle.c
 +++ b/drivers/acpi/x86/s2idle.c
 @@ -32,6 +32,9 @@ static const struct acpi_device_id lps0_device_ids[] = {
@@ -542,7 +406,7 @@ index 2b69536cdccb..1c507804fb10 100644
  #define ACPI_LPS0_DSM_UUID	"c4eb40a0-6cd2-11e2-bcfd-0800200c9a66"
  
  #define ACPI_LPS0_GET_DEVICE_CONSTRAINTS	1
-@@ -39,15 +42,22 @@ static const struct acpi_device_id lps0_device_ids[] = {
+@@ -39,6 +42,8 @@ static const struct acpi_device_id lps0_device_ids[] = {
  #define ACPI_LPS0_SCREEN_ON	4
  #define ACPI_LPS0_ENTRY		5
  #define ACPI_LPS0_EXIT		6
@@ -551,10 +415,7 @@ index 2b69536cdccb..1c507804fb10 100644
  
  /* AMD */
  #define ACPI_LPS0_DSM_UUID_AMD      "e3f32452-febc-43ce-9039-932122d37721"
-+#define ACPI_LPS0_ENTRY_AMD         2
-+#define ACPI_LPS0_EXIT_AMD          3
- #define ACPI_LPS0_SCREEN_OFF_AMD    4
- #define ACPI_LPS0_SCREEN_ON_AMD     5
+@@ -49,7 +54,10 @@ static const struct acpi_device_id lps0_device_ids[] = {
  
  static acpi_handle lps0_device_handle;
  static guid_t lps0_dsm_guid;
@@ -566,7 +427,7 @@ index 2b69536cdccb..1c507804fb10 100644
  
  /* Device constraint entry structure */
  struct lpi_device_info {
-@@ -68,15 +78,7 @@ struct lpi_constraints {
+@@ -70,15 +78,7 @@ struct lpi_constraints {
  	int min_dstate;
  };
  
@@ -583,7 +444,7 @@ index 2b69536cdccb..1c507804fb10 100644
  struct lpi_device_constraint_amd {
  	char *name;
  	int enabled;
-@@ -94,15 +96,15 @@ static void lpi_device_get_constraints_amd(void)
+@@ -96,15 +96,15 @@ static void lpi_device_get_constraints_amd(void)
  	int i, j, k;
  
  	out_obj = acpi_evaluate_dsm_typed(lps0_device_handle, &lps0_dsm_guid,
@@ -603,7 +464,7 @@ index 2b69536cdccb..1c507804fb10 100644
  	for (i = 0; i < out_obj->package.count; i++) {
  		union acpi_object *package = &out_obj->package.elements[i];
  
-@@ -315,14 +317,15 @@ static void lpi_check_constraints(void)
+@@ -317,14 +317,15 @@ static void lpi_check_constraints(void)
  	}
  }
  
@@ -622,7 +483,7 @@ index 2b69536cdccb..1c507804fb10 100644
  	ACPI_FREE(out_obj);
  
  	acpi_handle_debug(lps0_device_handle, "_DSM function %u evaluation %s\n",
-@@ -334,11 +337,33 @@ static bool acpi_s2idle_vendor_amd(void)
+@@ -336,11 +337,33 @@ static bool acpi_s2idle_vendor_amd(void)
  	return boot_cpu_data.x86_vendor == X86_VENDOR_AMD;
  }
  
@@ -658,7 +519,7 @@ index 2b69536cdccb..1c507804fb10 100644
  	if (lps0_device_handle)
  		return 0;
  
-@@ -346,28 +371,36 @@ static int lps0_device_attach(struct acpi_device *adev,
+@@ -348,28 +371,36 @@ static int lps0_device_attach(struct acpi_device *adev,
  		return 0;
  
  	if (acpi_s2idle_vendor_amd()) {
@@ -712,7 +573,7 @@ index 2b69536cdccb..1c507804fb10 100644
  
  	lps0_device_handle = adev->handle;
  
-@@ -384,11 +417,15 @@ static int lps0_device_attach(struct acpi_device *adev,
+@@ -386,11 +417,15 @@ static int lps0_device_attach(struct acpi_device *adev,
  		mem_sleep_current = PM_SUSPEND_TO_IDLE;
  
  	/*
@@ -732,12 +593,13 @@ index 2b69536cdccb..1c507804fb10 100644
  
  	return 0;
  }
-@@ -406,11 +443,23 @@ int acpi_s2idle_prepare_late(void)
+@@ -408,12 +443,23 @@ int acpi_s2idle_prepare_late(void)
  	if (pm_debug_messages_on)
  		lpi_check_constraints();
  
 -	if (acpi_s2idle_vendor_amd()) {
 -		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_OFF_AMD);
+-		acpi_sleep_run_lps0_dsm(ACPI_LPS0_ENTRY_AMD);
 +	if (lps0_dsm_func_mask_microsoft > 0) {
 +		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_OFF,
 +				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
@@ -760,11 +622,12 @@ index 2b69536cdccb..1c507804fb10 100644
  	}
  
  	return 0;
-@@ -421,11 +470,23 @@ void acpi_s2idle_restore_early(void)
+@@ -424,12 +470,23 @@ void acpi_s2idle_restore_early(void)
  	if (!lps0_device_handle || sleep_no_lps0)
  		return;
  
 -	if (acpi_s2idle_vendor_amd()) {
+-		acpi_sleep_run_lps0_dsm(ACPI_LPS0_EXIT_AMD);
 -		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_ON_AMD);
 +	if (lps0_dsm_func_mask_microsoft > 0) {
 +		acpi_sleep_run_lps0_dsm(ACPI_LPS0_EXIT,
@@ -822,20 +685,17 @@ index bdc1ba00aee9..f22f23933063 100644
 +	return x86_match_cpu(storage_d3_cpu_ids);
 +}
 diff --git a/drivers/nvme/host/pci.c b/drivers/nvme/host/pci.c
-index a29b170701fc..8fbc4c87a0d8 100644
+index 42ad75ff1348..5a72bdf5ad03 100644
 --- a/drivers/nvme/host/pci.c
 +++ b/drivers/nvme/host/pci.c
-@@ -2828,54 +2828,6 @@ static unsigned long check_vendor_combination_bug(struct pci_dev *pdev)
+@@ -2828,32 +2828,6 @@ static unsigned long check_vendor_combination_bug(struct pci_dev *pdev)
  	return 0;
  }
  
 -#ifdef CONFIG_ACPI
 -static bool nvme_acpi_storage_d3(struct pci_dev *dev)
 -{
--	struct acpi_device *adev;
--	struct pci_dev *root;
--	acpi_handle handle;
--	acpi_status status;
+-	struct acpi_device *adev = ACPI_COMPANION(&dev->dev);
 -	u8 val;
 -
 -	/*
@@ -843,28 +703,9 @@ index a29b170701fc..8fbc4c87a0d8 100644
 -	 * must use D3 to support deep platform power savings during
 -	 * suspend-to-idle.
 -	 */
--	root = pcie_find_root_port(dev);
--	if (!root)
--		return false;
 -
--	adev = ACPI_COMPANION(&root->dev);
 -	if (!adev)
 -		return false;
--
--	/*
--	 * The property is defined in the PXSX device for South complex ports
--	 * and in the PEGP device for North complex ports.
--	 */
--	status = acpi_get_handle(adev->handle, "PXSX", &handle);
--	if (ACPI_FAILURE(status)) {
--		status = acpi_get_handle(adev->handle, "PEGP", &handle);
--		if (ACPI_FAILURE(status))
--			return false;
--	}
--
--	if (acpi_bus_get_device(handle, &adev))
--		return false;
--
 -	if (fwnode_property_read_u8(acpi_fwnode_handle(adev), "StorageD3Enable",
 -			&val))
 -		return false;
@@ -880,7 +721,7 @@ index a29b170701fc..8fbc4c87a0d8 100644
  static void nvme_async_probe(void *data, async_cookie_t cookie)
  {
  	struct nvme_dev *dev = data;
-@@ -2925,7 +2877,7 @@ static int nvme_probe(struct pci_dev *pdev, const struct pci_device_id *id)
+@@ -2903,7 +2877,7 @@ static int nvme_probe(struct pci_dev *pdev, const struct pci_device_id *id)
  
  	quirks |= check_vendor_combination_bug(pdev);
  
@@ -889,8 +730,22 @@ index a29b170701fc..8fbc4c87a0d8 100644
  		/*
  		 * Some systems use a bios work around to ask for D3 on
  		 * platforms that support kernel managed suspend.
+diff --git a/drivers/pci/quirks.c b/drivers/pci/quirks.c
+index 22b2bb1109c9..c4f5e2f093a3 100644
+--- a/drivers/pci/quirks.c
++++ b/drivers/pci/quirks.c
+@@ -1899,6 +1899,9 @@ static void quirk_ryzen_xhci_d3hot(struct pci_dev *dev)
+ }
+ DECLARE_PCI_FIXUP_FINAL(PCI_VENDOR_ID_AMD, 0x15e0, quirk_ryzen_xhci_d3hot);
+ DECLARE_PCI_FIXUP_FINAL(PCI_VENDOR_ID_AMD, 0x15e1, quirk_ryzen_xhci_d3hot);
++/* Renoir XHCI requires longer delay when transitioning from D0 to
++ * D3hot */
++DECLARE_PCI_FIXUP_FINAL(PCI_VENDOR_ID_AMD, 0x1639, quirk_ryzen_xhci_d3hot);
+ 
+ #ifdef CONFIG_X86_IO_APIC
+ static int dmi_disable_ioapicreroute(const struct dmi_system_id *d)
 diff --git a/drivers/platform/x86/amd-pmc.c b/drivers/platform/x86/amd-pmc.c
-index b9da58ee9b1e..d2f9a62e1166 100644
+index b9da58ee9b1e..680f94c7e075 100644
 --- a/drivers/platform/x86/amd-pmc.c
 +++ b/drivers/platform/x86/amd-pmc.c
 @@ -46,34 +46,79 @@
@@ -1116,7 +971,7 @@ index b9da58ee9b1e..d2f9a62e1166 100644
  				PMC_MSG_DELAY_MIN_US * RESPONSE_REGISTER_LOOP_MAX);
  	if (rc) {
  		dev_err(dev->dev, "failed to talk to SMU\n");
-@@ -154,21 +285,74 @@ static int amd_pmc_send_cmd(struct amd_pmc_dev *dev, bool set)
+@@ -154,34 +285,91 @@ static int amd_pmc_send_cmd(struct amd_pmc_dev *dev, bool set)
  	amd_pmc_reg_write(dev, AMD_PMC_REGISTER_ARGUMENT, set);
  
  	/* Write message ID to message ID register */
@@ -1192,10 +1047,11 @@ index b9da58ee9b1e..d2f9a62e1166 100644
  		dev_err(pdev->dev, "suspend failed\n");
  
 -	amd_pmc_dump_registers(pdev);
- 	return 0;
+-	return 0;
++	return rc;
  }
  
-@@ -176,12 +360,16 @@ static int __maybe_unused amd_pmc_resume(struct device *dev)
+ static int __maybe_unused amd_pmc_resume(struct device *dev)
  {
  	struct amd_pmc_dev *pdev = dev_get_drvdata(dev);
  	int rc;

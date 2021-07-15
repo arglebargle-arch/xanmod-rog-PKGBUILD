@@ -79,10 +79,10 @@ _makenconfig=
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod-rog
-xanmod=5.13.1-xanmod1
+xanmod=5.13.2-xanmod1
 pkgver=${xanmod//-/.}
 #pkgver=5.13.1.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
-pkgrel=3
+pkgrel=1
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -114,11 +114,8 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         # NOTE: we're not even building the documentation, it's probably safe to just drop this entirely
         #"sphinx-workaround.patch"
 
-        # squashed s0ix enablement through 2021-06-30: 11 patch s0ix series (inc EC GPE), 7 patch amd_pmc v5 series
-        "backport-from-5.14-s0ix-enablement-no-d3hot-2021-06-30.patch"
-        "PCI-quirks-Quirk-PCI-d3hot-delay-for-AMD-xhci.patch"
-        # 2021-07-07 patch ...
-        "platform-x86-amd-pmc-Use-return-code-on-suspend.patch"
+        # squashed s0ix enablement through 2021-07-14; all current patches
+        "9001-v5.13.2-s0ix-patch-2021-07-14.patch"
 
         # for now let's just pull the 5 asus-linux patches we need directly and skip all of the git filtering
         "0001-asus-wmi-Add-panel-overdrive-functionality.patch"
@@ -201,11 +198,9 @@ fi
 
 sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'SKIP'
-            'b0f14a0ccc290a97457a301c9d2a2d8e4c02ed8d2292333476dbe488b443de35'
+            '946fdfeeddfad6591cee21471dced2cddd06cf9cf249e549319885cd8d2b4aa9'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
-            'ea96d0cc98ba34396a100f0afc10e392c60415f08c4b1ddfd99f2ca532d5ac12'
-            'dab4db308ede1aa35166f31671572eeccf0e7637b3218ce3ae519c2705934f79'
-            '8825ad8161336d2f08b37b59bfe6c66a3c46e6e7d35dc19122fb92a2c1e4a447'
+            'e5d1bfe9d309f292d41bb06b98b94df168e0004f6e8ace45b310c6829a803d03'
             '09cf9fa947e58aacf25ff5c36854b82d97ad8bda166a7e00d0f3f4df7f60a695'
             '7a685e2e2889af744618a95ef49593463cd7e12ae323f964476ee9564c208b77'
             '663b664f4a138ccca6c4edcefde6a045b79a629d3b721bfa7b9cc115f704456e'
