@@ -101,20 +101,13 @@ _patchver=$(echo $pkgver | cut -d'.' -f3)
 _branch="$(echo $xanmod | cut -d'.' -f1).x"
 _localversion=$(echo $pkgver | cut -d'.' -f4)
 
-# use rog branch; we'll handle suspend patches
-_fedora_kernel_commit_id=91f97d88231152006764d3c50cc52ddbb508529f
-
 source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
         "choose-gcc-optimization.sh"
-        # temporarily (permanently?) disable pulling from asus-linux git
-        #"https://gitlab.com/asus-linux/fedora-kernel/-/archive/$_fedora_kernel_commit_id/fedora-kernel-$_fedora_kernel_commit_id.zip"
-
         # The Arch Linux git repo has changed URLs, include this temporarily
-        # NOTE: we're not even building the documentation, it's probably safe to just drop this entirely
         #"sphinx-workaround.patch"
 
-        # for now let's just pull the 5 asus-linux patches we need directly and skip all of the git filtering
+        # ASUS ROG enablement
         "0101-asus-wmi-Add-panel-overdrive-functionality.patch"
         "0102-asus-wmi-Add-dgpu-disable-method.patch"
         "0103-asus-wmi-Add-egpu-enable-method.patch"
@@ -125,7 +118,7 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "8001-x86-amd_nb-Add-AMD-family-19h-model-50h-PCI-ids.patch"
         "8002-hwmon-k10temp-support-Zen3-APUs.patch"
 
-        # mediatek bt/wifi patches
+        # mediatek mt7921 bt/wifi patches
         "8010-Bluetooth-btusb-Fixed-too-many-in-token-issue-for-Me.patch"
         "8011-Bluetooth-btusb-Add-support-for-Lite-On-Mediatek-Chi.patch"
         "8012-mt76-mt7921-continue-to-probe-driver-when-fw-already.patch"
@@ -140,46 +133,7 @@ validpgpkeys=(
     '647F28654894E3BD457199BE38DBBDC86092693E' # Greg Kroah-Hartman
 )
 
-# asus-linux patch management; any patch matching this list is pruned from the patchset during prepare()
-# accepts filenames and bash globs, ** important: don't quote globs **
-_fedora_kernel_patch_skip_list=(
-
-  # 00{03,05,08}-drm-amdgpu*.patch      # example multi-select
-  # 00{01..12}-drm-amdgpu*.patch        # example range select
-  "linux-kernel-test.patch"             # test patch, please ignore
-  patch-*-redhat.patch                  # wildcard match any redhat patch version
-
-  # upstreamed
-  "0001-HID-asus-Filter-keyboard-EC-for-old-ROG-keyboard.patch"
-  "0001-ALSA-hda-realtek-GA503-use-same-quirks-as-GA401.patch"
-  "0001-Add-jack-toggle-support-for-headphones-on-Asus-ROG-Z.patch"
-  "0001-HID-asus-filter-G713-G733-key-event-to-prevent-shutd.patch"
-  "0001-ACPI-video-use-native-backlight-for-GA401-GA502-GA50.patch"
-  "0002-Revert-platform-x86-asus-nb-wmi-Drop-duplicate-DMI-q.patch"
-  "0003-Revert-platform-x86-asus-nb-wmi-add-support-for-ASUS.patch"
-
-  # filter out suspend patches, we'll use upstream directly
-  "0001-ACPI-processor-idle-Fix-up-C-state-latency-if-not-ordered.patch"
-  "0002-v5-usb-pci-quirks-disable-D3cold-on-xhci-suspend-for-s2idle-on-AMD-Renoir.diff"
-  "0003-PCI-quirks-Quirk-PCI-d3hot-delay-for-AMD-xhci.diff"
-  "0004-nvme-pci_look_for_StorageD3Enable_on_companion_ACPI_device_instead.patch"
-  "0005-v5-1-2-acpi-PM-Move-check-for-_DSD-StorageD3Enable-property-to-acpi.diff"
-  "0006-v5-2-2-acpi-PM-Add-quirks-for-AMD-Renoir-Lucienne-CPUs-to-force-the-D3-hint.diff"
-  "0007-ACPI_PM_s2idle_Add_missing_LPS0_functions_for_AMD.patch"
-  "0008-2-2-V2-platform-x86-force-LPS0-functions-for-AMD.diff"
-
-  # filter suspend patches from 'rog' branch
-  "0002-drm-amdgpu-drop-extraneous-hw_status-update.patch"
-  "0013-ACPI-idle-override-and-update-c-state-latency-when-n.patch"
-  "0014-usb-pci-quirks-disable-D3cold-on-AMD-xhci-suspend-fo.patch"
-  "0015-PCI-quirks-Quirk-PCI-d3hot-delay-for-AMD-xhci.patch"
-  "0016-nvme-put-some-AMD-PCIE-downstream-NVME-device-to-sim.patch"
-  "0017-platform-x86-Add-missing-LPS0-functions-for-AMD.patch"
-  "0018-platform-x86-force-LPS0-functions-for-AMD.patch"
-)
-
 # TODO: The Arch Linux git repo has moved to GitHub; find this URL at some point
-# NOTE: We aren't even building the documentation; do we actually need this?
 # Archlinux patches
 #_commit="be7d4710850020de55bce930c83fa80347c02fc3"
 #_patches=("sphinx-workaround.patch")
@@ -230,11 +184,6 @@ export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
 export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-"$pkgbase"}
 export KBUILD_BUILD_TIMESTAMP=${KBUILD_BUILD_TIMESTAMP:-$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})}
 
-_fedora_patch_in_skip_list() {
-  for p in "${_fedora_kernel_patch_skip_list[@]}"; do [[ "$1" == "$p" ]] && return 0; done
-  return 1
-}
-
 # shellcheck disable=SC2154,SC2155
 prepare() {
   cd "linux-${_major}"
@@ -275,57 +224,6 @@ prepare() {
     msg2 "Applying patch $src..."
     patch -Np1 < "../$src"
   done
-
-  # XXX: temporarily skip all of this and just apply the 5 patches directly
-  ## ASUS-linux patches
-  ## --
-
-  ## these patches are a moving target and we're not guaranteed that Luke is building a fedora kernel for our kernel version yet.
-  ## we'll make a best effort at patching against our kernel sources and use _fkernel_skip_patches=() list above to filter any
-  ## patches that have already been upstreamed or are broken for us
-
-  #local p_err=()
-  #local p_meh=()
-  #local _fkernel_path="../fedora-kernel-${_fedora_kernel_commit_id}"
-  #msg2 "Applying asus-linux patches..."
-
-  ## this will apply all enabled patches from the fedora-linux kernel.spec
-  #for src in $(awk -F ' ' '/^ApplyOptionalPatch.*(patch|diff)$/{print $2}' "${_fkernel_path}/kernel.spec"); do
-
-  #  # skip patches in our skip list
-  #  _fedora_patch_in_skip_list "$src" && continue
-
-  #  # the redhat patch needs special handling
-  #  if [[ "$src" == patch*-redhat.patch ]]; then
-  #    src=${src/\%\{stableversion\}/$_major} ## fixup filename first
-  #    if [[ ! -v redhat_patch ]]; then
-  #      plain "Skipping optional redhat patch $src ..."
-  #      continue
-  #    fi
-  #    if [[ ! -f "${_fkernel_path}/$src" ]]; then
-  #      plain "Skipping redhat patch, no patch available for this kernel ..."
-  #      continue
-  #    fi
-  #  fi
-
-  #  echo "Applying patch $src..."
-  #  if OUT="$(patch --forward -Np1 < "${_fkernel_path}/$src")"; then
-  #    : #plain "Applied patch $src..."
-  #  else
-  #    # if you want to ignore a specific patch failure for some reason do it right here
-  #    # then 'continue'
-  #    if { echo "$OUT" | grep -qiE 'hunk(|s) FAILED'; }; then
-  #      error "Patch failed $src" && echo "$OUT" && p_err+=("$src") && _throw=y
-  #    else
-  #      warning "Duplicate patch $src" && p_meh+=("$src")
-  #    fi
-  #  fi
-  #done
-
-  #(( ${#p_err[@]} > 0 )) && error "Failed patches:" && for p in "${p_err[@]}"; do plain "$p"; done
-  #(( ${#p_meh[@]} > 0 )) && warning "Duplicate patches:" && for p in "${p_meh[@]}"; do plain "$p"; done
-  #[[ -z "$_throw" ]]  # if throw is defined we had a hard patch failure, propagate it and stop so we can address
-  ## --
 
   # Applying configuration
   cp -vf CONFIGS/xanmod/${_compiler}/config .config
