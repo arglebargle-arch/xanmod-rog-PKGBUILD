@@ -1,16 +1,16 @@
-From 49b11194882046fb8f761f82e98873c01708d386 Mon Sep 17 00:00:00 2001
+From de08016c5ef567c853dcf2ff8d9c9b352af253b6 Mon Sep 17 00:00:00 2001
 From: "Luke D. Jones" <luke@ljones.dev>
-Date: Tue, 4 May 2021 08:56:04 +1200
-Subject: [PATCH] asus-wmi: Add dgpu disable method
+Date: Sat, 17 Jul 2021 20:13:22 +1200
+Subject: [PATCH 102/103] asus-wmi: Add dgpu disable method
 
-In Windows the ASUS Armory Crate progrm can enable or disable the
+In Windows the ASUS Armory Crate program can enable or disable the
 dGPU via a WMI call. This functions much the same as various Linux
 methods in software where the dGPU is removed from the device tree.
 
-However the WMI call saves the state of dGPU enabled or not and this
-then changes the dGPU visibility in Linux with no way for Linux
-users to re-enable it. We expose the WMI method so users can see
-and change the dGPU ACPI state.
+However the WMI call saves the state of dGPU (enabled or not) and
+this then changes the dGPU visibility in Linux with no way for
+Linux users to re-enable it. We expose the WMI method so users can
+see and change the dGPU ACPI state.
 
 Signed-off-by: Luke D. Jones <luke@ljones.dev>
 ---
@@ -19,20 +19,20 @@ Signed-off-by: Luke D. Jones <luke@ljones.dev>
  2 files changed, 102 insertions(+)
 
 diff --git a/drivers/platform/x86/asus-wmi.c b/drivers/platform/x86/asus-wmi.c
-index ebbf9b37087d..8c1cd42d4d54 100644
+index cd881443bc2f..02762a60d27a 100644
 --- a/drivers/platform/x86/asus-wmi.c
 +++ b/drivers/platform/x86/asus-wmi.c
-@@ -207,6 +207,9 @@ struct asus_wmi {
+@@ -210,6 +210,9 @@ struct asus_wmi {
  	u8 fan_boost_mode_mask;
  	u8 fan_boost_mode;
  
 +	bool dgpu_disable_available;
-+	u8 dgpu_disable_mode;
++	bool dgpu_disable;
 +
  	bool throttle_thermal_policy_available;
  	u8 throttle_thermal_policy_mode;
  
-@@ -424,6 +427,94 @@ static void lid_flip_tablet_mode_get_state(struct asus_wmi *asus)
+@@ -427,6 +430,94 @@ static void lid_flip_tablet_mode_get_state(struct asus_wmi *asus)
  	}
  }
  
@@ -44,18 +44,17 @@ index ebbf9b37087d..8c1cd42d4d54 100644
 +
 +	asus->dgpu_disable_available = false;
 +
-+	err = asus_wmi_get_devstate(asus,
-+				    ASUS_WMI_DEVID_DGPU,
-+				    &result);
++	err = asus_wmi_get_devstate(asus, ASUS_WMI_DEVID_DGPU, &result);
 +	if (err) {
 +		if (err == -ENODEV)
 +			return 0;
 +		return err;
 +	}
 +
-+	if (result & ASUS_WMI_DSTS_PRESENCE_BIT)
++	if (result & ASUS_WMI_DSTS_PRESENCE_BIT) {
 +		asus->dgpu_disable_available = true;
-+		asus->dgpu_disable_mode = result & ASUS_WMI_DSTS_STATUS_BIT;
++		asus->dgpu_disable = result & ASUS_WMI_DSTS_STATUS_BIT;
++	}
 +
 +	return 0;
 +}
@@ -66,13 +65,9 @@ index ebbf9b37087d..8c1cd42d4d54 100644
 +	u8 value;
 +	u32 retval;
 +
-+	value = asus->dgpu_disable_mode;
++	value = asus->dgpu_disable;
 +
-+	err = asus_wmi_set_devstate(ASUS_WMI_DEVID_DGPU,
-+				    value, &retval);
-+
-+	sysfs_notify(&asus->platform_device->dev.kobj, NULL,
-+			"dgpu_disable");
++	err = asus_wmi_set_devstate(ASUS_WMI_DEVID_DGPU, value, &retval);
 +
 +	if (err) {
 +		pr_warn("Failed to set dgpu disable: %d\n", err);
@@ -80,10 +75,11 @@ index ebbf9b37087d..8c1cd42d4d54 100644
 +	}
 +
 +	if (retval > 1 || retval < 0) {
-+		pr_warn("Failed to set dgpu disable (retval): 0x%x\n",
-+			retval);
++		pr_warn("Failed to set dgpu disable (retval): 0x%x\n", retval);
 +		return -EIO;
 +	}
++
++	sysfs_notify(&asus->platform_device->dev.kobj, NULL, "dgpu_disable");
 +
 +	return 0;
 +}
@@ -92,9 +88,9 @@ index ebbf9b37087d..8c1cd42d4d54 100644
 +				   struct device_attribute *attr, char *buf)
 +{
 +	struct asus_wmi *asus = dev_get_drvdata(dev);
-+	u8 mode = asus->dgpu_disable_mode;
++	bool mode = asus->dgpu_disable;
 +
-+	return scnprintf(buf, PAGE_SIZE, "%d\n", mode);
++	return sysfs_emit(buf, "%d\n", mode);
 +}
 +
 +static ssize_t dgpu_disable_store(struct device *dev,
@@ -102,22 +98,26 @@ index ebbf9b37087d..8c1cd42d4d54 100644
 +				    const char *buf, size_t count)
 +{
 +	int result;
-+	u8 disable;
++	bool disable;
 +	struct asus_wmi *asus = dev_get_drvdata(dev);
 +
-+	result = kstrtou8(buf, 10, &disable);
-+	if (result < 0)
++	result = kstrtobool(buf, &disable);
++	if (result == -EINVAL)
 +		return result;
 +
-+	if (disable > 1 || disable < 0)
-+		return -EINVAL;
-+
-+	asus->dgpu_disable_mode = disable;
++	asus->dgpu_disable = disable;
 +	/*
-+	 * The ACPI call used does not save the mode unless the call is run twice
++	 * The ACPI call used does not save the mode unless the call is run twice.
++	 * Once to disable, then once to check status and save - this is two code
++	 * paths in the method in the ACPI dumps.
 +	*/
-+	dgpu_disable_write(asus);
-+	dgpu_disable_write(asus);
++	result = dgpu_disable_write(asus);
++	if (result != 0)
++		return result;
++
++	result = dgpu_disable_write(asus);
++	if (result != 0)
++		return result;
 +
 +	return count;
 +}
@@ -178,5 +178,5 @@ index 428aea701c7b..a528f9d0e4b7 100644
  #define ASUS_WMI_DSTS_STATUS_BIT	0x00000001
  #define ASUS_WMI_DSTS_UNKNOWN_BIT	0x00000002
 -- 
-2.31.1
+2.32.0
 

@@ -1,7 +1,7 @@
-From 0237abb7cbcdd324a1f347da2d6556051bc7bac2 Mon Sep 17 00:00:00 2001
+From 49872973ce89a5778cd57094eb2eebba530b1244 Mon Sep 17 00:00:00 2001
 From: "Luke D. Jones" <luke@ljones.dev>
-Date: Sun, 13 Jun 2021 10:24:27 +1200
-Subject: [PATCH] asus-wmi: Add egpu enable method
+Date: Sat, 17 Jul 2021 20:13:23 +1200
+Subject: [PATCH 103/103] asus-wmi: Add egpu enable method
 
 The X13 Flow laptops can utilise an external GPU. This requires
 toggling an ACPI method which will first disable the internal
@@ -9,25 +9,25 @@ dGPU, and then enable the eGPU.
 
 Signed-off-by: Luke D. Jones <luke@ljones.dev>
 ---
- drivers/platform/x86/asus-wmi.c            | 97 ++++++++++++++++++++++
+ drivers/platform/x86/asus-wmi.c            | 91 ++++++++++++++++++++++
  include/linux/platform_data/x86/asus-wmi.h |  3 +
- 2 files changed, 100 insertions(+)
+ 2 files changed, 94 insertions(+)
 
 diff --git a/drivers/platform/x86/asus-wmi.c b/drivers/platform/x86/asus-wmi.c
-index 44a62fd8aa3c..f2181860718f 100644
+index 02762a60d27a..ee5d8656641e 100644
 --- a/drivers/platform/x86/asus-wmi.c
 +++ b/drivers/platform/x86/asus-wmi.c
-@@ -207,6 +207,9 @@ struct asus_wmi {
+@@ -210,6 +210,9 @@ struct asus_wmi {
  	u8 fan_boost_mode_mask;
  	u8 fan_boost_mode;
  
 +	bool egpu_enable_available; // 0 = enable
-+	u8 egpu_enable_mode;
++	bool egpu_enable;
 +
  	bool dgpu_disable_available;
- 	u8 dgpu_disable_mode;
+ 	bool dgpu_disable;
  
-@@ -427,6 +430,92 @@ static void lid_flip_tablet_mode_get_state(struct asus_wmi *asus)
+@@ -430,6 +433,86 @@ static void lid_flip_tablet_mode_get_state(struct asus_wmi *asus)
  	}
  }
  
@@ -39,9 +39,7 @@ index 44a62fd8aa3c..f2181860718f 100644
 +
 +	asus->egpu_enable_available = false;
 +
-+	err = asus_wmi_get_devstate(asus,
-+				    ASUS_WMI_DEVID_EGPU,
-+				    &result);
++	err = asus_wmi_get_devstate(asus, ASUS_WMI_DEVID_EGPU, &result);
 +	if (err) {
 +		if (err == -ENODEV)
 +			return 0;
@@ -50,7 +48,7 @@ index 44a62fd8aa3c..f2181860718f 100644
 +
 +	if (result & ASUS_WMI_DSTS_PRESENCE_BIT) {
 +		asus->egpu_enable_available = true;
-+		asus->egpu_enable_mode = !(result & ASUS_WMI_DSTS_STATUS_BIT);
++		asus->egpu_enable = result & ASUS_WMI_DSTS_STATUS_BIT;
 +	}
 +
 +	return 0;
@@ -62,13 +60,9 @@ index 44a62fd8aa3c..f2181860718f 100644
 +	u8 value;
 +	u32 retval;
 +
-+	value = asus->egpu_enable_mode;
++	value = asus->egpu_enable;
 +
-+	err = asus_wmi_set_devstate(ASUS_WMI_DEVID_EGPU,
-+				    value, &retval);
-+
-+	sysfs_notify(&asus->platform_device->dev.kobj, NULL,
-+			"egpu_enable");
++	err = asus_wmi_set_devstate(ASUS_WMI_DEVID_EGPU, value, &retval);
 +
 +	if (err) {
 +		pr_warn("Failed to set egpu disable: %d\n", err);
@@ -76,10 +70,11 @@ index 44a62fd8aa3c..f2181860718f 100644
 +	}
 +
 +	if (retval > 1 || retval < 0) {
-+		pr_warn("Failed to set egpu disable (retval): 0x%x\n",
-+			retval);
++		pr_warn("Failed to set egpu disable (retval): 0x%x\n", retval);
 +		return -EIO;
 +	}
++
++	sysfs_notify(&asus->platform_device->dev.kobj, NULL, "egpu_enable");
 +
 +	return 0;
 +}
@@ -88,9 +83,9 @@ index 44a62fd8aa3c..f2181860718f 100644
 +				   struct device_attribute *attr, char *buf)
 +{
 +	struct asus_wmi *asus = dev_get_drvdata(dev);
-+	u8 mode = asus->egpu_enable_mode;
++	bool mode = asus->egpu_enable;
 +
-+	return scnprintf(buf, PAGE_SIZE, "%d\n", mode);
++	return sysfs_emit(buf, "%d\n", mode);
 +}
 +
 +static ssize_t egpu_enable_store(struct device *dev,
@@ -98,19 +93,18 @@ index 44a62fd8aa3c..f2181860718f 100644
 +				    const char *buf, size_t count)
 +{
 +	int result;
-+	u8 disable;
++	bool disable;
 +	struct asus_wmi *asus = dev_get_drvdata(dev);
 +
-+	result = kstrtou8(buf, 10, &disable);
-+	if (result < 0)
++	result = kstrtobool(buf, &disable);
++	if (result == -EINVAL)
 +		return result;
 +
-+	if (disable > 1 || disable < 0)
-+		return -EINVAL;
++	asus->egpu_enable = disable;
 +
-+	asus->egpu_enable_mode = !disable;
-+
-+	egpu_enable_write(asus);
++	result = egpu_enable_write(asus);
++	if (result != 0)
++		return result;
 +
 +	return count;
 +}
@@ -120,7 +114,7 @@ index 44a62fd8aa3c..f2181860718f 100644
  /* dGPU ********************************************************************/
  static int dgpu_disable_check_present(struct asus_wmi *asus)
  {
-@@ -2524,6 +2613,7 @@ static struct attribute *platform_attributes[] = {
+@@ -2502,6 +2585,7 @@ static struct attribute *platform_attributes[] = {
  	&dev_attr_camera.attr,
  	&dev_attr_cardr.attr,
  	&dev_attr_touchpad.attr,
@@ -128,7 +122,7 @@ index 44a62fd8aa3c..f2181860718f 100644
  	&dev_attr_dgpu_disable.attr,
  	&dev_attr_lid_resume.attr,
  	&dev_attr_als_enable.attr,
-@@ -2551,6 +2641,8 @@ static umode_t asus_sysfs_is_visible(struct kobject *kobj,
+@@ -2529,6 +2613,8 @@ static umode_t asus_sysfs_is_visible(struct kobject *kobj,
  		devid = ASUS_WMI_DEVID_LID_RESUME;
  	else if (attr == &dev_attr_als_enable.attr)
  		devid = ASUS_WMI_DEVID_ALS_ENABLE;
@@ -137,7 +131,7 @@ index 44a62fd8aa3c..f2181860718f 100644
  	else if (attr == &dev_attr_dgpu_disable.attr)
  		ok = asus->dgpu_disable_available;
  	else if (attr == &dev_attr_fan_boost_mode.attr)
-@@ -2814,6 +2906,10 @@ static int asus_wmi_add(struct platform_device *pdev)
+@@ -2792,6 +2878,10 @@ static int asus_wmi_add(struct platform_device *pdev)
  	if (err)
  		goto fail_platform;
  
@@ -148,7 +142,7 @@ index 44a62fd8aa3c..f2181860718f 100644
  	err = dgpu_disable_check_present(asus);
  	if (err)
  		goto fail_dgpu_disable;
-@@ -2920,6 +3016,7 @@ static int asus_wmi_add(struct platform_device *pdev)
+@@ -2896,6 +2986,7 @@ static int asus_wmi_add(struct platform_device *pdev)
  fail_sysfs:
  fail_throttle_thermal_policy:
  fail_fan_boost_mode:
@@ -171,5 +165,5 @@ index a528f9d0e4b7..17dc5cb6f3f2 100644
  #define ASUS_WMI_DEVID_DGPU		0x00090020
  
 -- 
-2.31.1
+2.32.0
 
