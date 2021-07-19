@@ -79,10 +79,10 @@ _makenconfig=
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod-rog
-xanmod=5.13.2-xanmod1
+xanmod=5.13.3-xanmod1
 pkgver=${xanmod//-/.}
-#pkgver=5.13.1.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
-pkgrel=3
+#pkgver=5.13.3.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
+pkgrel=1
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -119,7 +119,7 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "8002-hwmon-k10temp-support-Zen3-APUs.patch"
 
         # mediatek mt7921 bt/wifi patches
-        "8010-Bluetooth-btusb-Fixed-too-many-in-token-issue-for-Me.patch"
+        #"8010-Bluetooth-btusb-Fixed-too-many-in-token-issue-for-Me.patch"
         "8011-Bluetooth-btusb-Add-support-for-Lite-On-Mediatek-Chi.patch"
         "8012-mt76-mt7921-continue-to-probe-driver-when-fw-already.patch"
         "8013-mt76-mt7921-Fix-out-of-order-process-by-invalid-even.patch"
@@ -127,6 +127,7 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
 
         # squashed s0ix enablement through 2021-07-14; all current patches
         "9001-v5.13.2-s0ix-patch-2021-07-14.patch"
+        "platform-x86-amd-pmc-Fix-missing-unlock-on-error.patch"
         )
 validpgpkeys=(
     'ABAF11C65A2970B130ABE3C479BE3E4300411886' # Linux Torvalds
@@ -163,7 +164,7 @@ fi
 
 sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'SKIP'
-            '946fdfeeddfad6591cee21471dced2cddd06cf9cf249e549319885cd8d2b4aa9'
+            '3dea294fedeef04959ba68ce9840a903aba7470ad99644be1233bb344eb7153f'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             '1ab75535772c63567384eb2ac74753e4d5db2f3317cb265aedf6151b9f18c6c2'
             '8cc771f37ee08ad5796e6db64f180c1415a5f6e03eb3045272dade30ca754b53'
@@ -172,12 +173,12 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             '32bbcde83406810f41c9ed61206a7596eb43707a912ec9d870fd94f160d247c1'
             'ed28a8051514f8c228717a5cdd13191b1c58181e0228d972fbe2af5ee1d013d7'
             'de8c9747637768c4356c06aa65c3f157c526aa420f21fdd5edd0ed06f720a62e'
-            'd5ad7314aa01bcfd77353ae04059c0a7850764195db93e120dad31d1a949ade4'
             '67ebf477b2ecbf367ea3fee1568eeb3de59de7185ef5ed66b81ae73108f6693c'
             '13f1c3a15fb1418b4aee0594e1f7871151303ca4f7eaab3c6f2ea21af965d85b'
             '2163cb2e394a013042a40cd3b00dae788603284b20d71e262995366c5534e480'
             'a01cf700d79b983807e2285be1b30df6e02db6adfd9c9027fe2dfa8ca5a74bc9'
             'e5d1bfe9d309f292d41bb06b98b94df168e0004f6e8ace45b310c6829a803d03'
+            '9fb117cd075728822be3f7b95f386ec17a5e5a0afc4d9d3ac58bfa4c1cde9928'
             'd38e2ee1f43bd6ca18845c80f5e68c0e597db01780004ff47607dd605e9aa086')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
