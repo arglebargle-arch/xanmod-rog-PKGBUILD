@@ -79,7 +79,7 @@ _makenconfig=
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod-rog
-xanmod=5.13.3-xanmod1
+xanmod=5.13.4-xanmod1
 pkgver=${xanmod//-/.}
 #pkgver=5.13.3.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
 pkgrel=1
@@ -125,9 +125,8 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "8013-mt76-mt7921-Fix-out-of-order-process-by-invalid-even.patch"
         "8014-mt76-mt7921-Add-mt7922-support.patch"
 
-        # squashed s0ix enablement through 2021-07-14; all current patches
-        "9001-v5.13.2-s0ix-patch-2021-07-14.patch"
-        "platform-x86-amd-pmc-Fix-missing-unlock-on-error.patch"
+        # squashed s0ix enablement through 2021-07-20; all current patches
+        "9001-v5.13.4-s0ix-patch-2021-07-20.patch"
         )
 validpgpkeys=(
     'ABAF11C65A2970B130ABE3C479BE3E4300411886' # Linux Torvalds
@@ -164,7 +163,7 @@ fi
 
 sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'SKIP'
-            '3dea294fedeef04959ba68ce9840a903aba7470ad99644be1233bb344eb7153f'
+            '713a7b5b781d115d6579498fd9b3026cd128ba171272a23cece75b0cc0a05988'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             '1ab75535772c63567384eb2ac74753e4d5db2f3317cb265aedf6151b9f18c6c2'
             '8cc771f37ee08ad5796e6db64f180c1415a5f6e03eb3045272dade30ca754b53'
@@ -177,8 +176,7 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             '13f1c3a15fb1418b4aee0594e1f7871151303ca4f7eaab3c6f2ea21af965d85b'
             '2163cb2e394a013042a40cd3b00dae788603284b20d71e262995366c5534e480'
             'a01cf700d79b983807e2285be1b30df6e02db6adfd9c9027fe2dfa8ca5a74bc9'
-            'e5d1bfe9d309f292d41bb06b98b94df168e0004f6e8ace45b310c6829a803d03'
-            '9fb117cd075728822be3f7b95f386ec17a5e5a0afc4d9d3ac58bfa4c1cde9928'
+            '5cdcb264781b902bdd215c5380722be8246c22a645f8da0fe9c488ebb60ae2de'
             'd38e2ee1f43bd6ca18845c80f5e68c0e597db01780004ff47607dd605e9aa086')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
