@@ -31,3 +31,6 @@ scripts/config --disable CONFIG_FW_LOADER_USER_HELPER
 # enable zram memory tracking
 scripts/config --enable CONFIG_ZRAM_MEMORY_TRACKING
 
+# enable another ACPI debugging module; disable thinkpad code
+scripts/config --module CONFIG_ACPI_APEI_ERST_DEBUG
+scripts/config --disable CONFIG_THINKPAD_ACPI_DEBUGFACILITIES
