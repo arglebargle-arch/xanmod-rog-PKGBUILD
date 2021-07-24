@@ -1,7 +1,7 @@
 pkgbase = linux-xanmod-rog
 	pkgdesc = Linux Xanmod
 	pkgver = 5.13.4.xanmod1
-	pkgrel = 1
+	pkgrel = 2
 	url = http://www.xanmod.org/
 	arch = x86_64
 	license = GPL2
@@ -29,6 +29,7 @@ pkgbase = linux-xanmod-rog
 	source = 8013-mt76-mt7921-Fix-out-of-order-process-by-invalid-even.patch
 	source = 8014-mt76-mt7921-Add-mt7922-support.patch
 	source = 9001-v5.13.4-s0ix-patch-2021-07-20.patch
+	source = 9100-amd-pmc-smu-register-dump-for-diagnostics.patch
 	source = uksm-5.13.patch::https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-5.13.patch
 	validpgpkeys = ABAF11C65A2970B130ABE3C479BE3E4300411886
 	validpgpkeys = 647F28654894E3BD457199BE38DBBDC86092693E
@@ -48,6 +49,7 @@ pkgbase = linux-xanmod-rog
 	sha256sums = 2163cb2e394a013042a40cd3b00dae788603284b20d71e262995366c5534e480
 	sha256sums = a01cf700d79b983807e2285be1b30df6e02db6adfd9c9027fe2dfa8ca5a74bc9
 	sha256sums = 5cdcb264781b902bdd215c5380722be8246c22a645f8da0fe9c488ebb60ae2de
+	sha256sums = 6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b
 	sha256sums = d38e2ee1f43bd6ca18845c80f5e68c0e597db01780004ff47607dd605e9aa086
 
 pkgname = linux-xanmod-rog

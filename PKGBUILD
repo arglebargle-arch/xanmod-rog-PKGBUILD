@@ -82,7 +82,7 @@ pkgbase=linux-xanmod-rog
 xanmod=5.13.4-xanmod1
 pkgver=${xanmod//-/.}
 #pkgver=5.13.3.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
-pkgrel=1
+pkgrel=2
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -127,6 +127,8 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
 
         # squashed s0ix enablement through 2021-07-20; all current patches
         "9001-v5.13.4-s0ix-patch-2021-07-20.patch"
+        # a small amd_pmc SMU debugging patch per Mario Limonciello @AMD
+        "9100-amd-pmc-smu-register-dump-for-diagnostics.patch"
         )
 validpgpkeys=(
     'ABAF11C65A2970B130ABE3C479BE3E4300411886' # Linux Torvalds
@@ -177,6 +179,7 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             '2163cb2e394a013042a40cd3b00dae788603284b20d71e262995366c5534e480'
             'a01cf700d79b983807e2285be1b30df6e02db6adfd9c9027fe2dfa8ca5a74bc9'
             '5cdcb264781b902bdd215c5380722be8246c22a645f8da0fe9c488ebb60ae2de'
+            '6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b'
             'd38e2ee1f43bd6ca18845c80f5e68c0e597db01780004ff47607dd605e9aa086')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
