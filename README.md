@@ -1,12 +1,14 @@
 
 Arch linux `linux-xanmod` derived kernel with hardware enablement patches for ASUS ROG laptops and ACPI backports from mainline enabling s0ix power states
 
+**Suspend is currently unstable, this is a known upstream issue that I'm working with an AMD developer to resolve. All available patches to help stabilize suspend are currently in this kernel, we're waiting on upstream to finish writing patches to fix this. It mostly works but for now expect resume to crash periodically.**
+
+Up to date information on suspend can be found in the '#suspend-issues' channel on the asus-linux discord: https://discord.gg/qUUm9cWW
+
 More information about s0ix enablement status can be found here:
-  - https://gitlab.freedesktop.org/drm/amd/-/issues/1230
   - https://gitlab.freedesktop.org/drm/amd/-/issues/1629
   - https://gitlab.freedesktop.org/drm/amd/-/issues/1652
-
-If you're using a ROG laptop join us on the asus-linux discord in the 'Suspend Issues' channel for up to date info: https://discord.gg/qUUm9cWW
+  - https://gitlab.freedesktop.org/drm/amd/-/issues/1230
 
 Notes:
 
