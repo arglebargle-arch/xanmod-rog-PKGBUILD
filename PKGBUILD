@@ -79,10 +79,10 @@ _makenconfig=
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod-rog
-xanmod=5.13.4-xanmod1
+xanmod=5.13.5-xanmod1
 pkgver=${xanmod//-/.}
 #pkgver=5.13.3.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
-pkgrel=2
+pkgrel=1
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -121,7 +121,7 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         # mediatek mt7921 bt/wifi patches
         #"8010-Bluetooth-btusb-Fixed-too-many-in-token-issue-for-Me.patch"
         "8011-Bluetooth-btusb-Add-support-for-Lite-On-Mediatek-Chi.patch"
-        "8012-mt76-mt7921-continue-to-probe-driver-when-fw-already.patch"
+        #"8012-mt76-mt7921-continue-to-probe-driver-when-fw-already.patch"
         "8013-mt76-mt7921-Fix-out-of-order-process-by-invalid-even.patch"
         "8014-mt76-mt7921-Add-mt7922-support.patch"
 
@@ -165,7 +165,7 @@ fi
 
 sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'SKIP'
-            '713a7b5b781d115d6579498fd9b3026cd128ba171272a23cece75b0cc0a05988'
+            'b269302642a1771a598c4fbca21be20b5c3a43c2370245b3ca9037af614a3a96'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             '1ab75535772c63567384eb2ac74753e4d5db2f3317cb265aedf6151b9f18c6c2'
             '8cc771f37ee08ad5796e6db64f180c1415a5f6e03eb3045272dade30ca754b53'
@@ -175,7 +175,6 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'ed28a8051514f8c228717a5cdd13191b1c58181e0228d972fbe2af5ee1d013d7'
             'de8c9747637768c4356c06aa65c3f157c526aa420f21fdd5edd0ed06f720a62e'
             '67ebf477b2ecbf367ea3fee1568eeb3de59de7185ef5ed66b81ae73108f6693c'
-            '13f1c3a15fb1418b4aee0594e1f7871151303ca4f7eaab3c6f2ea21af965d85b'
             '2163cb2e394a013042a40cd3b00dae788603284b20d71e262995366c5534e480'
             'a01cf700d79b983807e2285be1b30df6e02db6adfd9c9027fe2dfa8ca5a74bc9'
             '5cdcb264781b902bdd215c5380722be8246c22a645f8da0fe9c488ebb60ae2de'
