@@ -82,7 +82,7 @@ pkgbase=linux-xanmod-rog
 xanmod=5.13.5-xanmod1
 pkgver=${xanmod//-/.}
 #pkgver=5.13.3.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
-pkgrel=1
+pkgrel=2
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
