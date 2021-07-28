@@ -18,15 +18,6 @@ if [[ -v no_uksm ]]; then
   no_uksm=y
 fi
 
-## Apply Redhat kernel patch
-##
-## Enable this to apply redhat/fedora kernel patch from asus-linux fedora kernel sources
-## This is completely optional but mostly plays nicely in my experience.
-##
-#if [[ -v redhat_patch ]]; then
-#  redhat_patch=y
-#fi
-
 ##
 ## The following variables can be customized at build time. Use env or export to change at your wish
 ##
