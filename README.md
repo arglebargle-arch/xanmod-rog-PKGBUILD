@@ -18,7 +18,7 @@ Notes:
     * `alias gonormal='set -x; asusctl profile normal -t true -f normal; sudo cpupower frequency-set -g schedutil >&/dev/null; { set +x; } >&/dev/null'`
     * `alias gosilent='set -x; asusctl profile silent -t false -f silent; sudo cpupower frequency-set -g schedutil >&/dev/null; { set +x; } >&/dev/null'`
 
-  - UKSM can be disabled by building with `no_uksm=y makepkg ...` to reduce CPU usage by a small amount. I suggest leaving it enabled, when it works well it does a great job of deduping in-use memory.
+  - UKSM can be enabled by building with `use_uksm=y makepkg ...` to perform fast deduplication on in-use memory.
 
   - Use the included `myconfig` script fragment to make minor changes to the kernel configuration during build.
 

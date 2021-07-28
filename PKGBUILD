@@ -9,13 +9,15 @@
 # shellcheck disable=SC2034,SC2164
 
 ##
-## Ultra Kernel Samepage Merging, disabling this will increase memory consumption
+## Xanmod-ROG options:
+##
+## Ultra Kernel Samepage Merging, enable this to perform fast in-use memory deduplication
 ## See: https://github.com/dolohow/uksm
 ##
-##  build with 'env no_uksm=foo makepkg ...' to skip UKSM patch
+##  build with 'env use_uksm=foo makepkg ...' to include UKSM patch
 ##
-if [[ -v no_uksm ]]; then
-  no_uksm=y
+if [[ -v use_uksm ]]; then
+  use_uksm=y
 fi
 
 ##
@@ -137,7 +139,7 @@ validpgpkeys=(
 # apply UKSM patch
 #
 _uksm_patch="https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-${_major}.patch"
-[[ -v no_uksm ]] ||
+[[ -v use_uksm ]] &&
   source+=("${_uksm_patch##*/}::${_uksm_patch}")
 
 # Monkey patch: support stacking incremental point releases from kernel.org when we're building ahead of Xanmod
