@@ -72,7 +72,7 @@ _makenconfig=
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod-rog
-xanmod=5.13.6-xanmod1
+xanmod=5.13.6-xanmod2
 pkgver=${xanmod//-/.}
 #pkgver=5.13.3.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
 pkgrel=1
@@ -82,7 +82,7 @@ url="http://www.xanmod.org/"
 arch=(x86_64)
 license=(GPL2)
 makedepends=(
-  xmlto kmod inetutils bc libelf cpio
+  bc kmod libelf pahole cpio perl tar xz zstd
   "gcc>=11.0"
 )
 if [ "${_compiler}" = "clang" ]; then
@@ -158,7 +158,7 @@ fi
 
 sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'SKIP'
-            'f8e75ca6f12affd15ec59cb65ef85ef78b9aabe371b39d79994c85471c5d0498'
+            '77f6fb980e779037841b7bca3f0bc4544d89c285f62884ec72c7ac1c79586ba2'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             '1ab75535772c63567384eb2ac74753e4d5db2f3317cb265aedf6151b9f18c6c2'
             '8cc771f37ee08ad5796e6db64f180c1415a5f6e03eb3045272dade30ca754b53'
