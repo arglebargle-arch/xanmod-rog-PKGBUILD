@@ -72,10 +72,10 @@ _makenconfig=
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod-rog
-xanmod=5.13.5-xanmod1
+xanmod=5.13.6-xanmod1
 pkgver=${xanmod//-/.}
 #pkgver=5.13.3.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
-pkgrel=2
+pkgrel=1
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -158,7 +158,7 @@ fi
 
 sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'SKIP'
-            'b269302642a1771a598c4fbca21be20b5c3a43c2370245b3ca9037af614a3a96'
+            'f8e75ca6f12affd15ec59cb65ef85ef78b9aabe371b39d79994c85471c5d0498'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             '1ab75535772c63567384eb2ac74753e4d5db2f3317cb265aedf6151b9f18c6c2'
             '8cc771f37ee08ad5796e6db64f180c1415a5f6e03eb3045272dade30ca754b53'
@@ -171,8 +171,7 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             '2163cb2e394a013042a40cd3b00dae788603284b20d71e262995366c5534e480'
             'a01cf700d79b983807e2285be1b30df6e02db6adfd9c9027fe2dfa8ca5a74bc9'
             '5cdcb264781b902bdd215c5380722be8246c22a645f8da0fe9c488ebb60ae2de'
-            '6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b'
-            'd38e2ee1f43bd6ca18845c80f5e68c0e597db01780004ff47607dd605e9aa086')
+            '6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
 export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-"$pkgbase"}

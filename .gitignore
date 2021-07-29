@@ -1,10 +1,9 @@
-*.zst
-*.zst.sig
-*.lz
-*.lz.sig
-src-cache/*
-src/*
-pkg/*
-patches/*
+src-cache/
+src-cache
+src/
+pkg/
+patches/
 buildlog*
 *log
+*.pkg.tar.*
+*.sig
