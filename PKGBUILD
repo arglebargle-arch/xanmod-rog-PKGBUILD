@@ -193,6 +193,8 @@ prepare() {
   msg2 "Applying Xanmod patch..."
   patch -Np1 -i "../patch-${xanmod}"
 
+  # XXX: mangle Makefile versions here if needed so patches apply cleanly
+
   # Monkey patch: apply kernel.org patches when mainline is slightly ahead of Xanmod official
   if [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]]; then
     msg2 "Applying kernel.org point-release patches..."
@@ -207,15 +209,6 @@ prepare() {
     done
   fi
 
-  msg2 "Setting version..."
-  scripts/setlocalversion --save-scmversion
-  echo "-$pkgrel" > localversion.99-pkgrel
-  echo "${pkgbase#linux-xanmod}" > localversion.20-pkgname
-
-  # Monkey patch: rewrite Xanmod release to $_localversion if we're pre-releasing
-  [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]] &&
-    sed -Ei "s/xanmod[0-9]+/${_localversion}/" localversion
-
   # Archlinux patches
   local src
   for src in "${source[@]}"; do
@@ -225,6 +218,17 @@ prepare() {
     msg2 "Applying patch $src..."
     patch -Np1 < "../$src"
   done
+
+  # XXX: mangle Makefile versions if needed before calling setlocalversion
+
+  msg2 "Setting version..."
+  scripts/setlocalversion --save-scmversion
+  echo "-$pkgrel" > localversion.99-pkgrel
+  echo "${pkgbase#linux-xanmod}" > localversion.20-pkgname
+
+  # Monkey patch: rewrite Xanmod release to $_localversion (eg: xanpre0) if we're applying a point release on top of Xanmod
+  [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]] &&
+    sed -Ei "s/xanmod[0-9]+/${_localversion}/" localversion
 
   # Applying configuration
   cp -vf CONFIGS/xanmod/${_compiler}/config .config
