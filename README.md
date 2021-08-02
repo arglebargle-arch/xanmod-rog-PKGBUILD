@@ -12,11 +12,13 @@ More information about s0ix enablement status can be found here:
 
 Notes:
 
-  - Consider adding `cpufreq.default_governor=schedutil` to your boot command line for this kernel. Xanmod builds with the performance governor as the default; this is great for performance but doesn't clock down as readily. I suggest making a couple of bash aliases to make switching modes/governors easier and boost performance or save battery power as needed.
+  - Xanmod builds with the performance governor as the default; this is great for performance but doesn't clock down as readily. Since this kernel package is mainly targeted at ROG laptop users I've switched the build config to default to the schedutil governor at boot time. I strongly suggest making a couple of bash aliases to make switching modes/governors easier; this allows you to easily boost performance or conserve battery power as needed.
 
     * `alias goboost='set -x; asusctl profile boost -t true -f boost; sudo cpupower frequency-set -g performance >&/dev/null; { set +x; } >&/dev/null'`
     * `alias gonormal='set -x; asusctl profile normal -t true -f normal; sudo cpupower frequency-set -g schedutil >&/dev/null; { set +x; } >&/dev/null'`
     * `alias gosilent='set -x; asusctl profile silent -t false -f silent; sudo cpupower frequency-set -g schedutil >&/dev/null; { set +x; } >&/dev/null'`
+
+    * To switch performance profiles during a kernel build you'd run something like: `goboost; makepkg -Ccsr; gonormal`
 
   - UKSM can be enabled by building with `use_uksm=y makepkg ...` to perform fast deduplication on in-use memory.
 
