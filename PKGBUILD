@@ -72,10 +72,10 @@ _makenconfig=
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod-rog
-xanmod=5.13.8-xanmod1
+xanmod=5.13.9-xanmod1
 pkgver=${xanmod//-/.}
-#pkgver=5.13.3.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
-pkgrel=2
+#pkgver=5.13.9rc1.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
+pkgrel=1
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -148,24 +148,25 @@ _uksm_patch="https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-${_
 [[ -v use_uksm ]] &&
   source+=("${_uksm_patch##*/}::${_uksm_patch}")
 
-# Monkey patch: support stacking incremental point releases from kernel.org when we're building ahead of Xanmod
-#
-if [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]]; then
-  _patch_start=$(echo ${xanmod%-xanmod?} | cut -d'.' -f3)
-  _patch_end=$(echo ${pkgver%%\.xan*} | cut -d'.' -f3)
-  for (( _i=_patch_start; _i < _patch_end; _i++ )); do
-    if (( _i == 0 )); then
-      source+=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/patch-${_major}.$((_i +1)).xz")
-    else
-      source+=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/incr/patch-${_major}.${_i}-$((_i +1)).xz")
-    fi
-  done
-fi
+## Monkey patch: support stacking incremental point releases from kernel.org when we're building ahead of Xanmod
+##
+#if [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]]; then
+#  _patch_start=$(echo ${xanmod%-xanmod?} | cut -d'.' -f3)
+#  _patch_end=$(echo ${pkgver%%\.xan*} | cut -d'.' -f3)
+#  for (( _i=_patch_start; _i < _patch_end; _i++ )); do
+#    if (( _i == 0 )); then
+#      source+=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/patch-${_major}.$((_i +1)).xz")
+#    else
+#      source+=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/incr/patch-${_major}.${_i}-$((_i +1)).xz")
+#    fi
+#  done
+#fi
 
 sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'SKIP'
             '20d15260a099a17ba389f6167daf77f4c29a2bef870654ae251b90eede02f89c'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
+            '5f3c1c9e4efde73c78fd62314a9a566fbe1dc90b08f4451640e368ea3f37fe9c'
             '1ab75535772c63567384eb2ac74753e4d5db2f3317cb265aedf6151b9f18c6c2'
             '8cc771f37ee08ad5796e6db64f180c1415a5f6e03eb3045272dade30ca754b53'
             'f3461e7cc759fd4cef2ec5c4fa15b80fa6d37e16008db223f77ed88a65aa938e'
@@ -195,19 +196,19 @@ prepare() {
 
   # XXX: mangle Makefile versions here if needed so patches apply cleanly
 
-  # Monkey patch: apply kernel.org patches when mainline is slightly ahead of Xanmod official
-  if [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]]; then
-    msg2 "Applying kernel.org point-release patches..."
-    for (( _i=_patch_start; _i < _patch_end; _i++ )); do
-      if (( _i == 0 )); then
-        echo "Applying patch ${_major} -> ${_major}.$((_i+1))..."
-        patch -Np1 -i "../patch-${_major}.$((_i+1))"
-      else
-        echo "Applying patch ${_major}.${_i} -> ${_major}.$((_i+1))..."
-        patch -Np1 -i "../patch-${_major}.${_i}-$((_i+1))"
-      fi
-    done
-  fi
+  ## Monkey patch: apply kernel.org patches when mainline is slightly ahead of Xanmod official
+  #if [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]]; then
+  #  msg2 "Applying kernel.org point-release patches..."
+  #  for (( _i=_patch_start; _i < _patch_end; _i++ )); do
+  #    if (( _i == 0 )); then
+  #      echo "Applying patch ${_major} -> ${_major}.$((_i+1))..."
+  #      patch -Np1 -i "../patch-${_major}.$((_i+1))"
+  #    else
+  #      echo "Applying patch ${_major}.${_i} -> ${_major}.$((_i+1))..."
+  #      patch -Np1 -i "../patch-${_major}.${_i}-$((_i+1))"
+  #    fi
+  #  done
+  #fi
 
   # Archlinux patches
   local src
