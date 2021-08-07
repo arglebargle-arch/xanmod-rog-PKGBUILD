@@ -107,11 +107,11 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "0006-HID-asus-Remove-check-for-same-LED-brightness-on-set.patch"
         "0007-ALSA-hda-realtek-Fix-speakers-not-working-on-Asus-Fl.patch"
 
-        # Claymore II keyboard support
-        "HID-ASUS-Quirk-Claymore-II-keyboard.diff"
+        # ASUS Claymore II keyboard suspend fix
+        "0001-HID-asus-prevent-Claymore-sending-suspend-event.patch"
 
-        # fix Tiger Lake pinctrl so the touchpad works
-        "drivers-pinctrl-intel-fix-tigerlake-mapping.diff"
+        # fix Tiger Lake GPIO mapping so the touchpad works
+        "0001-pinctrl-tigerlake-Fix-GPIO-mapping-for-newer-version-of-software.patch"
 
         # k10temp support for Zen3 APUs
         "8001-x86-amd_nb-Add-AMD-family-19h-model-50h-PCI-ids.patch"
@@ -171,8 +171,8 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'f3461e7cc759fd4cef2ec5c4fa15b80fa6d37e16008db223f77ed88a65aa938e'
             '034743a640c26deca0a8276fa98634e7eac1328d50798a3454c4662cff97ccc9'
             '32bbcde83406810f41c9ed61206a7596eb43707a912ec9d870fd94f160d247c1'
-            'e2d312ea95d18e91801d131a2b5d03cf2175d3088cac6f84a19410078a5b6b14'
-            '1e2777841f0ed2957cb9e869a150caa014fff3c32e2744fda9c950260997dcdc'
+            '3f9f81b77d0e856e52ce490be2fa2079730e8205f96a7d2d7c8b27b3b4f71a8a'
+            'ea341c7914837b6672386bb54579672caf4b6c1ed1d07320e4fbb977f20ee033'
             'ed28a8051514f8c228717a5cdd13191b1c58181e0228d972fbe2af5ee1d013d7'
             'de8c9747637768c4356c06aa65c3f157c526aa420f21fdd5edd0ed06f720a62e'
             '67ebf477b2ecbf367ea3fee1568eeb3de59de7185ef5ed66b81ae73108f6693c'

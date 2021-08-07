@@ -1,10 +1,7 @@
-@@ -, +, @@ 
- software
----
- drivers/pinctrl/intel/pinctrl-tigerlake.c | 26 +++++++++++------------
- 1 file changed, 13 insertions(+), 13 deletions(-)
---- a/drivers/pinctrl/intel/pinctrl-tigerlake.c	
-+++ a/drivers/pinctrl/intel/pinctrl-tigerlake.c	
+diff --git a/drivers/pinctrl/intel/pinctrl-tigerlake.c b/drivers/pinctrl/intel/pinctrl-tigerlake.c
+index 3e4ef2b87526..0bcd19597e4a 100644
+--- a/drivers/pinctrl/intel/pinctrl-tigerlake.c
++++ b/drivers/pinctrl/intel/pinctrl-tigerlake.c
 @@ -701,32 +701,32 @@ static const struct pinctrl_pin_desc tglh_pins[] = {
  
  static const struct intel_padgroup tglh_community0_gpps[] = {
@@ -51,4 +48,3 @@
  	TGL_GPP(1, 282, 290, INTEL_GPIO_BASE_NOMAP),	/* JTAG */
  };
  
--- 

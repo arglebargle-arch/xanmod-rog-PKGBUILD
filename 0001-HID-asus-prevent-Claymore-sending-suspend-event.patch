@@ -1,5 +1,5 @@
 diff --git a/drivers/hid/hid-asus.c b/drivers/hid/hid-asus.c
-index fb807c8e989b..0cce348cd50d 100644
+index fca8fc78a78a..9de0129fc3d4 100644
 --- a/drivers/hid/hid-asus.c
 +++ b/drivers/hid/hid-asus.c
 @@ -82,6 +82,7 @@ MODULE_DESCRIPTION("Asus HID Keyboard and TouchPad");
@@ -16,8 +16,8 @@ index fb807c8e989b..0cce348cd50d 100644
  
 +	if (drvdata->quirks & QUIRK_ROG_CLAYMORE_II_KEYBOARD) {
 +		/*
-+		* CLAYMORE II keyboard sends this packet when it goes to sleep
-+		* this causes the whole system to go into suspend.
++		 * CLAYMORE II keyboard sends this packet when it goes to sleep
++		 * this causes the whole system to go into suspend.
 +		*/
 +
 +		if(size == 2 && data[0] == 0x02 && data[1] == 0x00) {
@@ -28,7 +28,7 @@ index fb807c8e989b..0cce348cd50d 100644
  	return 0;
  }
  
-@@ -1225,6 +1237,9 @@ static const struct hid_device_id asus_devices[] = {
+@@ -1228,6 +1240,9 @@ static const struct hid_device_id asus_devices[] = {
  	{ HID_USB_DEVICE(USB_VENDOR_ID_ASUSTEK,
  	    USB_DEVICE_ID_ASUSTEK_ROG_NKEY_KEYBOARD2),
  	  QUIRK_USE_KBD_BACKLIGHT | QUIRK_ROG_NKEY_KEYBOARD },
@@ -39,7 +39,7 @@ index fb807c8e989b..0cce348cd50d 100644
  		USB_DEVICE_ID_ASUSTEK_T100TA_KEYBOARD),
  	  QUIRK_T100_KEYBOARD | QUIRK_NO_CONSUMER_USAGES },
 diff --git a/drivers/hid/hid-ids.h b/drivers/hid/hid-ids.h
-index 63ca5959dc67..ee02e87a75b0 100644
+index b84a0a11e05b..c5d5e6f269a0 100644
 --- a/drivers/hid/hid-ids.h
 +++ b/drivers/hid/hid-ids.h
 @@ -197,6 +197,7 @@
