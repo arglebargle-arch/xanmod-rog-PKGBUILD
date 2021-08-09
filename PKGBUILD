@@ -97,8 +97,8 @@ _localversion=$(echo $pkgver | cut -d'.' -f4)
 source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
         "choose-gcc-optimization.sh"
-        # The Arch Linux git repo has changed URLs, include this temporarily
-        #"sphinx-workaround.patch"
+        # directly include this rather than fetching from the Arch kernel repo
+        "sphinx-workaround.patch"
 
         # ASUS ROG enablement
         "0101-asus-wmi-Add-panel-overdrive-functionality.patch"
@@ -134,14 +134,6 @@ validpgpkeys=(
     '647F28654894E3BD457199BE38DBBDC86092693E' # Greg Kroah-Hartman
 )
 
-# TODO: The Arch Linux git repo has moved to GitHub; find this URL at some point
-# Archlinux patches
-#_commit="be7d4710850020de55bce930c83fa80347c02fc3"
-#_patches=("sphinx-workaround.patch")
-#for _patch in "${_patches[@]}"; do
-#    source+=("${_patch}::https://git.archlinux.org/svntogit/packages.git/plain/trunk/${_patch}?h=packages/linux&id=${_commit}")
-#done
-
 # apply UKSM patch
 #
 _uksm_patch="https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-${_major}.patch"
@@ -166,6 +158,7 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'SKIP'
             '1cfdaab43d59b9237e1aa1671f35ac46127d9093f6ba6c45bf4b904618e04248'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
+            '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb'
             '1ab75535772c63567384eb2ac74753e4d5db2f3317cb265aedf6151b9f18c6c2'
             '8cc771f37ee08ad5796e6db64f180c1415a5f6e03eb3045272dade30ca754b53'
             'f3461e7cc759fd4cef2ec5c4fa15b80fa6d37e16008db223f77ed88a65aa938e'
