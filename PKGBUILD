@@ -164,9 +164,8 @@ _uksm_patch="https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-${_
 
 sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'SKIP'
-            '20d15260a099a17ba389f6167daf77f4c29a2bef870654ae251b90eede02f89c'
+            '1cfdaab43d59b9237e1aa1671f35ac46127d9093f6ba6c45bf4b904618e04248'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
-            '5f3c1c9e4efde73c78fd62314a9a566fbe1dc90b08f4451640e368ea3f37fe9c'
             '1ab75535772c63567384eb2ac74753e4d5db2f3317cb265aedf6151b9f18c6c2'
             '8cc771f37ee08ad5796e6db64f180c1415a5f6e03eb3045272dade30ca754b53'
             'f3461e7cc759fd4cef2ec5c4fa15b80fa6d37e16008db223f77ed88a65aa938e'
