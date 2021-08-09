@@ -227,8 +227,10 @@ prepare() {
   echo "${pkgbase#linux-xanmod}" > localversion.20-pkgname
 
   # Monkey patch: rewrite Xanmod release to $_localversion (eg: xanpre0) if we're applying a point release on top of Xanmod
-  [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]] &&
+  if [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]]; then
+    msg2 "(Monkey)ing with kernel, rewriting localversion xanmod to $_localversion ..."
     sed -Ei "s/xanmod[0-9]+/${_localversion}/" localversion
+  fi
 
   # Applying configuration
   cp -vf CONFIGS/xanmod/${_compiler}/config .config
