@@ -75,7 +75,7 @@ pkgbase=linux-xanmod-rog
 xanmod=5.13.9-xanmod1
 pkgver=${xanmod//-/.}
 #pkgver=5.13.9rc1.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
-pkgrel=1
+pkgrel=2
 
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -126,6 +126,7 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
 
         # squashed s0ix enablement through 2021-08-05
         "9001-v5.13.8-s0ix-patch-2021-08-05.patch"
+        "9002-ACPI-PM-s2idle-Invert-Microsoft-UUID-entry-and-exit.patch"
         # a small amd_pmc SMU debugging patch per Mario Limonciello @AMD
         "9100-amd-pmc-smu-register-dump-for-diagnostics.patch"
         )
@@ -172,6 +173,7 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             '2163cb2e394a013042a40cd3b00dae788603284b20d71e262995366c5534e480'
             'a01cf700d79b983807e2285be1b30df6e02db6adfd9c9027fe2dfa8ca5a74bc9'
             'd049328ee725216f904cbf21cbb3c1c34c2b1daadbb1dbc399cfab8db54a756b'
+            '5b7b8f450282a15d0832b171e82fc5639de1cb7aa495efe6e6c7989ebeb8ca36'
             '6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
