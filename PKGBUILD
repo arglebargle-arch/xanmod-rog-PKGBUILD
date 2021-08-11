@@ -74,9 +74,8 @@ _makenconfig=
 pkgbase=linux-xanmod-rog
 xanmod=5.13.9-xanmod1
 pkgver=${xanmod//-/.}
-#pkgver=5.13.9rc1.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
-pkgrel=2
-
+#pkgver=5.13.10rc1.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
+pkgrel=3
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
 arch=(x86_64)
@@ -97,8 +96,14 @@ _localversion=$(echo $pkgver | cut -d'.' -f4)
 source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
         "choose-gcc-optimization.sh"
-        # directly include this rather than fetching from the Arch kernel repo
         "sphinx-workaround.patch"
+
+        # patch from Chromium developers; more accurately report battery state changes
+        "acpi-battery-Always-read-fresh-battery-state-on-update.patch"
+
+        # k10temp support for Zen3 APUs
+        "8001-x86-amd_nb-Add-AMD-family-19h-model-50h-PCI-ids.patch"
+        "8002-hwmon-k10temp-support-Zen3-APUs.patch"
 
         # ASUS ROG enablement
         "0101-asus-wmi-Add-panel-overdrive-functionality.patch"
@@ -106,16 +111,8 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "0103-asus-wmi-Add-egpu-enable-method.patch"
         "0006-HID-asus-Remove-check-for-same-LED-brightness-on-set.patch"
         "0007-ALSA-hda-realtek-Fix-speakers-not-working-on-Asus-Fl.patch"
-
-        # ASUS Claymore II keyboard suspend fix
-        "0001-HID-asus-prevent-Claymore-sending-suspend-event.patch"
-
-        # fix Tiger Lake GPIO mapping so the touchpad works
-        "0001-pinctrl-tigerlake-Fix-GPIO-mapping-for-newer-version-of-software.patch"
-
-        # k10temp support for Zen3 APUs
-        "8001-x86-amd_nb-Add-AMD-family-19h-model-50h-PCI-ids.patch"
-        "8002-hwmon-k10temp-support-Zen3-APUs.patch"
+        "HID-asus-Prevent-Claymore-sending-suspend-event.patch"
+        "HID-asus-Reduce-object-size-by-consolidating-calls.patch"
 
         # mediatek mt7921 bt/wifi patches
         #"8010-Bluetooth-btusb-Fixed-too-many-in-token-issue-for-Me.patch"
@@ -129,6 +126,9 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "9002-ACPI-PM-s2idle-Invert-Microsoft-UUID-entry-and-exit.patch"
         # a small amd_pmc SMU debugging patch per Mario Limonciello @AMD
         "9100-amd-pmc-smu-register-dump-for-diagnostics.patch"
+
+        # fix Tiger Lake GPIO mapping so the touchpad works
+        "0001-pinctrl-tigerlake-Fix-GPIO-mapping-for-newer-version-of-software.patch"
         )
 validpgpkeys=(
     'ABAF11C65A2970B130ABE3C479BE3E4300411886' # Linux Torvalds
@@ -138,8 +138,7 @@ validpgpkeys=(
 # apply UKSM patch
 #
 _uksm_patch="https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-${_major}.patch"
-[[ -v use_uksm ]] &&
-  source+=("${_uksm_patch##*/}::${_uksm_patch}")
+[[ -v use_uksm ]] && source+=("${_uksm_patch##*/}::${_uksm_patch}")
 
 ## Monkey patch: support stacking incremental point releases from kernel.org when we're building ahead of Xanmod
 ##
@@ -160,21 +159,23 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             '1cfdaab43d59b9237e1aa1671f35ac46127d9093f6ba6c45bf4b904618e04248'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb'
+            'f7a4bf6293912bfc4a20743e58a5a266be8c4dbe3c1862d196d3a3b45f2f7c90'
+            'ed28a8051514f8c228717a5cdd13191b1c58181e0228d972fbe2af5ee1d013d7'
+            'de8c9747637768c4356c06aa65c3f157c526aa420f21fdd5edd0ed06f720a62e'
             '1ab75535772c63567384eb2ac74753e4d5db2f3317cb265aedf6151b9f18c6c2'
             '8cc771f37ee08ad5796e6db64f180c1415a5f6e03eb3045272dade30ca754b53'
             'f3461e7cc759fd4cef2ec5c4fa15b80fa6d37e16008db223f77ed88a65aa938e'
             '034743a640c26deca0a8276fa98634e7eac1328d50798a3454c4662cff97ccc9'
             '32bbcde83406810f41c9ed61206a7596eb43707a912ec9d870fd94f160d247c1'
-            '3f9f81b77d0e856e52ce490be2fa2079730e8205f96a7d2d7c8b27b3b4f71a8a'
-            'ea341c7914837b6672386bb54579672caf4b6c1ed1d07320e4fbb977f20ee033'
-            'ed28a8051514f8c228717a5cdd13191b1c58181e0228d972fbe2af5ee1d013d7'
-            'de8c9747637768c4356c06aa65c3f157c526aa420f21fdd5edd0ed06f720a62e'
+            'ec317cc2c2c8c1186c4f553fdd010adc013c37600a499802473653fd8e7564df'
+            '544464bf0807b324120767d55867f03014a9fda4e1804768ca341be902d7ade4'
             '67ebf477b2ecbf367ea3fee1568eeb3de59de7185ef5ed66b81ae73108f6693c'
             '2163cb2e394a013042a40cd3b00dae788603284b20d71e262995366c5534e480'
             'a01cf700d79b983807e2285be1b30df6e02db6adfd9c9027fe2dfa8ca5a74bc9'
             'd049328ee725216f904cbf21cbb3c1c34c2b1daadbb1dbc399cfab8db54a756b'
             '5b7b8f450282a15d0832b171e82fc5639de1cb7aa495efe6e6c7989ebeb8ca36'
-            '6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b')
+            '6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b'
+            'ea341c7914837b6672386bb54579672caf4b6c1ed1d07320e4fbb977f20ee033')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
 export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-"$pkgbase"}
@@ -188,7 +189,7 @@ prepare() {
   msg2 "Applying Xanmod patch..."
   patch -Np1 -i "../patch-${xanmod}"
 
-  # XXX: mangle Makefile versions here if needed so patches apply cleanly
+  # WARN: mangle Makefile versions here if needed so patches apply cleanly
 
   ## Monkey patch: apply kernel.org patches when mainline is slightly ahead of Xanmod official
   #if [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]]; then
@@ -214,7 +215,7 @@ prepare() {
     patch -Np1 < "../$src"
   done
 
-  # XXX: mangle Makefile versions if needed before calling setlocalversion
+  # WARN: mangle Makefile versions if needed before calling setlocalversion
 
   msg2 "Setting version..."
   scripts/setlocalversion --save-scmversion
@@ -285,7 +286,7 @@ prepare() {
 
   make LLVM=$_LLVM LLVM_IAS=$_LLVM olddefconfig
 
-  # let user choose microarchitecture optimization in GCC;        NOTE: run *after* make olddefconfig so any new uarch macros exist
+  # let user choose microarchitecture optimization target;          NOTE: must run *after* make olddefconfig so any new uarch macros exist
   sh "${srcdir}/choose-gcc-optimization.sh" $_microarchitecture
 
   make -s kernelrelease > version

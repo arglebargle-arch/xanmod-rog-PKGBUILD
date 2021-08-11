@@ -1,3 +1,24 @@
+From patchwork Sat Aug  7 02:49:21 2021
+From: "Luke D. Jones" <luke@ljones.dev>
+To: linux-input@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, jikos@kernel.org,
+        benjamin.tissoires@redhat.com, "Luke D. Jones" <luke@ljones.dev>
+Subject: [PATCH] HID: asus: Prevent Claymore sending suspend event
+Date: Sat,  7 Aug 2021 14:49:21 +1200
+Message-Id: <20210807024921.26479-1-luke@ljones.dev>
+List-ID: <linux-input.vger.kernel.org>
+X-Mailing-List: linux-input@vger.kernel.org
+
+Prevent the ASUS Claymore keyboard from sending a suspend event
+when the device sleeps itself. The suspend event causes a system
+suspend if uncaught.
+
+Signed off by: Luke D Jones <luke@ljones.dev>
+---
+ drivers/hid/hid-asus.c | 15 +++++++++++++++
+ drivers/hid/hid-ids.h  |  1 +
+ 2 files changed, 16 insertions(+)
+
 diff --git a/drivers/hid/hid-asus.c b/drivers/hid/hid-asus.c
 index fca8fc78a78a..9de0129fc3d4 100644
 --- a/drivers/hid/hid-asus.c
