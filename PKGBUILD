@@ -73,9 +73,9 @@ _makenconfig=
 
 pkgbase=linux-xanmod-rog
 xanmod=5.13.9-xanmod1
-pkgver=${xanmod//-/.}
-#pkgver=5.13.10rc1.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
-pkgrel=3
+#pkgver=${xanmod//-/.}
+pkgver=5.13.10.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
+pkgrel=1
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
 arch=(x86_64)
@@ -97,6 +97,10 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
         "choose-gcc-optimization.sh"
         "sphinx-workaround.patch"
+
+        # 5.13.10
+        #"0001-v5.13.10-squashed.patch"
+        "https://cdn.kernel.org/pub/linux/kernel/v5.x/incr/patch-5.13.9-10.xz"
 
         # patch from Chromium developers; more accurately report battery state changes
         "acpi-battery-Always-read-fresh-battery-state-on-update.patch"
@@ -159,6 +163,7 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             '1cfdaab43d59b9237e1aa1671f35ac46127d9093f6ba6c45bf4b904618e04248'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb'
+            'b93ed8fab36c544d1b955381e81cf0c76c7f799e08ea01d26f4c38bb970599cc'
             'f7a4bf6293912bfc4a20743e58a5a266be8c4dbe3c1862d196d3a3b45f2f7c90'
             'ed28a8051514f8c228717a5cdd13191b1c58181e0228d972fbe2af5ee1d013d7'
             'de8c9747637768c4356c06aa65c3f157c526aa420f21fdd5edd0ed06f720a62e'
@@ -192,6 +197,8 @@ prepare() {
   # WARN: mangle Makefile versions here if needed so patches apply cleanly
 
   ## Monkey patch: apply kernel.org patches when mainline is slightly ahead of Xanmod official
+  patch -Np1 -i ../patch-5.13.9-10
+
   #if [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]]; then
   #  msg2 "Applying kernel.org point-release patches..."
   #  for (( _i=_patch_start; _i < _patch_end; _i++ )); do
