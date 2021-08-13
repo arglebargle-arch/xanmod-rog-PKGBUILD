@@ -72,9 +72,9 @@ _makenconfig=
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod-rog
-xanmod=5.13.9-xanmod1
-#pkgver=${xanmod//-/.}
-pkgver=5.13.10.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
+xanmod=5.13.10-xanmod1
+pkgver=${xanmod//-/.}
+#pkgver=5.13.10.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
 pkgrel=1
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -97,10 +97,6 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
         "choose-gcc-optimization.sh"
         "sphinx-workaround.patch"
-
-        # 5.13.10
-        #"0001-v5.13.10-squashed.patch"
-        "https://cdn.kernel.org/pub/linux/kernel/v5.x/incr/patch-5.13.9-10.xz"
 
         # patch from Chromium developers; more accurately report battery state changes
         "acpi-battery-Always-read-fresh-battery-state-on-update.patch"
@@ -125,14 +121,13 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "8013-mt76-mt7921-Fix-out-of-order-process-by-invalid-even.patch"
         "8014-mt76-mt7921-Add-mt7922-support.patch"
 
-        # squashed s0ix enablement through 2021-08-05
-        "9001-v5.13.8-s0ix-patch-2021-08-05.patch"
-        "9002-ACPI-PM-s2idle-Invert-Microsoft-UUID-entry-and-exit.patch"
-        # a small amd_pmc SMU debugging patch per Mario Limonciello @AMD
-        "9100-amd-pmc-smu-register-dump-for-diagnostics.patch"
-
         # fix Tiger Lake GPIO mapping so the touchpad works
         "0001-pinctrl-tigerlake-Fix-GPIO-mapping-for-newer-version-of-software.patch"
+
+        # squashed s0ix enablement through 2021-08-12
+        "9001-v5.13.10-s0ix-patch-2021-08-12.patch"
+        # a small amd_pmc SMU debugging patch per Mario Limonciello @AMD
+        "9100-amd-pmc-smu-register-dump-for-diagnostics.patch"
         )
 validpgpkeys=(
     'ABAF11C65A2970B130ABE3C479BE3E4300411886' # Linux Torvalds
@@ -143,6 +138,9 @@ validpgpkeys=(
 #
 _uksm_patch="https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-${_major}.patch"
 [[ -v use_uksm ]] && source+=("${_uksm_patch##*/}::${_uksm_patch}")
+
+# for quick releases ahead of xanmod proper:
+#source+=("https://cdn.kernel.org/pub/linux/kernel/v5.x/incr/patch-5.13.9-10.xz")
 
 ## Monkey patch: support stacking incremental point releases from kernel.org when we're building ahead of Xanmod
 ##
@@ -160,10 +158,9 @@ _uksm_patch="https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-${_
 
 sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'SKIP'
-            '1cfdaab43d59b9237e1aa1671f35ac46127d9093f6ba6c45bf4b904618e04248'
+            '670b25ac7d41d0867339fd896fa6e8d98d2ce1f521f04072b22810bac5d87076'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb'
-            'b93ed8fab36c544d1b955381e81cf0c76c7f799e08ea01d26f4c38bb970599cc'
             'f7a4bf6293912bfc4a20743e58a5a266be8c4dbe3c1862d196d3a3b45f2f7c90'
             'ed28a8051514f8c228717a5cdd13191b1c58181e0228d972fbe2af5ee1d013d7'
             'de8c9747637768c4356c06aa65c3f157c526aa420f21fdd5edd0ed06f720a62e'
@@ -177,10 +174,9 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             '67ebf477b2ecbf367ea3fee1568eeb3de59de7185ef5ed66b81ae73108f6693c'
             '2163cb2e394a013042a40cd3b00dae788603284b20d71e262995366c5534e480'
             'a01cf700d79b983807e2285be1b30df6e02db6adfd9c9027fe2dfa8ca5a74bc9'
-            'd049328ee725216f904cbf21cbb3c1c34c2b1daadbb1dbc399cfab8db54a756b'
-            '5b7b8f450282a15d0832b171e82fc5639de1cb7aa495efe6e6c7989ebeb8ca36'
-            '6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b'
-            'ea341c7914837b6672386bb54579672caf4b6c1ed1d07320e4fbb977f20ee033')
+            'ea341c7914837b6672386bb54579672caf4b6c1ed1d07320e4fbb977f20ee033'
+            '1f073ecde33569c0e08fd384b22ffeb8545b5dd8e62106ae27cfcaa1f2588519'
+            '6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
 export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-"$pkgbase"}
@@ -197,7 +193,7 @@ prepare() {
   # WARN: mangle Makefile versions here if needed so patches apply cleanly
 
   ## Monkey patch: apply kernel.org patches when mainline is slightly ahead of Xanmod official
-  patch -Np1 -i ../patch-5.13.9-10
+  #patch -Np1 -i ../patch-5.13.9-10
 
   #if [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]]; then
   #  msg2 "Applying kernel.org point-release patches..."

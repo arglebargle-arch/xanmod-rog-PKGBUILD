@@ -1,11 +1,32 @@
-From 6c661da8add5168cee3b745594d66173189bc8a2 Mon Sep 17 00:00:00 2001
+From 09ff0149ad2364935d3dfe2c23a8cc873e24dc56 Mon Sep 17 00:00:00 2001
 From: Scott B <28817345+foundObjects@users.noreply.github.com>
-Date: Thu, 5 Aug 2021 02:39:45 -0700
-Subject: [PATCH] v5.13.8 s0ix patch 2021-08-05
+Date: Thu, 12 Aug 2021 22:50:05 -0700
+Subject: [PATCH] v5.13.10 s0ix patch 2021-08-12
 
 Squashed commit of the following:
 
-commit 8f506eaa976e148acdc856704a655659cadd279e
+commit 97a452bddcc32e5e8761807684a77ac613e8e2cc
+Author: Mario Limonciello <mario.limonciello@amd.com>
+Date:   Mon Aug 9 20:40:04 2021 -0500
+
+    ACPI: PM: s2idle: Invert Microsoft UUID entry and exit
+
+    It was reported by a user with a Dell m15 R5 (5800H) that
+    the keyboard backlight was turning on when entering suspend
+    and turning off when exiting (the opposite of how it should be).
+
+    The user bisected it back to commit 5dbf50997578 ("ACPI: PM:
+    s2idle: Add support for new Microsoft UUID").  Previous to that
+    commit the LEDs didn't turn off at all.  Confirming in the spec,
+    these were reversed when introduced.
+
+    Fix them to match the spec.
+
+    BugLink: https://gitlab.freedesktop.org/drm/amd/-/issues/1230#note_1021836
+    Fixes: 5dbf50997578 ("ACPI: PM: s2idle: Add support for new Microsoft UUID")
+    Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
+
+commit bcd87b2b708b13795d42c4df8754b7d197bda384
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Wed Jul 7 09:16:47 2021 -0500
 
@@ -19,7 +40,7 @@ Date:   Wed Jul 7 09:16:47 2021 -0500
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
     Acked-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 
-commit fd065a1e8ee224a0c550662f3812e987c6d21fa6
+commit 6be41892e0a4427866420df03e0898029caaa694
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Wed Jun 30 14:46:06 2021 -0500
 
@@ -60,7 +81,7 @@ Date:   Wed Jun 30 14:46:06 2021 -0500
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
     Acked-by: Alex Deucher <alexander.deucher@amd.com>
 
-commit cd38229157b4ed96831763fed09a2ef1d67466b2
+commit 082cbcb131d9b320d8d48e8666780dd6150c7581
 Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 Date:   Tue Jun 29 14:18:03 2021 +0530
 
@@ -72,7 +93,7 @@ Date:   Tue Jun 29 14:18:03 2021 +0530
     Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
     Reviewed-by: Hans de Goede <hdegoede@redhat.com>
 
-commit 6cbf4ca877f9a7763eb7ceaec82884f7542b8584
+commit 8f1241d8df0960b4e92d27a33b438c086b5302d9
 Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 Date:   Tue Jun 29 14:18:02 2021 +0530
 
@@ -84,7 +105,7 @@ Date:   Tue Jun 29 14:18:02 2021 +0530
     Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
     Reviewed-by: Hans de Goede <hdegoede@redhat.com>
 
-commit b08043dc2dc982e77f2a620f6ac64dcc77085796
+commit 7161022d84cf9e01c6463cb7a3352275cf5ced87
 Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 Date:   Tue Jun 29 14:18:01 2021 +0530
 
@@ -104,7 +125,7 @@ Date:   Tue Jun 29 14:18:01 2021 +0530
     Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
     Reviewed-by: Hans de Goede <hdegoede@redhat.com>
 
-commit abfb68f228563b457a9f7f2c8db8f9946f1c082d
+commit 634301f99dbfbdf9a5d6fc8571baa1bd5ff35a89
 Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 Date:   Tue Jun 29 14:18:00 2021 +0530
 
@@ -123,7 +144,7 @@ Date:   Tue Jun 29 14:18:00 2021 +0530
     Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
     Reviewed-by: Hans de Goede <hdegoede@redhat.com>
 
-commit df0f8a8e29ae2d10f34d0f1ba879cd6df0004871
+commit 52a805fdb2f8546f924b37c21feec1e4068dbf4d
 Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 Date:   Tue Jun 29 14:17:59 2021 +0530
 
@@ -135,7 +156,7 @@ Date:   Tue Jun 29 14:17:59 2021 +0530
 
     Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 
-commit 0dd5c53f0d5b1a07b0473562a6be34005eb852a2
+commit 997723fe8f8502c01dd7c6ccebbd4081338dde1e
 Author: Marcin Bachry <hegel666@gmail.com>
 Date:   Tue Mar 16 15:28:51 2021 -0400
 
@@ -146,7 +167,7 @@ Date:   Tue Mar 16 15:28:51 2021 -0400
     Signed-off-by: Marcin Bachry <hegel666@gmail.com>
     Signed-off-by: Alex Deucher <alexander.deucher@amd.com>
 
-commit df67da22f52dcde4ca3bba9609f9605565b3cfaf
+commit b49940a3d37aca5162e422152488847fc5876ecf
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Thu Jun 17 11:42:12 2021 -0500
 
@@ -162,7 +183,7 @@ Date:   Thu Jun 17 11:42:12 2021 -0500
 
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
 
-commit c53aff424e31bcb6706d6c7b8a6c06f0bca05a19
+commit abdc57db88bc2ef2b9e31da4c2b3abaf96ab0d37
 Author: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 Date:   Thu Jun 17 11:42:11 2021 -0500
 
@@ -176,7 +197,7 @@ Date:   Thu Jun 17 11:42:11 2021 -0500
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
     Signed-off-by: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 
-commit 2019bfd57b6fe44cae0d356f54b948bfd707fa97
+commit d8f8b693c04a30925e0e5784551610565164bb25
 Author: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 Date:   Thu Jun 17 11:42:10 2021 -0500
 
@@ -187,7 +208,7 @@ Date:   Thu Jun 17 11:42:10 2021 -0500
 
     Signed-off-by: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 
-commit d9c8d6d7d178fbfedddc1d1a9f27d189cb8a4df9
+commit da223ad8820f7a37b43d4bd394bd53855af3d86d
 Author: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 Date:   Thu Jun 17 11:42:09 2021 -0500
 
@@ -205,7 +226,7 @@ Date:   Thu Jun 17 11:42:09 2021 -0500
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
     Signed-off-by: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 
-commit 9f339765df127c0973766c4c282aab07999292a8
+commit 4d38f37efa22b9d194b33f35a1c09b2547a799e4
 Author: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 Date:   Thu Jun 17 11:42:08 2021 -0500
 
@@ -216,7 +237,7 @@ Date:   Thu Jun 17 11:42:08 2021 -0500
 
     Signed-off-by: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 
-commit 6e853c597c7786939ea18e03e161d4b098a5201c
+commit f2dedddda1d343ba203a77822897d9118cca7cac
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Wed Jun 9 13:40:18 2021 -0500
 
@@ -263,7 +284,7 @@ Date:   Wed Jun 9 13:40:18 2021 -0500
     Tested-by: Julian Sikorski <belegdol@gmail.com>
     Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-commit fd82413988169aa648d1507298b925f73e5b0ce4
+commit 2b52de2b6a99cdb13a6c2b836eaeb45967d636d8
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Wed Jun 9 13:40:17 2021 -0500
 
@@ -357,7 +378,7 @@ index e21611c9a170..7ac01b03ba67 100644
  				Device properties
    -------------------------------------------------------------------------- */
 diff --git a/drivers/acpi/x86/s2idle.c b/drivers/acpi/x86/s2idle.c
-index 2d7ddb8a8cb6..1c507804fb10 100644
+index 2d7ddb8a8cb6..b16c245bbe5b 100644
 --- a/drivers/acpi/x86/s2idle.c
 +++ b/drivers/acpi/x86/s2idle.c
 @@ -32,6 +32,9 @@ static const struct acpi_device_id lps0_device_ids[] = {
@@ -567,7 +588,7 @@ index 2d7ddb8a8cb6..1c507804fb10 100644
 +	if (lps0_dsm_func_mask_microsoft > 0) {
 +		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_OFF,
 +				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
-+		acpi_sleep_run_lps0_dsm(ACPI_LPS0_MS_EXIT,
++		acpi_sleep_run_lps0_dsm(ACPI_LPS0_MS_ENTRY,
 +				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
 +		acpi_sleep_run_lps0_dsm(ACPI_LPS0_ENTRY,
 +				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
@@ -596,7 +617,7 @@ index 2d7ddb8a8cb6..1c507804fb10 100644
 +	if (lps0_dsm_func_mask_microsoft > 0) {
 +		acpi_sleep_run_lps0_dsm(ACPI_LPS0_EXIT,
 +				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
-+		acpi_sleep_run_lps0_dsm(ACPI_LPS0_MS_ENTRY,
++		acpi_sleep_run_lps0_dsm(ACPI_LPS0_MS_EXIT,
 +				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
 +		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_ON,
 +				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
