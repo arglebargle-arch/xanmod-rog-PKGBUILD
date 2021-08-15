@@ -73,8 +73,8 @@ _makenconfig=
 
 pkgbase=linux-xanmod-rog
 xanmod=5.13.10-xanmod1
-pkgver=${xanmod//-/.}
-#pkgver=5.13.10.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
+#pkgver=${xanmod//-/.}
+pkgver=5.13.11.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
 pkgrel=1
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -110,7 +110,7 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "0102-asus-wmi-Add-dgpu-disable-method.patch"
         "0103-asus-wmi-Add-egpu-enable-method.patch"
         "0006-HID-asus-Remove-check-for-same-LED-brightness-on-set.patch"
-        "0007-ALSA-hda-realtek-Fix-speakers-not-working-on-Asus-Fl.patch"
+        #"0007-ALSA-hda-realtek-Fix-speakers-not-working-on-Asus-Fl.patch"
         "HID-asus-Prevent-Claymore-sending-suspend-event.patch"
         "HID-asus-Reduce-object-size-by-consolidating-calls.patch"
 
@@ -140,7 +140,7 @@ _uksm_patch="https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-${_
 [[ -v use_uksm ]] && source+=("${_uksm_patch##*/}::${_uksm_patch}")
 
 # for quick releases ahead of xanmod proper:
-#source+=("https://cdn.kernel.org/pub/linux/kernel/v5.x/incr/patch-5.13.9-10.xz")
+source+=("https://cdn.kernel.org/pub/linux/kernel/v5.x/incr/patch-5.13.10-11.xz")
 
 ## Monkey patch: support stacking incremental point releases from kernel.org when we're building ahead of Xanmod
 ##
@@ -168,7 +168,6 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             '8cc771f37ee08ad5796e6db64f180c1415a5f6e03eb3045272dade30ca754b53'
             'f3461e7cc759fd4cef2ec5c4fa15b80fa6d37e16008db223f77ed88a65aa938e'
             '034743a640c26deca0a8276fa98634e7eac1328d50798a3454c4662cff97ccc9'
-            '32bbcde83406810f41c9ed61206a7596eb43707a912ec9d870fd94f160d247c1'
             'ec317cc2c2c8c1186c4f553fdd010adc013c37600a499802473653fd8e7564df'
             '544464bf0807b324120767d55867f03014a9fda4e1804768ca341be902d7ade4'
             '67ebf477b2ecbf367ea3fee1568eeb3de59de7185ef5ed66b81ae73108f6693c'
@@ -176,7 +175,8 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'a01cf700d79b983807e2285be1b30df6e02db6adfd9c9027fe2dfa8ca5a74bc9'
             'ea341c7914837b6672386bb54579672caf4b6c1ed1d07320e4fbb977f20ee033'
             '1f073ecde33569c0e08fd384b22ffeb8545b5dd8e62106ae27cfcaa1f2588519'
-            '6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b')
+            '6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b'
+            'd0c132fabf44c477ed0c72b591c0d628ccb6c656ab32fa6d38ea1bf59e049d84')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
 export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-"$pkgbase"}
@@ -193,7 +193,7 @@ prepare() {
   # WARN: mangle Makefile versions here if needed so patches apply cleanly
 
   ## Monkey patch: apply kernel.org patches when mainline is slightly ahead of Xanmod official
-  #patch -Np1 -i ../patch-5.13.9-10
+  patch -Np1 -i ../patch-5.13.10-11
 
   #if [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]]; then
   #  msg2 "Applying kernel.org point-release patches..."
