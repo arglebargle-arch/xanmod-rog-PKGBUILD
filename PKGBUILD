@@ -121,9 +121,6 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "8013-mt76-mt7921-Fix-out-of-order-process-by-invalid-even.patch"
         "8014-mt76-mt7921-Add-mt7922-support.patch"
 
-        # fix Tiger Lake GPIO mapping so the touchpad works
-        "0001-pinctrl-tigerlake-Fix-GPIO-mapping-for-newer-version-of-software.patch"
-
         # squashed s0ix enablement through 2021-08-12
         "9001-v5.13.10-s0ix-patch-2021-08-12.patch"
         # a small amd_pmc SMU debugging patch per Mario Limonciello @AMD
@@ -168,7 +165,6 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             '67ebf477b2ecbf367ea3fee1568eeb3de59de7185ef5ed66b81ae73108f6693c'
             '2163cb2e394a013042a40cd3b00dae788603284b20d71e262995366c5534e480'
             'a01cf700d79b983807e2285be1b30df6e02db6adfd9c9027fe2dfa8ca5a74bc9'
-            'ea341c7914837b6672386bb54579672caf4b6c1ed1d07320e4fbb977f20ee033'
             '1f073ecde33569c0e08fd384b22ffeb8545b5dd8e62106ae27cfcaa1f2588519'
             '6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b')
 
