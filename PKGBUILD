@@ -75,7 +75,7 @@ pkgbase=linux-xanmod-rog
 xanmod=5.13.11-xanmod1
 pkgver=${xanmod//-/.}
 #pkgver=5.13.11.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
-pkgrel=1
+pkgrel=2
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
 arch=(x86_64)
@@ -134,11 +134,6 @@ validpgpkeys=(
     '647F28654894E3BD457199BE38DBBDC86092693E' # Greg Kroah-Hartman
 )
 
-# apply UKSM patch
-#
-_uksm_patch="https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-${_major}.patch"
-[[ -v use_uksm ]] && source+=("${_uksm_patch##*/}::${_uksm_patch}")
-
 ## for quick releases ahead of xanmod proper:
 #source+=("https://cdn.kernel.org/pub/linux/kernel/v5.x/incr/patch-5.13.10-11.xz")
 
@@ -176,6 +171,14 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'ea341c7914837b6672386bb54579672caf4b6c1ed1d07320e4fbb977f20ee033'
             '1f073ecde33569c0e08fd384b22ffeb8545b5dd8e62106ae27cfcaa1f2588519'
             '6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b')
+
+# apply UKSM patch; TODO: note to self: don't forget to update the sum here during major version changes
+#
+_uksm_patch="https://raw.githubusercontent.com/dolohow/uksm/master/v5.x/uksm-${_major}.patch"
+if [[ -v use_uksm ]]; then
+  source+=("${_uksm_patch##*/}::${_uksm_patch}")
+  sha256sums+=('d38e2ee1f43bd6ca18845c80f5e68c0e597db01780004ff47607dd605e9aa086')
+fi
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
 export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-"$pkgbase"}
