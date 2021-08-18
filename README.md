@@ -22,6 +22,9 @@ Notes:
 
   - UKSM can be enabled by building with `use_uksm=y makepkg ...` to perform fast deduplication on in-use memory.
 
+    * WARNING: Don't enable UKSM *and* the multigenerational LRU together at runtime, this will cause crashes.
+      The PKGBUILD disables lru_gen by default when UKSM is included in the build, switching both on at runtime will crash the system rather quickly.
+
   - Use the included `myconfig` script fragment to make minor changes to the kernel configuration during build.
 
   - We now build for the `x86-64-v3` target by default; this supports Haswell era and newer CPUs and should be ~10% more performant than a generic `x86_64` build while maintaining wide compatibility. This supports all recent ROG laptops, including Intel machines.

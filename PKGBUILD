@@ -277,6 +277,12 @@ prepare() {
     fi
   done
 
+  ## disable lru_gen by default if UKSM is selected for the build; these crash if used together, see README
+  if [[ -v use_uksm ]]; then
+     msg2 "UKSM selected, disabling LRU_GEN by default"
+     scripts/config --disable CONFIG_LRU_GEN_ENABLED
+  fi
+
   ### Optionally load needed modules for the make localmodconfig
   # See https://aur.archlinux.org/packages/modprobed-db
   if [ "$_localmodcfg" = "y" ]; then
