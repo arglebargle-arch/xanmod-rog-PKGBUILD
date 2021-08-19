@@ -16,6 +16,10 @@
 ##
 ##  build with 'env use_uksm=foo makepkg ...' to include UKSM patch
 ##
+##  NOTE: Don't enable UKSM and LRU_GEN together at runtime, they are incompatible and will crash
+##        If UKSM is enabled during build LRU_GEN will be disabled by default in the kernel config
+##        You can still switch between them at runtime but do *not* attempt to use both.
+##
 if [[ -v use_uksm ]]; then
   use_uksm=y
 fi
@@ -276,7 +280,9 @@ prepare() {
   ## disable lru_gen by default if UKSM is selected for the build; these crash if used together, see README
   if [[ -v use_uksm ]]; then
      msg2 "UKSM selected, disabling LRU_GEN by default"
+     set -x
      scripts/config --disable CONFIG_LRU_GEN_ENABLED
+     { set +x; } >& /dev/null
   fi
 
   ### Optionally load needed modules for the make localmodconfig
