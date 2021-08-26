@@ -120,6 +120,8 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         #"0007-ALSA-hda-realtek-Fix-speakers-not-working-on-Asus-Fl.patch"
         "HID-asus-Prevent-Claymore-sending-suspend-event.patch"
         "HID-asus-Reduce-object-size-by-consolidating-calls.patch"
+        "v5-0001-asus-wmi-Add-support-for-platform_profile.patch"
+        "v5-0001-asus-wmi-Add-support-for-custom-fan-curves.patch"
 
         # mediatek mt7921 bt/wifi patches
         #"8010-Bluetooth-btusb-Fixed-too-many-in-token-issue-for-Me.patch"
@@ -170,6 +172,8 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             '034743a640c26deca0a8276fa98634e7eac1328d50798a3454c4662cff97ccc9'
             'ec317cc2c2c8c1186c4f553fdd010adc013c37600a499802473653fd8e7564df'
             '544464bf0807b324120767d55867f03014a9fda4e1804768ca341be902d7ade4'
+            '4ef12029ea73ca924b6397e1de4911e84d9e77ddaccdab1ef579823d848524e8'
+            'bf44549a6b1d4cb193ac119668e145abd439cb3e64e4771bf47a1f65140b3759'
             '67ebf477b2ecbf367ea3fee1568eeb3de59de7185ef5ed66b81ae73108f6693c'
             '2163cb2e394a013042a40cd3b00dae788603284b20d71e262995366c5534e480'
             'a01cf700d79b983807e2285be1b30df6e02db6adfd9c9027fe2dfa8ca5a74bc9'
