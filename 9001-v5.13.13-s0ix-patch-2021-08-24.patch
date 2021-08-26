@@ -1,11 +1,11 @@
-From 09ff0149ad2364935d3dfe2c23a8cc873e24dc56 Mon Sep 17 00:00:00 2001
+From e0bda89bd4057c851932c59ddb5bd3890005214f Mon Sep 17 00:00:00 2001
 From: Scott B <28817345+foundObjects@users.noreply.github.com>
-Date: Thu, 12 Aug 2021 22:50:05 -0700
-Subject: [PATCH] v5.13.10 s0ix patch 2021-08-12
+Date: Tue, 24 Aug 2021 21:21:09 -0700
+Subject: [PATCH] v5.13.13-s0ix patch 2021-08-24
 
 Squashed commit of the following:
 
-commit 97a452bddcc32e5e8761807684a77ac613e8e2cc
+commit 3ba8d2ed7f58ddf970dfe2bc1bfb93b9b3d66190
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Mon Aug 9 20:40:04 2021 -0500
 
@@ -26,7 +26,7 @@ Date:   Mon Aug 9 20:40:04 2021 -0500
     Fixes: 5dbf50997578 ("ACPI: PM: s2idle: Add support for new Microsoft UUID")
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
 
-commit bcd87b2b708b13795d42c4df8754b7d197bda384
+commit 606229f0125a3af622a407797ca94fade1ea1993
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Wed Jul 7 09:16:47 2021 -0500
 
@@ -40,7 +40,7 @@ Date:   Wed Jul 7 09:16:47 2021 -0500
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
     Acked-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 
-commit 6be41892e0a4427866420df03e0898029caaa694
+commit a1c785973ae351de6448f88b7c19dd26b8f70540
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Wed Jun 30 14:46:06 2021 -0500
 
@@ -81,7 +81,7 @@ Date:   Wed Jun 30 14:46:06 2021 -0500
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
     Acked-by: Alex Deucher <alexander.deucher@amd.com>
 
-commit 082cbcb131d9b320d8d48e8666780dd6150c7581
+commit 0f7dadec802150229cc8e6c74e0e7b3b2e53a9fd
 Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 Date:   Tue Jun 29 14:18:03 2021 +0530
 
@@ -93,7 +93,7 @@ Date:   Tue Jun 29 14:18:03 2021 +0530
     Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
     Reviewed-by: Hans de Goede <hdegoede@redhat.com>
 
-commit 8f1241d8df0960b4e92d27a33b438c086b5302d9
+commit e787353c8c9ff51b8cf23cb68f31aa44fea6a4b8
 Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 Date:   Tue Jun 29 14:18:02 2021 +0530
 
@@ -105,7 +105,7 @@ Date:   Tue Jun 29 14:18:02 2021 +0530
     Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
     Reviewed-by: Hans de Goede <hdegoede@redhat.com>
 
-commit 7161022d84cf9e01c6463cb7a3352275cf5ced87
+commit 7e46535ba2b3eb3a91ada3241208429f01b5811c
 Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 Date:   Tue Jun 29 14:18:01 2021 +0530
 
@@ -125,7 +125,7 @@ Date:   Tue Jun 29 14:18:01 2021 +0530
     Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
     Reviewed-by: Hans de Goede <hdegoede@redhat.com>
 
-commit 634301f99dbfbdf9a5d6fc8571baa1bd5ff35a89
+commit d9ddd835b8c990895bad75cdc46bf376b0e5a96d
 Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 Date:   Tue Jun 29 14:18:00 2021 +0530
 
@@ -144,7 +144,7 @@ Date:   Tue Jun 29 14:18:00 2021 +0530
     Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
     Reviewed-by: Hans de Goede <hdegoede@redhat.com>
 
-commit 52a805fdb2f8546f924b37c21feec1e4068dbf4d
+commit b5849744bf0f7fba2b498511681447b9a0eb1d1b
 Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 Date:   Tue Jun 29 14:17:59 2021 +0530
 
@@ -156,18 +156,7 @@ Date:   Tue Jun 29 14:17:59 2021 +0530
 
     Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 
-commit 997723fe8f8502c01dd7c6ccebbd4081338dde1e
-Author: Marcin Bachry <hegel666@gmail.com>
-Date:   Tue Mar 16 15:28:51 2021 -0400
-
-    PCI: quirks: Quirk PCI d3hot delay for AMD xhci
-
-    Renoir needs a similar delay.
-
-    Signed-off-by: Marcin Bachry <hegel666@gmail.com>
-    Signed-off-by: Alex Deucher <alexander.deucher@amd.com>
-
-commit b49940a3d37aca5162e422152488847fc5876ecf
+commit 58fdac16c271d4695a627751a4dbea899101d0ea
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Thu Jun 17 11:42:12 2021 -0500
 
@@ -183,7 +172,7 @@ Date:   Thu Jun 17 11:42:12 2021 -0500
 
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
 
-commit abdc57db88bc2ef2b9e31da4c2b3abaf96ab0d37
+commit 36b57e1cf35997a22cb01f1832729a8f833ad6c8
 Author: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 Date:   Thu Jun 17 11:42:11 2021 -0500
 
@@ -197,7 +186,7 @@ Date:   Thu Jun 17 11:42:11 2021 -0500
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
     Signed-off-by: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 
-commit d8f8b693c04a30925e0e5784551610565164bb25
+commit c4d632cf2df5bc7e2d8dccd8de8d3984e59f8e40
 Author: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 Date:   Thu Jun 17 11:42:10 2021 -0500
 
@@ -208,7 +197,7 @@ Date:   Thu Jun 17 11:42:10 2021 -0500
 
     Signed-off-by: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 
-commit da223ad8820f7a37b43d4bd394bd53855af3d86d
+commit 8ab790396d0bd01b73755cedb3873ea60f7327dd
 Author: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 Date:   Thu Jun 17 11:42:09 2021 -0500
 
@@ -226,7 +215,7 @@ Date:   Thu Jun 17 11:42:09 2021 -0500
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
     Signed-off-by: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 
-commit 4d38f37efa22b9d194b33f35a1c09b2547a799e4
+commit 18da9bb5a1742a867963541c171e55d290c86868
 Author: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 Date:   Thu Jun 17 11:42:08 2021 -0500
 
@@ -237,7 +226,7 @@ Date:   Thu Jun 17 11:42:08 2021 -0500
 
     Signed-off-by: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 
-commit f2dedddda1d343ba203a77822897d9118cca7cac
+commit 4e4c8f117e567a8c97d4d94c7f813285beb38d53
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Wed Jun 9 13:40:18 2021 -0500
 
@@ -284,7 +273,7 @@ Date:   Wed Jun 9 13:40:18 2021 -0500
     Tested-by: Julian Sikorski <belegdol@gmail.com>
     Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-commit 2b52de2b6a99cdb13a6c2b836eaeb45967d636d8
+commit b8914e70b7a47a61430a6372f41912991f71e2eb
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Wed Jun 9 13:40:17 2021 -0500
 
@@ -311,10 +300,9 @@ Date:   Wed Jun 9 13:40:17 2021 -0500
  drivers/acpi/x86/s2idle.c      | 157 +++++++++++++++++--------
  drivers/acpi/x86/utils.c       |  25 ++++
  drivers/nvme/host/pci.c        |  28 +----
- drivers/pci/quirks.c           |   3 +
  drivers/platform/x86/amd-pmc.c | 204 ++++++++++++++++++++++++++++++---
  include/linux/acpi.h           |   5 +
- 8 files changed, 372 insertions(+), 91 deletions(-)
+ 7 files changed, 369 insertions(+), 91 deletions(-)
 
 diff --git a/drivers/acpi/device_pm.c b/drivers/acpi/device_pm.c
 index 9d2d3b9bb8b5..0cfdef2fc3ad 100644
@@ -715,20 +703,6 @@ index d963f25fc7ae..66455e2261d0 100644
  		/*
  		 * Some systems use a bios work around to ask for D3 on
  		 * platforms that support kernel managed suspend.
-diff --git a/drivers/pci/quirks.c b/drivers/pci/quirks.c
-index 6d74386eadc2..446f8f7b0ee4 100644
---- a/drivers/pci/quirks.c
-+++ b/drivers/pci/quirks.c
-@@ -1900,6 +1900,9 @@ static void quirk_ryzen_xhci_d3hot(struct pci_dev *dev)
- }
- DECLARE_PCI_FIXUP_FINAL(PCI_VENDOR_ID_AMD, 0x15e0, quirk_ryzen_xhci_d3hot);
- DECLARE_PCI_FIXUP_FINAL(PCI_VENDOR_ID_AMD, 0x15e1, quirk_ryzen_xhci_d3hot);
-+/* Renoir XHCI requires longer delay when transitioning from D0 to
-+ * D3hot */
-+DECLARE_PCI_FIXUP_FINAL(PCI_VENDOR_ID_AMD, 0x1639, quirk_ryzen_xhci_d3hot);
- 
- #ifdef CONFIG_X86_IO_APIC
- static int dmi_disable_ioapicreroute(const struct dmi_system_id *d)
 diff --git a/drivers/platform/x86/amd-pmc.c b/drivers/platform/x86/amd-pmc.c
 index ca95c2a52e26..663a4ca0580d 100644
 --- a/drivers/platform/x86/amd-pmc.c
@@ -1103,5 +1077,5 @@ index c60745f657e9..dd0dafd21e33 100644
  
  #if defined(CONFIG_ACPI) && defined(CONFIG_PM_SLEEP)
 -- 
-2.32.0
+2.33.0
 

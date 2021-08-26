@@ -76,10 +76,10 @@ _makenconfig=
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod-rog
-xanmod=5.13.12-xanmod1
+xanmod=5.13.13-xanmod1
 pkgver=${xanmod//-/.}
-#pkgver=5.13.11.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
-pkgrel=2
+#pkgver=5.13.13.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
+pkgrel=1
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
 arch=(x86_64)
@@ -130,8 +130,8 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "8013-mt76-mt7921-Fix-out-of-order-process-by-invalid-even.patch"
         "8014-mt76-mt7921-Add-mt7922-support.patch"
 
-        # squashed s0ix enablement through 2021-08-12
-        "9001-v5.13.10-s0ix-patch-2021-08-12.patch"
+        # squashed s0ix enablement
+        "9001-v5.13.13-s0ix-patch-2021-08-24.patch"
         # a small amd_pmc SMU debugging patch per Mario Limonciello @AMD
         "9100-amd-pmc-smu-register-dump-for-diagnostics.patch"
         )
@@ -159,7 +159,7 @@ validpgpkeys=(
 
 sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'SKIP'
-            '2b0dc551b14e0d29850577520a96115f63032932d2dacdbeb93008b69a1fc4cf'
+            '70c2a2235bfa3e71db5c12108c3c0aa53fce652ae998cbd3491dc3728d2d502b'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb'
             '923230ed8367e28adfdeed75d3cdba9eec6b781818c37f6f3d3eb64101d2e716'
@@ -177,7 +177,7 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             '67ebf477b2ecbf367ea3fee1568eeb3de59de7185ef5ed66b81ae73108f6693c'
             '2163cb2e394a013042a40cd3b00dae788603284b20d71e262995366c5534e480'
             'a01cf700d79b983807e2285be1b30df6e02db6adfd9c9027fe2dfa8ca5a74bc9'
-            '1f073ecde33569c0e08fd384b22ffeb8545b5dd8e62106ae27cfcaa1f2588519'
+            '41d7a48f113b3924595d327ea3031d1b14c611835e111c46438b9d85219cd76c'
             '6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b')
 
 # apply UKSM patch; TODO: note to self: don't forget to update the sum here during major version changes
