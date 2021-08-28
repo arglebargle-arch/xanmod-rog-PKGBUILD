@@ -79,7 +79,7 @@ pkgbase=linux-xanmod-rog
 xanmod=5.13.13-xanmod1
 pkgver=${xanmod//-/.}
 #pkgver=5.13.13.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
-pkgrel=1
+pkgrel=2
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
 arch=(x86_64)
@@ -134,6 +134,8 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "9001-v5.13.13-s0ix-patch-2021-08-24.patch"
         # a small amd_pmc SMU debugging patch per Mario Limonciello @AMD
         "9100-amd-pmc-smu-register-dump-for-diagnostics.patch"
+        # a quick hack implementing micro delays during resume, may improve stability
+        "9101-amd-pmc-delay-test.patch"
         )
 validpgpkeys=(
     'ABAF11C65A2970B130ABE3C479BE3E4300411886' # Linux Torvalds
@@ -178,7 +180,8 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             '2163cb2e394a013042a40cd3b00dae788603284b20d71e262995366c5534e480'
             'a01cf700d79b983807e2285be1b30df6e02db6adfd9c9027fe2dfa8ca5a74bc9'
             '41d7a48f113b3924595d327ea3031d1b14c611835e111c46438b9d85219cd76c'
-            '6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b')
+            '6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b'
+            'd8dd84c26a44af618c6d1b68723e3bf0f8f50165af04fe090256afb0f931713e')
 
 # apply UKSM patch; TODO: note to self: don't forget to update the sum here during major version changes
 #
