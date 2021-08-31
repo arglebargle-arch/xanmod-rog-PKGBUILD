@@ -132,6 +132,15 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         #"8012-mt76-mt7921-continue-to-probe-driver-when-fw-already.patch"
         "8013-mt76-mt7921-Fix-out-of-order-process-by-invalid-even.patch"
         "8014-mt76-mt7921-Add-mt7922-support.patch"
+        "1-1-Bluetooth-btusb-Enable-MSFT-extension-for-Mediatek-Chip-MT7921.patch"
+        "1-2-mt76-mt7915-send-EAPOL-frames-at-lowest-rate.patch"
+        "2-2-mt76-mt7921-send-EAPOL-frames-at-lowest-rate.patch"
+        "mt76-mt7921-enable-VO-tx-aggregation.patch"
+        "mt76-mt7921-fix-dma-hang-in-rmmod.patch"
+        "mt76-mt7921-fix-firmware-usage-of-RA-info-using-legacy-rates.patch"
+        "mt76-mt7921-fix-the-inconsistent-state-between-bind-and-unbind.patch"
+        #"mt76-mt7921-report-HE-MU-radiotap.patch"                                # no-go 5.13.y
+        "v2-mt76-mt7921-fix-kernel-warning-from-cfg80211_calculate_bitrate.patch"
 
         # squashed s0ix enablement
         "9001-v5.13.14-s0ix-patch-2021-09-03.patch"
@@ -183,6 +192,14 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             '67ebf477b2ecbf367ea3fee1568eeb3de59de7185ef5ed66b81ae73108f6693c'
             '2163cb2e394a013042a40cd3b00dae788603284b20d71e262995366c5534e480'
             'a01cf700d79b983807e2285be1b30df6e02db6adfd9c9027fe2dfa8ca5a74bc9'
+            'ea1d552f8fe6907e4fbd374842a655a9a64529e021c45d8459a0595c739e5cc6'
+            '051769c129e0e3a5b516b8799712e1a39dd36216d77879b33b416c8e0fd67d7a'
+            'fa96d4e690f3e0b51075be06fe47fe5b6d94b10835767c13416701690e842e4b'
+            '3ed940a006bc1846daac9ca1194bcbffc0b7b71266d0527b7508f2263cdba9d6'
+            '1687b5d7cefdcdbe9f0152d0b38e204229ce75994b1ba5f9fee5eff65580e6a2'
+            '16c30e45665f8be034b25d3a21a9ed4cba025dd38293b77aaa12426892091adb'
+            '5b7a106d371fcf880920967d7e36728f1bcc0368eaa7bf75ebf67a4ddb93c6d5'
+            '5e66b5a6a775ad42489dfd0f6057b69dae696a5ec8be428da329f68c1265764a'
             '59257a54fe6bc8ec3930f905d16ca65675d673068dc0bdd1a319f36442de42f7'
             '6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b'
             'd8dd84c26a44af618c6d1b68723e3bf0f8f50165af04fe090256afb0f931713e')
