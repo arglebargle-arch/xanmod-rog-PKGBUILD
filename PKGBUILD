@@ -113,8 +113,8 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "acpi-battery-Always-read-fresh-battery-state-on-update.patch"
 
         # k10temp support for Zen3 APUs
-        #"8001-x86-amd_nb-Add-AMD-family-19h-model-50h-PCI-ids.patch"
-        "8002-hwmon-k10temp-support-Zen3-APUs.patch"
+        #"x86-amd_nb-Add-AMD-family-19h-model-50h-PCI-ids.patch"                        # included in 5.14
+        "hwmon-k10temp-support-Zen3-APUs.patch"
 
         # ASUS ROG enablement
         "0101-asus-wmi-Add-panel-overdrive-functionality.patch"
@@ -124,8 +124,8 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         #"0007-ALSA-hda-realtek-Fix-speakers-not-working-on-Asus-Fl.patch"
         "HID-asus-Prevent-Claymore-sending-suspend-event.patch"
         "HID-asus-Reduce-object-size-by-consolidating-calls.patch"
-        "v5-0001-asus-wmi-Add-support-for-platform_profile.patch"
-        "v8-0001-asus-wmi-Add-support-for-custom-fan-curves.patch"
+        "v5-asus-wmi-Add-support-for-platform_profile.patch"
+        "v8-asus-wmi-Add-support-for-custom-fan-curves.patch"
 
         # mediatek mt7921 bt/wifi patches
         #"8010-Bluetooth-btusb-Fixed-too-many-in-token-issue-for-Me.patch"
@@ -145,8 +145,8 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
 
         # squashed s0ix enablement
         "9001-v5.14.1-s0ix-patch-2021-09-03.patch"
-        # a quick hack implementing micro delays during resume, may improve stability
-        "9101-amd-pmc-delay-test.patch"
+        # delay hack adding micro delays during resume, drastically improves SMU stability
+        "9002-amd-pmc-delay-test.patch"
         )
 validpgpkeys=(
     'ABAF11C65A2970B130ABE3C479BE3E4300411886' # Linux Torvalds
