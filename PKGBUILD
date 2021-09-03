@@ -76,9 +76,9 @@ _makenconfig=
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod-rog
-xanmod=5.13.13-xanmod1
-#pkgver=${xanmod//-/.}
-pkgver=5.13.14.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
+xanmod=5.13.14-xanmod1
+pkgver=${xanmod//-/.}
+#pkgver=5.13.14.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
 pkgrel=1
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -101,9 +101,6 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "https://github.com/xanmod/linux/releases/download/${xanmod}/patch-${xanmod}.xz"
         "choose-gcc-optimization.sh"
         "sphinx-workaround.patch"
-
-        # 5.13.14
-        "https://cdn.kernel.org/pub/linux/kernel/v5.x/incr/patch-5.13.13-14.xz"
 
         # don't drop shared caches on C3 state transitions
         "x86-ACPI-State-Optimize-C3-entry-on-AMD-CPUs.patch"
@@ -156,10 +153,9 @@ validpgpkeys=(
 
 sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'SKIP'
-            '70c2a2235bfa3e71db5c12108c3c0aa53fce652ae998cbd3491dc3728d2d502b'
+            '160f1e0407b96c7cc92ae224a97e16a01dfd45b164a0f8ead60a96c4dbc3ddcd'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb'
-            '46e1ca8565ca6a4518815dc54f6826d55421b99de92919a194e8fd48cd8c0073'
             '923230ed8367e28adfdeed75d3cdba9eec6b781818c37f6f3d3eb64101d2e716'
             'f7a4bf6293912bfc4a20743e58a5a266be8c4dbe3c1862d196d3a3b45f2f7c90'
             'ed28a8051514f8c228717a5cdd13191b1c58181e0228d972fbe2af5ee1d013d7'
@@ -209,8 +205,8 @@ prepare() {
 
   # WARN: mangle Makefile versions here if needed so patches apply cleanly
 
-  # Monkey patch: apply kernel.org patches when mainline is slightly ahead of Xanmod official
-  patch -Np1 -i ../patch-5.13.13-14
+  ## Monkey patch: apply kernel.org patches when mainline is slightly ahead of Xanmod official
+  #patch -Np1 -i ../patch-5.13.13-14
 
   # Archlinux patches
   local src
