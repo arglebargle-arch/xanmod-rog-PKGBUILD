@@ -1,11 +1,100 @@
-From e0bda89bd4057c851932c59ddb5bd3890005214f Mon Sep 17 00:00:00 2001
-From: Scott B <28817345+foundObjects@users.noreply.github.com>
-Date: Tue, 24 Aug 2021 21:21:09 -0700
-Subject: [PATCH] v5.13.13-s0ix patch 2021-08-24
+From 36f737e3129d1058f2717dafa8e21c30a825f79f Mon Sep 17 00:00:00 2001
+From: Scott B <arglebargle@arglebargle.dev>
+Date: Fri, 3 Sep 2021 03:07:06 -0700
+Subject: [PATCH] v5.13.14 s0ix patch 2021-09-03
 
 Squashed commit of the following:
 
-commit 3ba8d2ed7f58ddf970dfe2bc1bfb93b9b3d66190
+commit d41335d4b59b3af5b5b0004da80a16067acd8303
+Author: Basavaraj Natikar <Basavaraj.Natikar@amd.com>
+Date:   Tue Aug 31 17:36:12 2021 +0530
+
+    pinctrl: amd: Add irq field data
+
+    pinctrl_amd use gpiochip_get_data() to get their local state containers
+    back from the gpiochip passed as amd_gpio chip data.
+
+    Hence added irq field data to get directly using amd_gpio chip data.
+
+    Signed-off-by: Basavaraj Natikar <Basavaraj.Natikar@amd.com>
+
+commit 5ae23ad72e5302c875a1218886350368de215b42
+Author: Basavaraj Natikar <Basavaraj.Natikar@amd.com>
+Date:   Tue Aug 31 17:36:13 2021 +0530
+
+    pinctrl: amd: Handle wake-up interrupt
+
+    Enable/disable power management wakeup mode, which is disabled by
+    default. enable_irq_wake enables wakes the system from sleep.
+
+    Hence added enable/disable irq_wake to handle wake-up interrupt.
+
+    Signed-off-by: Basavaraj Natikar <Basavaraj.Natikar@amd.com>
+
+commit df56b40e5e30d43eef647a54e6f2b57988a99e36
+Author: Mario Limonciello <mario.limonciello@amd.com>
+Date:   Mon Aug 9 15:15:13 2021 -0500
+
+    pinctrl: amd: Fix an issue with shutdown when system set to s0ix
+
+    IRQs are getting armed on shutdown causing the system to immediately
+    wake back up.
+
+    Link: https://lkml.org/lkml/2021/8/2/1114
+    Reported-by: nix.or.die@googlemail.com
+    Acked-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
+    Tested-by: Gabriel Craciunescu <nix.or.die@gmail.com>
+    CC: Raul E Rangel <rrangel@chromium.org>
+    Fixes: d62bd5ce12d7 ("pinctrl: amd: Implement irq_set_wake")
+    Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
+    Link: https://lore.kernel.org/r/20210809201513.12367-1-mario.limonciello@amd.com
+    Signed-off-by: Linus Walleij <linus.walleij@linaro.org>
+
+commit 38c5d80d5a7e15529e7c9f4136273f46938bec9f
+Author: Raul E Rangel <rrangel@chromium.org>
+Date:   Thu Apr 29 16:34:24 2021 -0600
+
+    pinctrl: amd: Implement irq_set_wake
+
+    This allows the OS to control which devices produce wake events.
+
+    $ grep enabled /sys/kernel/irq/*/wakeup
+    /sys/kernel/irq/24/wakeup:enabled
+
+    Signed-off-by: Raul E Rangel <rrangel@chromium.org>
+    Link: https://lore.kernel.org/r/20210429163341.1.I7631534622233689dd81410525e0dd617b9b2012@changeid
+    Signed-off-by: Linus Walleij <linus.walleij@linaro.org>
+
+commit e3629e35a34298d38875fcc8a8d9d2b5352a4f32
+Author: Mario Limonciello <mario.limonciello@amd.com>
+Date:   Tue Aug 31 11:36:19 2021 -0500
+
+    ACPI: PM: s2idle: Run both AMD and Microsoft methods if both are supported
+
+    It was reported that on "HP ENVY x360" that power LED does not come back
+    on, certain keys like brightness controls do not work, and the fan never
+    spins up, even under load.
+
+    In analysis of the SSDT it's clear that the Microsoft UUID doesn't provide
+    functional support, but rather the AMD UUID should be supporting this
+    system.
+
+    Because this is a gap in the expected logic, confirmation with internal
+    team is that AMD uPEP *does* run even when Microsoft UUID present, but
+    most OEM systems have adopted value of "0x3" for supported functions and
+    hence nothing runs.
+
+    Henceforth add support for running both Microsoft and AMD methods.  This
+    approach will also allow the same logic on Intel systems if desired at a
+    future time as well by pulling the evaluation of
+    `lps0_dsm_func_mask_microsoft` out of the if block for
+    `acpi_s2idle_vendor_amd`.
+
+    BugLink: https://gitlab.freedesktop.org/drm/amd/-/issues/1691
+    Reported-by: Maxwell Beck <max@ryt.one>
+    Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
+
+commit 80ced3f9f485dd07ac5a5180bf2cc88f2179e2e3
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Mon Aug 9 20:40:04 2021 -0500
 
@@ -26,7 +115,7 @@ Date:   Mon Aug 9 20:40:04 2021 -0500
     Fixes: 5dbf50997578 ("ACPI: PM: s2idle: Add support for new Microsoft UUID")
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
 
-commit 606229f0125a3af622a407797ca94fade1ea1993
+commit 6d363060e6590441f4755cdd96ced1f5e5ffb1e0
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Wed Jul 7 09:16:47 2021 -0500
 
@@ -40,7 +129,7 @@ Date:   Wed Jul 7 09:16:47 2021 -0500
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
     Acked-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 
-commit a1c785973ae351de6448f88b7c19dd26b8f70540
+commit 311131001c64e1fb04d73c45a8e4ba7a6835a079
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Wed Jun 30 14:46:06 2021 -0500
 
@@ -81,7 +170,7 @@ Date:   Wed Jun 30 14:46:06 2021 -0500
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
     Acked-by: Alex Deucher <alexander.deucher@amd.com>
 
-commit 0f7dadec802150229cc8e6c74e0e7b3b2e53a9fd
+commit 0a7afaec19f871bc83950919530fe84e93e90dd5
 Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 Date:   Tue Jun 29 14:18:03 2021 +0530
 
@@ -93,7 +182,7 @@ Date:   Tue Jun 29 14:18:03 2021 +0530
     Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
     Reviewed-by: Hans de Goede <hdegoede@redhat.com>
 
-commit e787353c8c9ff51b8cf23cb68f31aa44fea6a4b8
+commit ab0fbff1630447b320a00a56d2d03abcb956e8d3
 Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 Date:   Tue Jun 29 14:18:02 2021 +0530
 
@@ -105,7 +194,7 @@ Date:   Tue Jun 29 14:18:02 2021 +0530
     Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
     Reviewed-by: Hans de Goede <hdegoede@redhat.com>
 
-commit 7e46535ba2b3eb3a91ada3241208429f01b5811c
+commit 27a6b6eb5de59f8be31d5276044eda4fda974450
 Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 Date:   Tue Jun 29 14:18:01 2021 +0530
 
@@ -125,7 +214,7 @@ Date:   Tue Jun 29 14:18:01 2021 +0530
     Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
     Reviewed-by: Hans de Goede <hdegoede@redhat.com>
 
-commit d9ddd835b8c990895bad75cdc46bf376b0e5a96d
+commit 44c1c5f0d6d12a7c368b28e549315dd0f9475649
 Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 Date:   Tue Jun 29 14:18:00 2021 +0530
 
@@ -144,7 +233,7 @@ Date:   Tue Jun 29 14:18:00 2021 +0530
     Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
     Reviewed-by: Hans de Goede <hdegoede@redhat.com>
 
-commit b5849744bf0f7fba2b498511681447b9a0eb1d1b
+commit 2fc643aca016fa2290274cc0211865c9faced3c8
 Author: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 Date:   Tue Jun 29 14:17:59 2021 +0530
 
@@ -156,7 +245,7 @@ Date:   Tue Jun 29 14:17:59 2021 +0530
 
     Signed-off-by: Shyam Sundar S K <Shyam-sundar.S-k@amd.com>
 
-commit 58fdac16c271d4695a627751a4dbea899101d0ea
+commit cf41f866c72024d26d540503f29f4fd40ff99e47
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Thu Jun 17 11:42:12 2021 -0500
 
@@ -172,7 +261,7 @@ Date:   Thu Jun 17 11:42:12 2021 -0500
 
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
 
-commit 36b57e1cf35997a22cb01f1832729a8f833ad6c8
+commit eee65e7c8960f636fc10c94b00c183a7a844b971
 Author: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 Date:   Thu Jun 17 11:42:11 2021 -0500
 
@@ -186,7 +275,7 @@ Date:   Thu Jun 17 11:42:11 2021 -0500
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
     Signed-off-by: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 
-commit c4d632cf2df5bc7e2d8dccd8de8d3984e59f8e40
+commit aebc1c48faed67b707ca79a7c66029684cb8eeab
 Author: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 Date:   Thu Jun 17 11:42:10 2021 -0500
 
@@ -197,7 +286,7 @@ Date:   Thu Jun 17 11:42:10 2021 -0500
 
     Signed-off-by: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 
-commit 8ab790396d0bd01b73755cedb3873ea60f7327dd
+commit 4d027ca3853f82e0f678b1ca2c2247140762fb3e
 Author: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 Date:   Thu Jun 17 11:42:09 2021 -0500
 
@@ -215,7 +304,7 @@ Date:   Thu Jun 17 11:42:09 2021 -0500
     Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
     Signed-off-by: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 
-commit 18da9bb5a1742a867963541c171e55d290c86868
+commit c2a6a33c8255b8c38ad935c623848ecbc6964811
 Author: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 Date:   Thu Jun 17 11:42:08 2021 -0500
 
@@ -226,7 +315,7 @@ Date:   Thu Jun 17 11:42:08 2021 -0500
 
     Signed-off-by: Pratik Vishwakarma <Pratik.Vishwakarma@amd.com>
 
-commit 4e4c8f117e567a8c97d4d94c7f813285beb38d53
+commit a799a0e4fd4dfab53e85e0cc687f64a9c22a41a2
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Wed Jun 9 13:40:18 2021 -0500
 
@@ -273,7 +362,7 @@ Date:   Wed Jun 9 13:40:18 2021 -0500
     Tested-by: Julian Sikorski <belegdol@gmail.com>
     Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-commit b8914e70b7a47a61430a6372f41912991f71e2eb
+commit b626c7c5162646c04f1b208951421d70996cda0e
 Author: Mario Limonciello <mario.limonciello@amd.com>
 Date:   Wed Jun 9 13:40:17 2021 -0500
 
@@ -297,12 +386,14 @@ Date:   Wed Jun 9 13:40:17 2021 -0500
 ---
  drivers/acpi/device_pm.c       |  32 ++++++
  drivers/acpi/internal.h        |   9 ++
- drivers/acpi/x86/s2idle.c      | 157 +++++++++++++++++--------
+ drivers/acpi/x86/s2idle.c      | 176 +++++++++++++++++++---------
  drivers/acpi/x86/utils.c       |  25 ++++
  drivers/nvme/host/pci.c        |  28 +----
+ drivers/pinctrl/pinctrl-amd.c  |  50 +++++++-
+ drivers/pinctrl/pinctrl-amd.h  |   1 +
  drivers/platform/x86/amd-pmc.c | 204 ++++++++++++++++++++++++++++++---
  include/linux/acpi.h           |   5 +
- 7 files changed, 369 insertions(+), 91 deletions(-)
+ 9 files changed, 429 insertions(+), 101 deletions(-)
 
 diff --git a/drivers/acpi/device_pm.c b/drivers/acpi/device_pm.c
 index 9d2d3b9bb8b5..0cfdef2fc3ad 100644
@@ -366,7 +457,7 @@ index e21611c9a170..7ac01b03ba67 100644
  				Device properties
    -------------------------------------------------------------------------- */
 diff --git a/drivers/acpi/x86/s2idle.c b/drivers/acpi/x86/s2idle.c
-index 2d7ddb8a8cb6..b16c245bbe5b 100644
+index 2d7ddb8a8cb6..bd35009bb005 100644
 --- a/drivers/acpi/x86/s2idle.c
 +++ b/drivers/acpi/x86/s2idle.c
 @@ -32,6 +32,9 @@ static const struct acpi_device_id lps0_device_ids[] = {
@@ -566,64 +657,82 @@ index 2d7ddb8a8cb6..b16c245bbe5b 100644
  
  	return 0;
  }
-@@ -408,12 +443,23 @@ int acpi_s2idle_prepare_late(void)
+@@ -408,14 +443,30 @@ int acpi_s2idle_prepare_late(void)
  	if (pm_debug_messages_on)
  		lpi_check_constraints();
  
 -	if (acpi_s2idle_vendor_amd()) {
 -		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_OFF_AMD);
 -		acpi_sleep_run_lps0_dsm(ACPI_LPS0_ENTRY_AMD);
-+	if (lps0_dsm_func_mask_microsoft > 0) {
-+		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_OFF,
-+				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
-+		acpi_sleep_run_lps0_dsm(ACPI_LPS0_MS_ENTRY,
-+				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
-+		acpi_sleep_run_lps0_dsm(ACPI_LPS0_ENTRY,
-+				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
-+	} else if (acpi_s2idle_vendor_amd()) {
-+		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_OFF_AMD,
-+				lps0_dsm_func_mask, lps0_dsm_guid);
-+		acpi_sleep_run_lps0_dsm(ACPI_LPS0_ENTRY_AMD,
-+				lps0_dsm_func_mask, lps0_dsm_guid);
- 	} else {
+-	} else {
 -		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_OFF);
 -		acpi_sleep_run_lps0_dsm(ACPI_LPS0_ENTRY);
-+		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_OFF,
-+				lps0_dsm_func_mask, lps0_dsm_guid);
-+		acpi_sleep_run_lps0_dsm(ACPI_LPS0_ENTRY,
-+				lps0_dsm_func_mask, lps0_dsm_guid);
- 	}
+-	}
++	/* screen off */
++	if (lps0_dsm_func_mask > 0)
++		acpi_sleep_run_lps0_dsm(acpi_s2idle_vendor_amd() ?
++					ACPI_LPS0_SCREEN_OFF_AMD :
++					ACPI_LPS0_SCREEN_OFF,
++					lps0_dsm_func_mask, lps0_dsm_guid);
  
++	if (lps0_dsm_func_mask_microsoft > 0)
++		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_OFF,
++				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
++
++	/* lps0 entry */
++	if (lps0_dsm_func_mask > 0)
++		acpi_sleep_run_lps0_dsm(acpi_s2idle_vendor_amd() ?
++					ACPI_LPS0_ENTRY_AMD :
++					ACPI_LPS0_ENTRY,
++					lps0_dsm_func_mask, lps0_dsm_guid);
++	if (lps0_dsm_func_mask_microsoft > 0) {
++		acpi_sleep_run_lps0_dsm(ACPI_LPS0_ENTRY,
++				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
++		/* modern standby entry */
++		acpi_sleep_run_lps0_dsm(ACPI_LPS0_MS_ENTRY,
++				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
++	}
  	return 0;
-@@ -424,12 +470,23 @@ void acpi_s2idle_restore_early(void)
+ }
+ 
+@@ -424,13 +475,30 @@ void acpi_s2idle_restore_early(void)
  	if (!lps0_device_handle || sleep_no_lps0)
  		return;
  
 -	if (acpi_s2idle_vendor_amd()) {
 -		acpi_sleep_run_lps0_dsm(ACPI_LPS0_EXIT_AMD);
 -		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_ON_AMD);
-+	if (lps0_dsm_func_mask_microsoft > 0) {
-+		acpi_sleep_run_lps0_dsm(ACPI_LPS0_EXIT,
-+				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
-+		acpi_sleep_run_lps0_dsm(ACPI_LPS0_MS_EXIT,
-+				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
-+		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_ON,
-+				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
-+	} else if (acpi_s2idle_vendor_amd()) {
-+		acpi_sleep_run_lps0_dsm(ACPI_LPS0_EXIT_AMD,
-+				lps0_dsm_func_mask, lps0_dsm_guid);
-+		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_ON_AMD,
-+				lps0_dsm_func_mask, lps0_dsm_guid);
- 	} else {
+-	} else {
 -		acpi_sleep_run_lps0_dsm(ACPI_LPS0_EXIT);
 -		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_ON);
+-	}
++	/* mdoern standby exit */
++	if (lps0_dsm_func_mask_microsoft > 0)
++		acpi_sleep_run_lps0_dsm(ACPI_LPS0_MS_EXIT,
++				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
++
++	/* lps0 exit */
++	if (lps0_dsm_func_mask > 0)
++		acpi_sleep_run_lps0_dsm(acpi_s2idle_vendor_amd() ?
++					ACPI_LPS0_EXIT_AMD :
++					ACPI_LPS0_EXIT,
++					lps0_dsm_func_mask, lps0_dsm_guid);
++	if (lps0_dsm_func_mask_microsoft > 0)
 +		acpi_sleep_run_lps0_dsm(ACPI_LPS0_EXIT,
-+				lps0_dsm_func_mask, lps0_dsm_guid);
++				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
++
++	/* screen on */
++	if (lps0_dsm_func_mask_microsoft > 0)
 +		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_ON,
-+				lps0_dsm_func_mask, lps0_dsm_guid);
- 	}
++				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
++	if (lps0_dsm_func_mask > 0)
++		acpi_sleep_run_lps0_dsm(acpi_s2idle_vendor_amd() ?
++					ACPI_LPS0_SCREEN_ON_AMD :
++					ACPI_LPS0_SCREEN_ON,
++					lps0_dsm_func_mask, lps0_dsm_guid);
  }
  
+ static const struct platform_s2idle_ops acpi_s2idle_ops_lps0 = {
 diff --git a/drivers/acpi/x86/utils.c b/drivers/acpi/x86/utils.c
 index bdc1ba00aee9..f22f23933063 100644
 --- a/drivers/acpi/x86/utils.c
@@ -703,6 +812,109 @@ index d963f25fc7ae..66455e2261d0 100644
  		/*
  		 * Some systems use a bios work around to ask for D3 on
  		 * platforms that support kernel managed suspend.
+diff --git a/drivers/pinctrl/pinctrl-amd.c b/drivers/pinctrl/pinctrl-amd.c
+index c5950a3b4e4c..d19974aceb2e 100644
+--- a/drivers/pinctrl/pinctrl-amd.c
++++ b/drivers/pinctrl/pinctrl-amd.c
+@@ -438,6 +438,38 @@ static void amd_gpio_irq_unmask(struct irq_data *d)
+ 	raw_spin_unlock_irqrestore(&gpio_dev->lock, flags);
+ }
+ 
++static int amd_gpio_irq_set_wake(struct irq_data *d, unsigned int on)
++{
++	u32 pin_reg;
++	unsigned long flags;
++	struct gpio_chip *gc = irq_data_get_irq_chip_data(d);
++	struct amd_gpio *gpio_dev = gpiochip_get_data(gc);
++	u32 wake_mask = BIT(WAKE_CNTRL_OFF_S0I3) | BIT(WAKE_CNTRL_OFF_S3);
++	int err;
++
++	raw_spin_lock_irqsave(&gpio_dev->lock, flags);
++	pin_reg = readl(gpio_dev->base + (d->hwirq)*4);
++
++	if (on)
++		pin_reg |= wake_mask;
++	else
++		pin_reg &= ~wake_mask;
++
++	writel(pin_reg, gpio_dev->base + (d->hwirq)*4);
++	raw_spin_unlock_irqrestore(&gpio_dev->lock, flags);
++
++	if (on)
++		err = enable_irq_wake(gpio_dev->irq);
++	else
++		err = disable_irq_wake(gpio_dev->irq);
++
++	if (err)
++		dev_err(&gpio_dev->pdev->dev, "failed to %s wake-up interrupt\n",
++			on ? "enable" : "disable");
++
++	return 0;
++}
++
+ static void amd_gpio_irq_eoi(struct irq_data *d)
+ {
+ 	u32 reg;
+@@ -552,9 +584,16 @@ static struct irq_chip amd_gpio_irqchip = {
+ 	.irq_disable  = amd_gpio_irq_disable,
+ 	.irq_mask     = amd_gpio_irq_mask,
+ 	.irq_unmask   = amd_gpio_irq_unmask,
++	.irq_set_wake = amd_gpio_irq_set_wake,
+ 	.irq_eoi      = amd_gpio_irq_eoi,
+ 	.irq_set_type = amd_gpio_irq_set_type,
+-	.flags        = IRQCHIP_SKIP_SET_WAKE,
++	/*
++	 * We need to set IRQCHIP_ENABLE_WAKEUP_ON_SUSPEND so that a wake event
++	 * also generates an IRQ. We need the IRQ so the irq_handler can clear
++	 * the wake event. Otherwise the wake event will never clear and
++	 * prevent the system from suspending.
++	 */
++	.flags        = IRQCHIP_ENABLE_WAKEUP_ON_SUSPEND,
+ };
+ 
+ #define PIN_IRQ_PENDING	(BIT(INTERRUPT_STS_OFF) | BIT(WAKE_STS_OFF))
+@@ -875,7 +914,6 @@ static struct pinctrl_desc amd_pinctrl_desc = {
+ static int amd_gpio_probe(struct platform_device *pdev)
+ {
+ 	int ret = 0;
+-	int irq_base;
+ 	struct resource *res;
+ 	struct amd_gpio *gpio_dev;
+ 	struct gpio_irq_chip *girq;
+@@ -898,9 +936,9 @@ static int amd_gpio_probe(struct platform_device *pdev)
+ 	if (!gpio_dev->base)
+ 		return -ENOMEM;
+ 
+-	irq_base = platform_get_irq(pdev, 0);
+-	if (irq_base < 0)
+-		return irq_base;
++	gpio_dev->irq = platform_get_irq(pdev, 0);
++	if (gpio_dev->irq < 0)
++		return gpio_dev->irq;
+ 
+ #ifdef CONFIG_PM_SLEEP
+ 	gpio_dev->saved_regs = devm_kcalloc(&pdev->dev, amd_pinctrl_desc.npins,
+@@ -960,7 +998,7 @@ static int amd_gpio_probe(struct platform_device *pdev)
+ 		goto out2;
+ 	}
+ 
+-	ret = devm_request_irq(&pdev->dev, irq_base, amd_gpio_irq_handler,
++	ret = devm_request_irq(&pdev->dev, gpio_dev->irq, amd_gpio_irq_handler,
+ 			       IRQF_SHARED, KBUILD_MODNAME, gpio_dev);
+ 	if (ret)
+ 		goto out2;
+diff --git a/drivers/pinctrl/pinctrl-amd.h b/drivers/pinctrl/pinctrl-amd.h
+index 95e763424042..1d4317073654 100644
+--- a/drivers/pinctrl/pinctrl-amd.h
++++ b/drivers/pinctrl/pinctrl-amd.h
+@@ -98,6 +98,7 @@ struct amd_gpio {
+ 	struct resource         *res;
+ 	struct platform_device  *pdev;
+ 	u32			*saved_regs;
++	int			irq;
+ };
+ 
+ /*  KERNCZ configuration*/
 diff --git a/drivers/platform/x86/amd-pmc.c b/drivers/platform/x86/amd-pmc.c
 index ca95c2a52e26..663a4ca0580d 100644
 --- a/drivers/platform/x86/amd-pmc.c
