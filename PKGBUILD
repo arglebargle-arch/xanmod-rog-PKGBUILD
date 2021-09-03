@@ -154,23 +154,6 @@ validpgpkeys=(
     '647F28654894E3BD457199BE38DBBDC86092693E' # Greg Kroah-Hartman
 )
 
-## for quick releases ahead of xanmod proper:
-#source+=("https://cdn.kernel.org/pub/linux/kernel/v5.x/incr/patch-5.13.10-11.xz")
-
-## Monkey patch: support stacking incremental point releases from kernel.org when we're building ahead of Xanmod
-##
-#if [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]]; then
-#  _patch_start=$(echo ${xanmod%-xanmod?} | cut -d'.' -f3)
-#  _patch_end=$(echo ${pkgver%%\.xan*} | cut -d'.' -f3)
-#  for (( _i=_patch_start; _i < _patch_end; _i++ )); do
-#    if (( _i == 0 )); then
-#      source+=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/patch-${_major}.$((_i +1)).xz")
-#    else
-#      source+=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/incr/patch-${_major}.${_i}-$((_i +1)).xz")
-#    fi
-#  done
-#fi
-
 sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             'SKIP'
             '70c2a2235bfa3e71db5c12108c3c0aa53fce652ae998cbd3491dc3728d2d502b'
@@ -228,19 +211,6 @@ prepare() {
 
   # Monkey patch: apply kernel.org patches when mainline is slightly ahead of Xanmod official
   patch -Np1 -i ../patch-5.13.13-14
-
-  #if [[ ${xanmod%-xanmod?} != "${pkgver%%\.xan*}" ]]; then
-  #  msg2 "Applying kernel.org point-release patches..."
-  #  for (( _i=_patch_start; _i < _patch_end; _i++ )); do
-  #    if (( _i == 0 )); then
-  #      echo "Applying patch ${_major} -> ${_major}.$((_i+1))..."
-  #      patch -Np1 -i "../patch-${_major}.$((_i+1))"
-  #    else
-  #      echo "Applying patch ${_major}.${_i} -> ${_major}.$((_i+1))..."
-  #      patch -Np1 -i "../patch-${_major}.${_i}-$((_i+1))"
-  #    fi
-  #  done
-  #fi
 
   # Archlinux patches
   local src
