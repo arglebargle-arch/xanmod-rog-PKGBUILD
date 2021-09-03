@@ -76,9 +76,9 @@ _makenconfig=
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod-rog
-xanmod=5.13.13-xanmod1
+xanmod=5.14.0-xanmod1
 #pkgver=${xanmod//-/.}
-pkgver=5.13.14.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
+pkgver=5.14.1.xanpre0     # NOTE: start 4th position with 'xan...', we rely on parsing for '.xan...' later
 pkgrel=1
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -102,8 +102,9 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "choose-gcc-optimization.sh"
         "sphinx-workaround.patch"
 
-        # 5.13.14
-        "https://cdn.kernel.org/pub/linux/kernel/v5.x/incr/patch-5.13.13-14.xz"
+        # incremental kernel.org patch ahead of official Xanmod release
+        #"https://cdn.kernel.org/pub/linux/kernel/v5.x/incr/patch-5.13.13-14.xz"
+        "https://cdn.kernel.org/pub/linux/kernel/v5.x/patch-5.14.1.xz"
 
         # don't drop shared caches on C3 state transitions
         "x86-ACPI-State-Optimize-C3-entry-on-AMD-CPUs.patch"
@@ -112,14 +113,14 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "acpi-battery-Always-read-fresh-battery-state-on-update.patch"
 
         # k10temp support for Zen3 APUs
-        "8001-x86-amd_nb-Add-AMD-family-19h-model-50h-PCI-ids.patch"
+        #"8001-x86-amd_nb-Add-AMD-family-19h-model-50h-PCI-ids.patch"
         "8002-hwmon-k10temp-support-Zen3-APUs.patch"
 
         # ASUS ROG enablement
         "0101-asus-wmi-Add-panel-overdrive-functionality.patch"
         "0102-asus-wmi-Add-dgpu-disable-method.patch"
         "0103-asus-wmi-Add-egpu-enable-method.patch"
-        "0006-HID-asus-Remove-check-for-same-LED-brightness-on-set.patch"
+        #"0006-HID-asus-Remove-check-for-same-LED-brightness-on-set.patch"
         #"0007-ALSA-hda-realtek-Fix-speakers-not-working-on-Asus-Fl.patch"
         "HID-asus-Prevent-Claymore-sending-suspend-event.patch"
         "HID-asus-Reduce-object-size-by-consolidating-calls.patch"
@@ -128,7 +129,7 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
 
         # mediatek mt7921 bt/wifi patches
         #"8010-Bluetooth-btusb-Fixed-too-many-in-token-issue-for-Me.patch"
-        "8011-Bluetooth-btusb-Add-support-for-Lite-On-Mediatek-Chi.patch"
+        #"8011-Bluetooth-btusb-Add-support-for-Lite-On-Mediatek-Chi.patch"
         #"8012-mt76-mt7921-continue-to-probe-driver-when-fw-already.patch"
         "8013-mt76-mt7921-Fix-out-of-order-process-by-invalid-even.patch"
         "8014-mt76-mt7921-Add-mt7922-support.patch"
@@ -139,13 +140,11 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "mt76-mt7921-fix-dma-hang-in-rmmod.patch"
         "mt76-mt7921-fix-firmware-usage-of-RA-info-using-legacy-rates.patch"
         "mt76-mt7921-fix-the-inconsistent-state-between-bind-and-unbind.patch"
-        #"mt76-mt7921-report-HE-MU-radiotap.patch"                                # no-go 5.13.y
+        "mt76-mt7921-report-HE-MU-radiotap.patch"
         "v2-mt76-mt7921-fix-kernel-warning-from-cfg80211_calculate_bitrate.patch"
 
         # squashed s0ix enablement
-        "9001-v5.13.14-s0ix-patch-2021-09-03.patch"
-        # a small amd_pmc SMU debugging patch per Mario Limonciello @AMD
-        "9100-amd-pmc-smu-register-dump-for-diagnostics.patch"
+        "9001-v5.14.1-s0ix-patch-2021-09-03.patch"
         # a quick hack implementing micro delays during resume, may improve stability
         "9101-amd-pmc-delay-test.patch"
         )
@@ -154,25 +153,22 @@ validpgpkeys=(
     '647F28654894E3BD457199BE38DBBDC86092693E' # Greg Kroah-Hartman
 )
 
-sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
+sha256sums=('7e068b5e0d26a62b10e5320b25dce57588cbbc6f781c090442138c9c9c3271b2'
             'SKIP'
-            '70c2a2235bfa3e71db5c12108c3c0aa53fce652ae998cbd3491dc3728d2d502b'
+            'b8e693326d8daf6d91e7dfb81ebdef88edc9d7ded6ad12907b2c7a0551e802ab'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb'
-            '46e1ca8565ca6a4518815dc54f6826d55421b99de92919a194e8fd48cd8c0073'
+            '96c0bbe43e508f56277a3f03386cc01538bad013bcfaf0384475a01deaf244d7'
             '923230ed8367e28adfdeed75d3cdba9eec6b781818c37f6f3d3eb64101d2e716'
             'f7a4bf6293912bfc4a20743e58a5a266be8c4dbe3c1862d196d3a3b45f2f7c90'
-            'ed28a8051514f8c228717a5cdd13191b1c58181e0228d972fbe2af5ee1d013d7'
             'de8c9747637768c4356c06aa65c3f157c526aa420f21fdd5edd0ed06f720a62e'
             '1ab75535772c63567384eb2ac74753e4d5db2f3317cb265aedf6151b9f18c6c2'
             '8cc771f37ee08ad5796e6db64f180c1415a5f6e03eb3045272dade30ca754b53'
             'f3461e7cc759fd4cef2ec5c4fa15b80fa6d37e16008db223f77ed88a65aa938e'
-            '034743a640c26deca0a8276fa98634e7eac1328d50798a3454c4662cff97ccc9'
             'ec317cc2c2c8c1186c4f553fdd010adc013c37600a499802473653fd8e7564df'
             '544464bf0807b324120767d55867f03014a9fda4e1804768ca341be902d7ade4'
             '4ef12029ea73ca924b6397e1de4911e84d9e77ddaccdab1ef579823d848524e8'
             '79403971877bc0f3149553744e9d68adda611e0c691ada6f7b2afa67e7e1a9bd'
-            '67ebf477b2ecbf367ea3fee1568eeb3de59de7185ef5ed66b81ae73108f6693c'
             '2163cb2e394a013042a40cd3b00dae788603284b20d71e262995366c5534e480'
             'a01cf700d79b983807e2285be1b30df6e02db6adfd9c9027fe2dfa8ca5a74bc9'
             'ea1d552f8fe6907e4fbd374842a655a9a64529e021c45d8459a0595c739e5cc6'
@@ -182,9 +178,9 @@ sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
             '1687b5d7cefdcdbe9f0152d0b38e204229ce75994b1ba5f9fee5eff65580e6a2'
             '16c30e45665f8be034b25d3a21a9ed4cba025dd38293b77aaa12426892091adb'
             '5b7a106d371fcf880920967d7e36728f1bcc0368eaa7bf75ebf67a4ddb93c6d5'
+            'aa5bb422421cb7e1340d8f07b5471995bbc3c7dd7cf91db76ab1dbe7efc2777a'
             '5e66b5a6a775ad42489dfd0f6057b69dae696a5ec8be428da329f68c1265764a'
-            '59257a54fe6bc8ec3930f905d16ca65675d673068dc0bdd1a319f36442de42f7'
-            '6e629d4a032165f39202a702ad518a050c9305f911595a43bc34ce0c1d45d36b'
+            '3d6d1e6374688c5f1abbc40b15c03c62f695e9d04d790556c57f8ec5d0d6a3f9'
             'd8dd84c26a44af618c6d1b68723e3bf0f8f50165af04fe090256afb0f931713e')
 
 # apply UKSM patch; TODO: note to self: don't forget to update the sum here during major version changes
@@ -210,7 +206,7 @@ prepare() {
   # WARN: mangle Makefile versions here if needed so patches apply cleanly
 
   # Monkey patch: apply kernel.org patches when mainline is slightly ahead of Xanmod official
-  patch -Np1 -i ../patch-5.13.13-14
+  patch -Np1 -i ../patch-5.14.1
 
   # Archlinux patches
   local src
