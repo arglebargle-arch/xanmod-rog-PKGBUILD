@@ -1,7 +1,7 @@
-From 8ea5da6ed72ed4870c1531f25293055be7b38da8 Mon Sep 17 00:00:00 2001
 From: "Luke D. Jones" <luke@ljones.dev>
-Date: Sun, 29 Aug 2021 13:21:23 +1200
-Subject: [PATCH v8] asus-wmi: Add support for custom fan curves
+Subject	[PATCH v9] asus-wmi: Add support for custom fan curves
+Date	Sat, 4 Sep 2021 16:32:50 +1200
+	
 
 Add support for custom fan curves found on some ASUS ROG laptops.
 
@@ -10,30 +10,34 @@ and GPU fans via an ACPI method call. This patch enables this,
 additionally enabling custom fan curves per-profile, where profile
 here means each of the 3 levels of "throttle_thermal_policy".
 
-This patch adds two blocks of attributes to the hwmon sysfs,
-1 block each for CPU and GPU fans.
+This patch adds two pwm<N> attributes to the hwmon sysfs,
+pwm1 for CPU fan, pwm2 for GPU fan. Both are under the hwmon of the
+name `asus_custom_fan_curve`.
 
-When the user switches profiles the associated curve data for that
-profile is then show/store enabled to allow users to rotate through
-the profiles and set a fan curve for each profile which then
-activates on profile switch if enabled.
+The fans have settings [1,2,3] under pwm<N>_enable:
+1. Enable and write settings out
+2. Disable and restore factory fan mode
+3. Same as 2, additionally restoring default factory curve.
+this is following `pwm[1-*]_enable`.
+
+Notes:
+- pwm<N>_enable = 0 is an invalid setting.
+- pwm is actually a percentage and is scaled on writing to device.
 
 Signed-off-by: Luke D. Jones <luke@ljones.dev>
 ---
- drivers/platform/x86/asus-wmi.c            | 613 ++++++++++++++++++++-
+ drivers/platform/x86/asus-wmi.c            | 646 ++++++++++++++++++++-
  include/linux/platform_data/x86/asus-wmi.h |   2 +
- 2 files changed, 611 insertions(+), 4 deletions(-)
+ 2 files changed, 644 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/platform/x86/asus-wmi.c b/drivers/platform/x86/asus-wmi.c
-index cc5811844012..dd9cb325b542 100644
+index cc5811844012..ee244b9ea57e 100644
 --- a/drivers/platform/x86/asus-wmi.c
 +++ b/drivers/platform/x86/asus-wmi.c
-@@ -106,8 +106,19 @@ module_param(fnlock_default, bool, 0444);
+@@ -106,8 +106,17 @@ module_param(fnlock_default, bool, 0444);
  
  #define WMI_EVENT_MASK			0xFFFF
  
-+/* The number of ASUS_THROTTLE_THERMAL_POLICY_* available */
-+#define FAN_CURVE_PROFILE_NUM	(ASUS_THROTTLE_THERMAL_POLICY_SILENT + 1)
 +#define FAN_CURVE_POINTS		8
 +#define FAN_CURVE_BUF_LEN		(FAN_CURVE_POINTS * 2)
 +#define FAN_CURVE_DEV_CPU		0x00
@@ -48,7 +52,7 @@ index cc5811844012..dd9cb325b542 100644
  static bool ashs_present(void)
  {
  	int i = 0;
-@@ -122,7 +133,8 @@ struct bios_args {
+@@ -122,7 +131,8 @@ struct bios_args {
  	u32 arg0;
  	u32 arg1;
  	u32 arg2; /* At least TUF Gaming series uses 3 dword input buffer. */
@@ -58,7 +62,7 @@ index cc5811844012..dd9cb325b542 100644
  	u32 arg5;
  } __packed;
  
-@@ -173,6 +185,19 @@ enum fan_type {
+@@ -173,6 +183,19 @@ enum fan_type {
  	FAN_TYPE_SPEC83,	/* starting in Spec 8.3, use CPU_FAN_CTRL */
  };
  
@@ -78,19 +82,19 @@ index cc5811844012..dd9cb325b542 100644
  struct asus_wmi {
  	int dsts_id;
  	int spec;
-@@ -220,6 +245,11 @@ struct asus_wmi {
+@@ -220,6 +243,11 @@ struct asus_wmi {
  	bool throttle_thermal_policy_available;
  	u8 throttle_thermal_policy_mode;
  
 +	bool cpu_fan_curve_available;
 +	bool gpu_fan_curve_available;
 +	/* [throttle modes][fan count] */
-+	struct fan_curve_data custom_fan_curves[FAN_CURVE_PROFILE_NUM][2];
++	struct fan_curve_data custom_fan_curves[2];
 +
  	struct platform_profile_handler platform_profile_handler;
  	bool platform_profile_support;
  
-@@ -285,6 +315,105 @@ int asus_wmi_evaluate_method(u32 method_id, u32 arg0, u32 arg1, u32 *retval)
+@@ -285,6 +313,105 @@ int asus_wmi_evaluate_method(u32 method_id, u32 arg0, u32 arg1, u32 *retval)
  }
  EXPORT_SYMBOL_GPL(asus_wmi_evaluate_method);
  
@@ -196,13 +200,27 @@ index cc5811844012..dd9cb325b542 100644
  static int asus_wmi_evaluate_method_agfn(const struct acpi_buffer args)
  {
  	struct acpi_buffer input;
-@@ -2043,6 +2172,471 @@ static ssize_t fan_boost_mode_store(struct device *dev,
+@@ -1806,6 +1933,13 @@ static ssize_t pwm1_enable_store(struct device *dev,
+ 	}
+ 
+ 	asus->fan_pwm_mode = state;
++
++	/* Must set to disabled if mode is toggled */
++	if (asus->cpu_fan_curve_available)
++		asus->custom_fan_curves[0].enabled = false;
++	if (asus->gpu_fan_curve_available)
++		asus->custom_fan_curves[1].enabled = false;
++
+ 	return count;
+ }
+ 
+@@ -2043,6 +2177,498 @@ static ssize_t fan_boost_mode_store(struct device *dev,
  // Fan boost mode: 0 - normal, 1 - overboost, 2 - silent
  static DEVICE_ATTR_RW(fan_boost_mode);
  
 +/* Custom fan curves per-profile **********************************************/
 +
-+static void init_fan_curve(struct fan_curve_data *data, u8 *buf)
++static void fan_curve_copy_from_buf(struct fan_curve_data *data, u8 *buf)
 +{
 +	int i;
 +
@@ -217,6 +235,44 @@ index cc5811844012..dd9cb325b542 100644
 +	}
 +}
 +
++static u8 fan_curve_throttle_to_wmi_index(struct asus_wmi *asus)
++{
++	u8 mode = 0;
++
++	if (asus->throttle_thermal_policy_available)
++		mode = asus->throttle_thermal_policy_mode;
++	/*
++	 * The index for ASUS_WMI_DEVID_<C/G>PU_FAN_CURVE is switched for
++	 * OVERBOOST vs SILENT.
++	 */
++	if (mode == 2)
++		mode = 1;
++	if (mode == 1)
++		mode = 2;
++
++	return mode;
++}
++
++static int fan_curve_get_factory_default(struct asus_wmi *asus, u32 fan_dev)
++{
++	u8 mode = fan_curve_throttle_to_wmi_index(asus);
++	int buf_len = FAN_CURVE_BUF_LEN;
++	struct fan_curve_data *curves;
++	u8 buf[FAN_CURVE_BUF_LEN];
++	int fan_idx = 0;
++	int err;
++
++	curves = &asus->custom_fan_curves[fan_idx];
++	err = asus_wmi_evaluate_method_buf(asus->dsts_id, fan_dev, mode, buf,
++					   buf_len);
++	if (err)
++		return err;
++
++	fan_curve_copy_from_buf(curves, buf);
++
++	return 0;
++}
++
 +/*
 + * Check if the ability to set fan curves on either fan exists, and populate
 + * with system defaults to provide users with a starting point.
@@ -226,94 +282,45 @@ index cc5811844012..dd9cb325b542 100644
 +static int fan_curve_check_present(struct asus_wmi *asus, bool *available,
 +				   u32 fan_dev)
 +{
-+	int buf_len = FAN_CURVE_BUF_LEN;
-+	struct fan_curve_data *curves;
-+	u8 buf[FAN_CURVE_BUF_LEN];
-+	int fan_idx = 0;
 +	int err;
 +
 +	*available = false;
-+	if (fan_dev == ASUS_WMI_DEVID_GPU_FAN_CURVE)
-+		fan_idx = 1;
 +
-+	/*
-+	 * Balanced default. The ASUS_WMI_DEVID_<C/G>PU_FAN_CURVE method needs
-+	* an argument of at least 0 overwise it will return 0 and no buffer of
-+	* defaults. GA401, GA502, GA503 all have 3 defaults to select from while
-+	* other machines like G713Q have a single default.
-+	 */
-+	curves = &asus->custom_fan_curves[ASUS_THROTTLE_THERMAL_POLICY_DEFAULT]
-+					 [fan_idx];
-+	err = asus_wmi_evaluate_method_buf(asus->dsts_id, fan_dev, 0, buf,
-+					   buf_len);
++	err = fan_curve_get_factory_default(asus, fan_dev);
 +	if (err) {
 +		if (err == -ENODEV)
 +			return 0;
 +		return err;
 +	}
-+	init_fan_curve(curves, buf);
 +
 +	*available = true;
-+	/* Early return for laptops with a single mode */
-+	if (!asus->throttle_thermal_policy_available)
-+		return 0;
-+
-+	/*
-+	 * Quiet default. The index num for ACPI method does not match the
-+	 * throttle_thermal number, same for Performance.
-+	 */
-+	curves = &asus->custom_fan_curves[ASUS_THROTTLE_THERMAL_POLICY_SILENT]
-+					 [fan_idx];
-+	err = asus_wmi_evaluate_method_buf(asus->dsts_id, fan_dev, 1, buf,
-+					   buf_len);
-+	if (err) {
-+		if (err == -ENODEV)
-+			return 0;
-+		return err;
-+	}
-+	init_fan_curve(curves, buf);
-+
-+	/* Performance default */
-+	curves =
-+		&asus->custom_fan_curves[ASUS_THROTTLE_THERMAL_POLICY_OVERBOOST]
-+					[fan_idx];
-+	err = asus_wmi_evaluate_method_buf(asus->dsts_id, fan_dev, 2, buf,
-+					   buf_len);
-+	if (err) {
-+		if (err == -ENODEV)
-+			return 0;
-+		return err;
-+	}
-+	init_fan_curve(curves, buf);
 +
 +	return 0;
 +}
 +
 +static struct fan_curve_data *
-+fan_curve_data_select(struct device *dev, struct device_attribute *attr)
++fan_curve_data_select(struct asus_wmi *asus, struct device_attribute *attr)
 +{
-+	struct asus_wmi *asus = dev_get_drvdata(dev);
++	/* Determine which fan the attribute is for */
 +	int nr = to_sensor_dev_attr_2(attr)->nr;
 +	int fan = nr & FAN_CURVE_DEV_GPU;
-+	u8 mode = 0;
 +
-+	if (asus->throttle_thermal_policy_available)
-+		mode = asus->throttle_thermal_policy_mode;
-+
-+	return &asus->custom_fan_curves[mode][fan];
++	return &asus->custom_fan_curves[fan];
 +}
 +
 +static ssize_t fan_curve_show(struct device *dev, struct device_attribute *attr,
 +			      char *buf)
 +{
-+	struct fan_curve_data *data = fan_curve_data_select(dev, attr);
++	struct asus_wmi *asus = dev_get_drvdata(dev);
++	struct fan_curve_data *data = fan_curve_data_select(asus, attr);
 +	int value;
 +
 +	int index = to_sensor_dev_attr_2(attr)->index;
-+	int nr = to_sensor_dev_attr_2(attr)->nr;
-+	int pwm = nr & FAN_CURVE_PWM_MASK;
 +
-+	if (pwm)
++	/* Determine if temperature or pwm */
++	int nr = to_sensor_dev_attr_2(attr)->nr;
++
++	if (nr & FAN_CURVE_PWM_MASK)
 +		value = data->percents[index];
 +	else
 +		value = data->temps[index];
@@ -324,26 +331,15 @@ index cc5811844012..dd9cb325b542 100644
 +/*
 + * "fan_dev" is the related WMI method such as ASUS_WMI_DEVID_CPU_FAN_CURVE.
 + */
-+static int fan_curve_write(struct asus_wmi *asus, u32 fan_dev,
-+			   struct fan_curve_data *data)
++static int fan_curve_write(struct asus_wmi *asus,
++			   struct device_attribute *attr, u32 fan_dev)
 +{
++	struct fan_curve_data *data = fan_curve_data_select(asus, attr);
++
 +	u32 arg1 = 0, arg2 = 0, arg3 = 0, arg4 = 0;
 +	int ret, i, shift = 0;
-+	u8 *temps;
-+	u8 *percents;
-+
-+	/*
-+	 * Some laptops without throttle_thermal require the stored defaults
-+	 * to be written back as we can't reset behaviour with a
-+	 * throttle_thermal mode change.
-+	 */
-+	if (data->enabled) {
-+		temps = data->temps;
-+		percents = data->percents;
-+	} else if (!asus->throttle_thermal_policy_available) {
-+		temps = data->default_temps;
-+		percents = data->default_percents;
-+	}
++	u8 *temps = data->temps;
++	u8 *percents = data->percents;
 +
 +	/* Args must be in a percentage */
 +	for (i = 0; i < FAN_CURVE_POINTS / 2; i++) {
@@ -362,27 +358,18 @@ index cc5811844012..dd9cb325b542 100644
 + * Called on curve enable/disable, and by throttle mode change to apply
 + * fan curves for any enabled fans.
 + */
-+static int fan_curve_write_data(struct asus_wmi *asus)
++static int fan_curve_write_data(struct asus_wmi *asus, struct device_attribute *attr)
 +{
-+	struct fan_curve_data *cpu;
-+	struct fan_curve_data *gpu;
-+	u8 mode = 0;
 +	int err;
 +
-+	if (asus->throttle_thermal_policy_available)
-+		mode = asus->throttle_thermal_policy_mode;
-+
-+	cpu = &asus->custom_fan_curves[mode][FAN_CURVE_DEV_CPU];
-+	gpu = &asus->custom_fan_curves[mode][FAN_CURVE_DEV_GPU];
-+
-+	if (asus->cpu_fan_curve_available && cpu->enabled) {
-+		err = fan_curve_write(asus, ASUS_WMI_DEVID_CPU_FAN_CURVE, cpu);
++	if (asus->cpu_fan_curve_available) {
++		err = fan_curve_write(asus, attr, ASUS_WMI_DEVID_CPU_FAN_CURVE);
 +		if (err)
 +			return err;
 +	}
 +
-+	if (asus->gpu_fan_curve_available && gpu->enabled) {
-+		err = fan_curve_write(asus, ASUS_WMI_DEVID_GPU_FAN_CURVE, gpu);
++	if (asus->gpu_fan_curve_available) {
++		err = fan_curve_write(asus, attr, ASUS_WMI_DEVID_GPU_FAN_CURVE);
 +		if (err)
 +			return err;
 +	}
@@ -419,7 +406,8 @@ index cc5811844012..dd9cb325b542 100644
 +			       struct device_attribute *attr, const char *buf,
 +			       size_t count)
 +{
-+	struct fan_curve_data *data = fan_curve_data_select(dev, attr);
++	struct asus_wmi *asus = dev_get_drvdata(dev);
++	struct fan_curve_data *data = fan_curve_data_select(asus, attr);
 +	u8 value, old_value;
 +	int err;
 +
@@ -467,35 +455,92 @@ index cc5811844012..dd9cb325b542 100644
 +static ssize_t fan_curve_enable_show(struct device *dev,
 +				     struct device_attribute *attr, char *buf)
 +{
-+	struct fan_curve_data *data = fan_curve_data_select(dev, attr);
++	struct asus_wmi *asus = dev_get_drvdata(dev);
++	struct fan_curve_data *data = fan_curve_data_select(asus, attr);
 +
 +	return sysfs_emit(buf, "%d\n", data->enabled);
++}
++
++static int fan_curve_set_default(struct asus_wmi *asus)
++{
++	int err;
++
++	err = fan_curve_get_factory_default(
++		asus, ASUS_WMI_DEVID_CPU_FAN_CURVE);
++	if (err)
++		return err;
++	err = fan_curve_get_factory_default(
++		asus, ASUS_WMI_DEVID_GPU_FAN_CURVE);
++	if (err)
++		return err;
++	return 0;
 +}
 +
 +static ssize_t fan_curve_enable_store(struct device *dev,
 +				      struct device_attribute *attr,
 +				      const char *buf, size_t count)
 +{
-+	struct fan_curve_data *data = fan_curve_data_select(dev, attr);
 +	struct asus_wmi *asus = dev_get_drvdata(dev);
-+	bool value;
++	struct fan_curve_data *data = fan_curve_data_select(asus, attr);
++	int value;
 +	int err;
 +
-+	err = kstrtobool(buf, &value);
++	err = kstrtoint(buf, 10, &value);
 +	if (err < 0)
 +		return err;
 +
-+	data->enabled = value;
++	switch (value) {
++	case 1:
++		data->enabled = true;
++		break;
++	case 2:
++		data->enabled = false;
++		break;
++	/* Auto + reset the fan curve data to defaults */
++	case 3:
++		err = fan_curve_set_default(asus);
++		if (err)
++			return err;
++		data->enabled = false;
++		break;
++	default:
++		return -EINVAL;
++	};
 +
-+	if (asus->throttle_thermal_policy_available)
-+		/*
-+		 * This calls fan_curve_write_data() after. This chain is
-+		 * required so we correctly reset fans to throttle_thermal
-+		 * then set(or not) enabled fans curve.
-+		 */
-+		throttle_thermal_policy_write(asus);
-+	else
-+		fan_curve_write_data(asus);
++	/*
++	 * For machines with throttle this is the only way to reset fans to
++	 * default mode of operation (does not erase curve data).
++	 */
++	if (asus->throttle_thermal_policy_available && !data->enabled) {
++		err = throttle_thermal_policy_write(asus);
++		if (err)
++			return err;
++	}
++	/* Similar is true for laptops with this fan */
++	if (asus->fan_type == FAN_TYPE_SPEC83) {
++		err = asus_fan_set_auto(asus);
++		if (err)
++			return err;
++	}
++	/*
++	 * Machines without either need to write their defaults back always.
++	 * This is more of a safeguard against ASUS faulty ACPI tables.
++	 */
++	if (!asus->throttle_thermal_policy_available
++	    && asus->fan_type != FAN_TYPE_SPEC83 && !data->enabled) {
++		err = fan_curve_set_default(asus);
++		if (err)
++			return err;
++		err = fan_curve_write_data(asus, attr);
++		if (err)
++			return err;
++	}
++
++	if (data->enabled) {
++		err = fan_curve_write_data(asus, attr);
++		if (err)
++			return err;
++	}
 +
 +	return count;
 +}
@@ -668,7 +713,7 @@ index cc5811844012..dd9cb325b542 100644
  /* Throttle thermal policy ****************************************************/
  
  static int throttle_thermal_policy_check_present(struct asus_wmi *asus)
-@@ -2053,8 +2647,8 @@ static int throttle_thermal_policy_check_present(struct asus_wmi *asus)
+@@ -2053,8 +2679,8 @@ static int throttle_thermal_policy_check_present(struct asus_wmi *asus)
  	asus->throttle_thermal_policy_available = false;
  
  	err = asus_wmi_get_devstate(asus,
@@ -679,20 +724,20 @@ index cc5811844012..dd9cb325b542 100644
  	if (err) {
  		if (err == -ENODEV)
  			return 0;
-@@ -2092,6 +2686,12 @@ static int throttle_thermal_policy_write(struct asus_wmi *asus)
+@@ -2092,6 +2718,12 @@ static int throttle_thermal_policy_write(struct asus_wmi *asus)
  		return -EIO;
  	}
  
-+	err = fan_curve_write_data(asus);
-+	if (err) {
-+		pr_warn("Failed to set custom fan curves: %d\n", err);
-+		return err;
-+	}
++	/* Must set to disabled if mode is toggled */
++	if (asus->cpu_fan_curve_available)
++		asus->custom_fan_curves[0].enabled = false;
++	if (asus->gpu_fan_curve_available)
++		asus->custom_fan_curves[1].enabled = false;
 +
  	return 0;
  }
  
-@@ -2904,7 +3504,7 @@ static int show_call(struct seq_file *m, void *data)
+@@ -2904,7 +3536,7 @@ static int show_call(struct seq_file *m, void *data)
  	if (ACPI_FAILURE(status))
  		return -EIO;
  
@@ -701,7 +746,7 @@ index cc5811844012..dd9cb325b542 100644
  	if (obj && obj->type == ACPI_TYPE_INTEGER)
  		seq_printf(m, "%#x(%#x, %#x) = %#x\n", asus->debug.method_id,
  			   asus->debug.dev_id, asus->debug.ctrl_param,
-@@ -3038,6 +3638,10 @@ static int asus_wmi_add(struct platform_device *pdev)
+@@ -3038,6 +3670,10 @@ static int asus_wmi_add(struct platform_device *pdev)
  	if (err)
  		goto fail_hwmon;
  
@@ -712,7 +757,7 @@ index cc5811844012..dd9cb325b542 100644
  	err = asus_wmi_led_init(asus);
  	if (err)
  		goto fail_leds;
-@@ -3109,6 +3713,7 @@ static int asus_wmi_add(struct platform_device *pdev)
+@@ -3109,6 +3745,7 @@ static int asus_wmi_add(struct platform_device *pdev)
  	asus_wmi_sysfs_exit(asus->platform_device);
  fail_sysfs:
  fail_throttle_thermal_policy:
@@ -720,6 +765,14 @@ index cc5811844012..dd9cb325b542 100644
  fail_platform_profile_setup:
  	if (asus->platform_profile_support)
  		platform_profile_remove();
+@@ -3134,6 +3771,7 @@ static int asus_wmi_remove(struct platform_device *device)
+ 	asus_wmi_debugfs_exit(asus);
+ 	asus_wmi_sysfs_exit(asus->platform_device);
+ 	asus_fan_set_auto(asus);
++	throttle_thermal_policy_set_default(asus);
+ 	asus_wmi_battery_exit(asus);
+ 
+ 	if (asus->platform_profile_support)
 diff --git a/include/linux/platform_data/x86/asus-wmi.h b/include/linux/platform_data/x86/asus-wmi.h
 index 17dc5cb6f3f2..a571b47ff362 100644
 --- a/include/linux/platform_data/x86/asus-wmi.h
@@ -735,4 +788,3 @@ index 17dc5cb6f3f2..a571b47ff362 100644
  #define ASUS_WMI_DEVID_PROCESSOR_STATE	0x00120012
 -- 
 2.31.1
-
