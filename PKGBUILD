@@ -2,6 +2,8 @@
 # Contributor: Torge Matthies <openglfreak at googlemail dot com>
 # Contributor: Jan Alexander Steffens (heftig) <jan.steffens@gmail.com>
 
+# shellcheck disable=SC2034,SC2164
+
 ##
 ## The following variables can be customized at build time. Use env or export to change at your wish
 ##
@@ -24,7 +26,7 @@ if [ -z ${use_numa+x} ]; then
 fi
 
 ## For performance you can disable FUNCTION_TRACER/GRAPH_TRACER. Limits debugging and analyzing of the kernel.
-## Stock Archlinux and Xanmod have this enabled. 
+## Stock Archlinux and Xanmod have this enabled.
 ## Set variable "use_tracers" to: n to disable (possibly increase performance)
 ##                                y to enable  (stock default)
 if [ -z ${use_tracers+x} ]; then
@@ -49,7 +51,7 @@ fi
 # This PKGBUILD read the database kept if it exists
 #
 # More at this wiki page ---> https://wiki.archlinux.org/index.php/Modprobed-db
-if [ -z ${_localmodcfg} ]; then
+if [ -z ${_localmodcfg+x} ]; then
   _localmodcfg=n
 fi
 
@@ -91,7 +93,7 @@ validpgpkeys=(
 # Archlinux patches
 _commit="ec9e9a4219fe221dec93fa16fddbe44a34933d8d"
 _patches=()
-for _patch in ${_patches[@]}; do
+for _patch in "${_patches[@]}"; do
     #source+=("${_patch}::https://git.archlinux.org/svntogit/packages.git/plain/trunk/${_patch}?h=packages/linux&id=${_commit}")
     source+=("${_patch}::https://raw.githubusercontent.com/archlinux/svntogit-packages/${_commit}/trunk/${_patch}")
 done
@@ -105,8 +107,9 @@ export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
 export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-makepkg}
 export KBUILD_BUILD_TIMESTAMP=${KBUILD_BUILD_TIMESTAMP:-$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})}
 
+# shellcheck disable=SC2154,SC2155
 prepare() {
-  cd linux-${_major}
+  cd "linux-${_major}"
 
   # Apply Xanmod patch
   patch -Np1 -i ../patch-${pkgver}-xanmod${xanmod}
@@ -161,7 +164,7 @@ prepare() {
   fi
 
   # Let's user choose microarchitecture optimization in GCC
-  sh ${srcdir}/choose-gcc-optimization.sh $_microarchitecture
+  sh "${srcdir}/choose-gcc-optimization.sh" $_microarchitecture
   # Disable CONFIG_GENERIC_CPU2 if we have choosen another microarchitecture
   # https://github.com/xanmod/linux/issues/240
   [ "$_microarchitecture" = "0" ] || scripts/config --disable CONFIG_GENERIC_CPU2
@@ -189,9 +192,9 @@ prepare() {
   ### Optionally load needed modules for the make localmodconfig
   # See https://aur.archlinux.org/packages/modprobed-db
   if [ "$_localmodcfg" = "y" ]; then
-    if [ -f $HOME/.config/modprobed.db ]; then
+    if [ -f "$HOME/.config/modprobed.db" ]; then
       msg2 "Running Steven Rostedt's make localmodconfig now"
-      make LLVM=$_LLVM LLVM_IAS=$_LLVM LSMOD=$HOME/.config/modprobed.db localmodconfig
+      make LLVM=$_LLVM LLVM_IAS=$_LLVM LSMOD="$HOME/.config/modprobed.db" localmodconfig
     else
       msg2 "No modprobed.db data found"
       exit 1
@@ -210,17 +213,18 @@ prepare() {
 }
 
 build() {
-  cd linux-${_major}
+  cd "linux-${_major}"
   make LLVM=$_LLVM LLVM_IAS=$_LLVM all
 }
 
+# shellcheck disable=SC2154,SC2155
 _package() {
   pkgdesc="The Linux kernel and modules with Xanmod patches"
   depends=(coreutils kmod initramfs)
   optdepends=('crda: to set the correct wireless channels of your country'
               'linux-firmware: firmware images needed for some devices')
 
-  cd linux-${_major}
+  cd "linux-${_major}"
   local kernver="$(<version)"
   local modulesdir="$pkgdir/usr/lib/modules/$kernver"
 
@@ -239,11 +243,12 @@ _package() {
   rm "$modulesdir"/{source,build}
 }
 
+# shellcheck disable=SC2154,SC2155
 _package-headers() {
   pkgdesc="Headers and scripts for building modules for the $pkgdesc kernel"
   depends=(pahole)
 
-  cd linux-${_major}
+  cd "linux-${_major}"
   local builddir="$pkgdir/usr/lib/modules/$(<version)/build"
 
   msg2 "Installing build files..."
@@ -303,19 +308,18 @@ _package-headers() {
   while read -rd '' file; do
     case "$(file -bi "$file")" in
       application/x-sharedlib\;*)      # Libraries (.so)
-        strip -v $STRIP_SHARED "$file" ;;
+        strip -v "$STRIP_SHARED" "$file" ;;
       application/x-archive\;*)        # Libraries (.a)
-        strip -v $STRIP_STATIC "$file" ;;
+        strip -v "$STRIP_STATIC" "$file" ;;
       application/x-executable\;*)     # Binaries
-        strip -v $STRIP_BINARIES "$file" ;;
+        strip -v "$STRIP_BINARIES" "$file" ;;
       application/x-pie-executable\;*) # Relocatable binaries
-        strip -v $STRIP_SHARED "$file" ;;
+        strip -v "$STRIP_SHARED" "$file" ;;
     esac
   done < <(find "$builddir" -type f -perm -u+x ! -name vmlinux -print0)
 
   msg2 "Stripping vmlinux..."
-  strip -v $STRIP_STATIC "$builddir/vmlinux"
-  
+  strip -v "$STRIP_STATIC" "$builddir/vmlinux"
   msg2 "Adding symlink..."
   mkdir -p "$pkgdir/usr/src"
   ln -sr "$builddir" "$pkgdir/usr/src/$pkgbase"
@@ -324,8 +328,8 @@ _package-headers() {
 pkgname=("${pkgbase}" "${pkgbase}-headers")
 for _p in "${pkgname[@]}"; do
   eval "package_$_p() {
-    $(declare -f "_package${_p#$pkgbase}")
-    _package${_p#$pkgbase}
+    $(declare -f "_package${_p#"$pkgbase"}")
+    _package${_p#"$pkgbase"}
   }"
 done
 
