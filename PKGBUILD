@@ -74,6 +74,7 @@ makedepends=(
 )
 if [ "${_compiler}" = "clang" ]; then
   makedepends+=(clang llvm lld python)
+  _LLVM=1
 fi
 options=('!strip')
 _srcname="linux-${pkgver}-xanmod${xanmod}"
@@ -131,7 +132,6 @@ prepare() {
   if [ "${_compiler}" = "clang" ]; then
     scripts/config --disable LTO_CLANG_FULL
     scripts/config --enable LTO_CLANG_THIN
-    _LLVM=1
   fi
 
   # CONFIG_STACK_VALIDATION gives better stack traces. Also is enabled in all official kernel packages by Archlinux team
