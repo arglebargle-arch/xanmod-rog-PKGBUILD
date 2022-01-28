@@ -13,35 +13,28 @@
 ## Valid numbers between: 0 to 99
 ## Default is: 0 => generic
 ## Good option if your package is for one machine: 98 (Intel native) or 99 (AMD native)
-if [ -z ${_microarchitecture+x} ]; then
-  _microarchitecture=0
-fi
+: "${_microarchitecture:=0}"
 
 ## Disable NUMA since most users do not have multiple processors. Breaks CUDA/NvEnc.
 ## Archlinux and Xanmod enable it by default.
 ## Set variable "use_numa" to: n to disable (possibly increase performance)
 ##                             y to enable  (stock default)
-if [ -z ${use_numa+x} ]; then
-  use_numa=y
-fi
+: "${use_numa:=y}"
 
 ## For performance you can disable FUNCTION_TRACER/GRAPH_TRACER. Limits debugging and analyzing of the kernel.
 ## Stock Archlinux and Xanmod have this enabled.
 ## Set variable "use_tracers" to: n to disable (possibly increase performance)
 ##                                y to enable  (stock default)
-if [ -z ${use_tracers+x} ]; then
-  use_tracers=y
-fi
+: "${use_tracers:=y}"
 
 ## Choose between GCC and CLANG config (default is GCC)
-if [ -z ${_compiler+x} ]; then
-  _compiler=gcc
-fi
+case "${_compiler,,}" in
+  "clang" | "gcc") _compiler=${_compiler,,} ;; # tolower, simplifes later checks
+                *) _compiler=gcc            ;; # default to GCC
+esac
 
 # Compress modules with ZSTD (to save disk space)
-if [ -z ${_compress_modules+x} ]; then
-  _compress_modules=n
-fi
+: "${_compress_modules:=n}"
 
 # Compile ONLY used modules to VASTLY reduce the number of modules built
 # and the build time.
@@ -51,9 +44,7 @@ fi
 # This PKGBUILD read the database kept if it exists
 #
 # More at this wiki page ---> https://wiki.archlinux.org/index.php/Modprobed-db
-if [ -z ${_localmodcfg+x} ]; then
-  _localmodcfg=n
-fi
+: "${_localmodcfg:=n}"
 
 # Tweak kernel options prior to a build via nconfig
 _makenconfig=
