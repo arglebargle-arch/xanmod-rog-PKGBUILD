@@ -1,9 +1,67 @@
-From 90682ad69b16996c156439a80d5e095c99c55c51 Mon Sep 17 00:00:00 2001
+From de2a7ca2400ca31f6da4bc08e043c489b8152d07 Mon Sep 17 00:00:00 2001
 From: Scott B <arglebargle@arglebargle.dev>
-Date: Wed, 23 Feb 2022 09:27:11 -0800
-Subject: [PATCH] v5.16.11 s0ix patch 2022-02-23
+Date: Thu, 24 Feb 2022 19:00:23 -0800
+Subject: [PATCH] v5.16.11 s0ix patch 2022-02-24
 
 Squashed commit of the following:
+
+commit 2cbfd72866c26f982d39c4373db5cf3f74f667e1
+Author: Mario Limonciello <mario.limonciello@amd.com>
+Date:   Wed Feb 23 11:52:37 2022 -0600
+
+    platform/x86: amd-pmc: Set QOS during suspend on CZN w/ timer wakeup
+
+    commit 59348401ebed ("platform/x86: amd-pmc: Add special handling for
+    timer based S0i3 wakeup") adds support for using another platform timer
+    in lieu of the RTC which doesn't work properly on some systems. This path
+    was validated and worked well before submission. During the 5.16-rc1 merge
+    window other patches were merged that caused this to stop working properly.
+
+    When this feature was used with 5.16-rc1 or later some OEM laptops with the
+    matching firmware requirements from that commit would shutdown instead of
+    program a timer based wakeup.
+
+    This was bisected to commit 8d89835b0467 ("PM: suspend: Do not pause
+    cpuidle in the suspend-to-idle path").  This wasn't supposed to cause any
+    negative impacts and also tested well on both Intel and ARM platforms.
+    However this changed the semantics of when CPUs are allowed to be in the
+    deepest state. For the AMD systems in question it appears this causes a
+    firmware crash for timer based wakeup.
+
+    It's hypothesized to be caused by the `amd-pmc` driver sending `OS_HINT`
+    and all the CPUs going into a deep state while the timer is still being
+    programmed. It's likely a firmware bug, but to avoid it don't allow setting
+    CPUs into the deepest state while using CZN timer wakeup path.
+
+    If later it's discovered that this also occurs from "regular" suspends
+    without a timer as well or on other silicon, this may be later expanded to
+    run in the suspend path for more scenarios.
+
+    Cc: stable@vger.kernel.org # 5.16+
+    Suggested-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+    Link: https://lore.kernel.org/linux-acpi/BL1PR12MB51570F5BD05980A0DCA1F3F4E23A9@BL1PR12MB5157.namprd12.prod.outlook.com/T/#mee35f39c41a04b624700ab2621c795367f19c90e
+    Fixes: 8d89835b0467 ("PM: suspend: Do not pause cpuidle in the suspend-to-idle path")
+    Fixes: 23f62d7ab25b ("PM: sleep: Pause cpuidle later and resume it earlier during system transitions")
+    Fixes: 59348401ebed ("platform/x86: amd-pmc: Add special handling for timer based S0i3 wakeup"
+    Reviewed-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+    Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
+    Link: https://lore.kernel.org/r/20220223175237.6209-1-mario.limonciello@amd.com
+    Reviewed-by: Hans de Goede <hdegoede@redhat.com>
+    Signed-off-by: Hans de Goede <hdegoede@redhat.com>
+
+commit 2f1ed8ceea523bf6d579723c15babab1bb298cda
+Author: Leo (Hanghong) Ma <hanghong.ma@amd.com>
+Date:   Fri Nov 12 10:11:35 2021 -0500
+
+    drm/amd/display: Reduce dmesg error to a debug print
+
+    [Why & How]
+    Dmesg errors are found on dcn3.1 during reset test, but it's not
+    a really failure. So reduce it to a debug print.
+
+    Signed-off-by: Leo (Hanghong) Ma <hanghong.ma@amd.com>
+    Reviewed-by: Nicholas Kazlauskas <nicholas.kazlauskas@amd.com>
+    Signed-off-by: Alex Deucher <alexander.deucher@amd.com>
 
 commit c763db38d7a8d5ecc7db0d2a2227027b6c0a06e5
 Author: Scott B <arglebargle@arglebargle.dev>
@@ -62,10 +120,11 @@ Date:   Thu Nov 25 19:45:42 2021 +0800
     Reviewed-by: Kevin Yang <kevinyang.wang@amd.com>
     Signed-off-by: Alex Deucher <alexander.deucher@amd.com>
 ---
- drivers/acpi/x86/s2idle.c                 |  12 +-
- drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c |   6 +-
- drivers/platform/x86/amd-pmc.c            | 172 ++++++++++++++++++++--
- 3 files changed, 170 insertions(+), 20 deletions(-)
+ drivers/acpi/x86/s2idle.c                     |  12 +-
+ .../gpu/drm/amd/display/dc/core/dc_link_dp.c  |   2 +-
+ drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c     |   6 +-
+ drivers/platform/x86/amd-pmc.c                | 204 ++++++++++++++++--
+ 4 files changed, 199 insertions(+), 25 deletions(-)
 
 diff --git a/drivers/acpi/x86/s2idle.c b/drivers/acpi/x86/s2idle.c
 index e0185e841b2a..1c48358b43ba 100644
@@ -91,6 +150,19 @@ index e0185e841b2a..1c48358b43ba 100644
  
  	return 0;
  }
+diff --git a/drivers/gpu/drm/amd/display/dc/core/dc_link_dp.c b/drivers/gpu/drm/amd/display/dc/core/dc_link_dp.c
+index 94e75199d942..6e62596a0223 100644
+--- a/drivers/gpu/drm/amd/display/dc/core/dc_link_dp.c
++++ b/drivers/gpu/drm/amd/display/dc/core/dc_link_dp.c
+@@ -4454,7 +4454,7 @@ bool dp_retrieve_lttpr_cap(struct dc_link *link)
+ 				lttpr_dpcd_data,
+ 				sizeof(lttpr_dpcd_data));
+ 		if (status != DC_OK) {
+-			dm_error("%s: Read LTTPR caps data failed.\n", __func__);
++			DC_LOG_DP2("%s: Read LTTPR caps data failed.\n", __func__);
+ 			return false;
+ 		}
+ 
 diff --git a/drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c b/drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c
 index 9d7d64fdf410..8a05b28f7365 100644
 --- a/drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c
@@ -110,10 +182,18 @@ index 9d7d64fdf410..8a05b28f7365 100644
  	switch (block_type) {
  	/*
 diff --git a/drivers/platform/x86/amd-pmc.c b/drivers/platform/x86/amd-pmc.c
-index 8c74733530e3..9b6dc15547f5 100644
+index 8c74733530e3..24603bd00a3d 100644
 --- a/drivers/platform/x86/amd-pmc.c
 +++ b/drivers/platform/x86/amd-pmc.c
-@@ -35,6 +35,12 @@
+@@ -21,6 +21,7 @@
+ #include <linux/module.h>
+ #include <linux/pci.h>
+ #include <linux/platform_device.h>
++#include <linux/pm_qos.h>
+ #include <linux/rtc.h>
+ #include <linux/suspend.h>
+ #include <linux/seq_file.h>
+@@ -35,6 +36,12 @@
  #define AMD_PMC_SCRATCH_REG_CZN		0x94
  #define AMD_PMC_SCRATCH_REG_YC		0xD14
  
@@ -126,7 +206,13 @@ index 8c74733530e3..9b6dc15547f5 100644
  /* Base address of SMU for mapping physical address to virtual address */
  #define AMD_PMC_SMU_INDEX_ADDRESS	0xB8
  #define AMD_PMC_SMU_INDEX_DATA		0xBC
-@@ -82,6 +88,7 @@
+@@ -79,9 +86,13 @@
+ #define PMC_MSG_DELAY_MIN_US		50
+ #define RESPONSE_REGISTER_LOOP_MAX	20000
+ 
++/* QoS request for letting CPUs in idle states, but not the deepest */
++#define AMD_PMC_MAX_IDLE_STATE_LATENCY	3
++
  #define SOC_SUBSYSTEM_IP_MAX	12
  #define DELAY_MIN_US		2000
  #define DELAY_MAX_US		3000
@@ -134,12 +220,13 @@ index 8c74733530e3..9b6dc15547f5 100644
  enum amd_pmc_def {
  	MSG_TEST = 0x01,
  	MSG_OS_HINT_PCO,
-@@ -122,14 +129,21 @@ struct amd_pmc_dev {
+@@ -122,14 +133,22 @@ struct amd_pmc_dev {
  	u8 minor;
  	u8 rev;
  	struct device *dev;
 +	struct pci_dev *rdev;
  	struct mutex lock; /* generic mutex lock */
++	struct pm_qos_request amd_pmc_pm_qos_req;
  #if IS_ENABLED(CONFIG_DEBUG_FS)
  	struct dentry *dbgfs_dir;
  #endif /* CONFIG_DEBUG_FS */
@@ -156,7 +243,7 @@ index 8c74733530e3..9b6dc15547f5 100644
  
  static inline u32 amd_pmc_reg_read(struct amd_pmc_dev *dev, int reg_offset)
  {
-@@ -178,6 +192,50 @@ static int amd_pmc_get_smu_version(struct amd_pmc_dev *dev)
+@@ -178,6 +197,50 @@ static int amd_pmc_get_smu_version(struct amd_pmc_dev *dev)
  	return 0;
  }
  
@@ -207,7 +294,7 @@ index 8c74733530e3..9b6dc15547f5 100644
  static int amd_pmc_idlemask_read(struct amd_pmc_dev *pdev, struct device *dev,
  				 struct seq_file *s)
  {
-@@ -291,6 +349,10 @@ static void amd_pmc_dbgfs_register(struct amd_pmc_dev *dev)
+@@ -291,6 +354,10 @@ static void amd_pmc_dbgfs_register(struct amd_pmc_dev *dev)
  			    &s0ix_stats_fops);
  	debugfs_create_file("amd_pmc_idlemask", 0644, dev->dbgfs_dir, dev,
  			    &amd_pmc_idlemask_fops);
@@ -218,36 +305,77 @@ index 8c74733530e3..9b6dc15547f5 100644
  }
  #else
  static inline void amd_pmc_dbgfs_register(struct amd_pmc_dev *dev)
-@@ -487,6 +549,13 @@ static int __maybe_unused amd_pmc_suspend(struct device *dev)
- 	if (rc)
- 		dev_err(pdev->dev, "suspend failed\n");
+@@ -459,6 +526,14 @@ static int amd_pmc_verify_czn_rtc(struct amd_pmc_dev *pdev, u32 *arg)
+ 	rc = rtc_alarm_irq_enable(rtc_device, 0);
+ 	dev_dbg(pdev->dev, "wakeup timer programmed for %lld seconds\n", duration);
  
-+	if (enable_stb)
-+		rc = amd_pmc_write_stb(pdev, AMD_PMC_STB_PREDEF);
-+	if (rc)	{
-+		dev_err(pdev->dev, "error writing to STB\n");
-+		return rc;
-+	}
++	/*
++	 * Prevent CPUs from getting into deep idle states while sending OS_HINT
++	 * which is otherwise generally safe to send when at least one of the CPUs
++	 * is not in deep idle states.
++	 */
++	cpu_latency_qos_update_request(&pdev->amd_pmc_pm_qos_req, AMD_PMC_MAX_IDLE_STATE_LATENCY);
++	wake_up_all_idle_cpus();
 +
  	return rc;
  }
  
-@@ -507,6 +576,14 @@ static int __maybe_unused amd_pmc_resume(struct device *dev)
+@@ -476,17 +551,31 @@ static int __maybe_unused amd_pmc_suspend(struct device *dev)
+ 	/* Activate CZN specific RTC functionality */
+ 	if (pdev->cpu_id == AMD_CPU_ID_CZN) {
+ 		rc = amd_pmc_verify_czn_rtc(pdev, &arg);
+-		if (rc < 0)
+-			return rc;
++		if (rc)
++			goto fail;
+ 	}
+ 
+ 	/* Dump the IdleMask before we send hint to SMU */
+ 	amd_pmc_idlemask_read(pdev, dev, NULL);
+ 	msg = amd_pmc_get_os_hint(pdev);
+ 	rc = amd_pmc_send_cmd(pdev, arg, NULL, msg, 0);
+-	if (rc)
++	if (rc) {
+ 		dev_err(pdev->dev, "suspend failed\n");
++		goto fail;
++	}
+ 
++	if (enable_stb)
++		rc = amd_pmc_write_stb(pdev, AMD_PMC_STB_PREDEF);
++	if (rc) {
++		dev_err(pdev->dev, "error writing to STB\n");
++		goto fail;
++	}
++
++	return 0;
++fail:
++	if (pdev->cpu_id == AMD_CPU_ID_CZN)
++		cpu_latency_qos_update_request(&pdev->amd_pmc_pm_qos_req,
++						PM_QOS_DEFAULT_VALUE);
+ 	return rc;
+ }
+ 
+@@ -507,7 +596,18 @@ static int __maybe_unused amd_pmc_resume(struct device *dev)
  	/* Dump the IdleMask to see the blockers */
  	amd_pmc_idlemask_read(pdev, dev, NULL);
  
+-	return 0;
 +	/* Write data incremented by 1 to distinguish in stb_read */
 +	if (enable_stb)
 +		rc = amd_pmc_write_stb(pdev, AMD_PMC_STB_PREDEF + 1);
-+	if (rc)	{
++	if (rc)
 +		dev_err(pdev->dev, "error writing to STB\n");
-+		return rc;
-+	}
 +
- 	return 0;
++	/* Restore the QoS request back to defaults if it was set */
++	if (pdev->cpu_id == AMD_CPU_ID_CZN)
++		cpu_latency_qos_update_request(&pdev->amd_pmc_pm_qos_req,
++						PM_QOS_DEFAULT_VALUE);
++
++	return rc;
  }
  
-@@ -524,6 +601,62 @@ static const struct pci_device_id pmc_pci_ids[] = {
+ static const struct dev_pm_ops amd_pmc_pm_ops = {
+@@ -524,6 +624,62 @@ static const struct pci_device_id pmc_pci_ids[] = {
  	{ }
  };
  
@@ -310,7 +438,7 @@ index 8c74733530e3..9b6dc15547f5 100644
  static int amd_pmc_probe(struct platform_device *pdev)
  {
  	struct amd_pmc_dev *dev = &pmc;
-@@ -537,22 +670,23 @@ static int amd_pmc_probe(struct platform_device *pdev)
+@@ -537,22 +693,23 @@ static int amd_pmc_probe(struct platform_device *pdev)
  
  	rdev = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(0, 0));
  	if (!rdev || !pci_match_id(pmc_pci_ids, rdev)) {
@@ -340,7 +468,7 @@ index 8c74733530e3..9b6dc15547f5 100644
  	}
  
  	base_addr_lo = val & AMD_PMC_BASE_ADDR_HI_MASK;
-@@ -560,24 +694,25 @@ static int amd_pmc_probe(struct platform_device *pdev)
+@@ -560,24 +717,25 @@ static int amd_pmc_probe(struct platform_device *pdev)
  	err = pci_write_config_dword(rdev, AMD_PMC_SMU_INDEX_ADDRESS, AMD_PMC_BASE_ADDR_HI);
  	if (err) {
  		dev_err(dev->dev, "error writing to 0x%x\n", AMD_PMC_SMU_INDEX_ADDRESS);
@@ -373,7 +501,7 @@ index 8c74733530e3..9b6dc15547f5 100644
  
  	mutex_init(&dev->lock);
  
-@@ -586,8 +721,10 @@ static int amd_pmc_probe(struct platform_device *pdev)
+@@ -586,8 +744,10 @@ static int amd_pmc_probe(struct platform_device *pdev)
  	base_addr_hi = FCH_BASE_PHY_ADDR_HIGH;
  	fch_phys_addr = ((u64)base_addr_hi << 32 | base_addr_lo);
  	dev->fch_virt_addr = devm_ioremap(dev->dev, fch_phys_addr, FCH_SSC_MAPPING_SIZE);
@@ -386,9 +514,11 @@ index 8c74733530e3..9b6dc15547f5 100644
  
  	/* Use SMU to get the s0i3 debug stats */
  	err = amd_pmc_setup_smu_logging(dev);
-@@ -598,6 +735,10 @@ static int amd_pmc_probe(struct platform_device *pdev)
+@@ -597,7 +757,12 @@ static int amd_pmc_probe(struct platform_device *pdev)
+ 	amd_pmc_get_smu_version(dev);
  	platform_set_drvdata(pdev, dev);
  	amd_pmc_dbgfs_register(dev);
++	cpu_latency_qos_add_request(&dev->amd_pmc_pm_qos_req, PM_QOS_DEFAULT_VALUE);
  	return 0;
 +
 +err_pci_dev_put:
@@ -397,7 +527,7 @@ index 8c74733530e3..9b6dc15547f5 100644
  }
  
  static int amd_pmc_remove(struct platform_device *pdev)
-@@ -605,6 +746,7 @@ static int amd_pmc_remove(struct platform_device *pdev)
+@@ -605,6 +770,7 @@ static int amd_pmc_remove(struct platform_device *pdev)
  	struct amd_pmc_dev *dev = platform_get_drvdata(pdev);
  
  	amd_pmc_dbgfs_unregister(dev);
