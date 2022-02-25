@@ -110,6 +110,9 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "Bluetooth-btintel-Fix-bdaddress-comparison-with-garb.patch"
         "Bluetooth-Read-codec-capabilities-only-if-supported.patch"
         "Bluetooth-fix-deadlock-for-RFCOMM-sk-state-change.patch"
+        #"mt76-mt7921-add-support-for-PCIe-ID-0x0608-0x0616.patch"
+        "mt76-mt7921-reduce-log-severity-levels-for-informative.patch"
+        "Revert-NFSv4.1-query-for-fs_location-attr-on-a-new-file.patch"
 
         # hotfix: address btrfs autodefrag excessive utilization
         "btrfs-fix-autodefrag-on-5.16.9.patch"
@@ -186,6 +189,8 @@ sha256sums=('027d7e8988bb69ac12ee92406c3be1fe13f990b1ca2249e226225cd1573308bb'
             '241f01f06849fcec462d72355ca3ab6bd34931731dec89876d785912ac532398'
             'dd01bd3f774c3a9af42b6d89f534f39c4a5f200db32cd6d4b72a29325645100e'
             'a9647897e59b04cb883dcf649b3108e9397d5a6c672bc545ea0c6bb7bb30d5a9'
+            '24d975b9a9226ce7ade93e70d61ed1cc69d35fd09ebc30b9826339d0b27a0274'
+            'efd9bd12ef07da8e9c6144097a22c27026a372d4ef5c51b85d363df68f4102c8'
             'd8ba1c49cc16eaf9ed9f18ba414cff2d5f96f8070690d42e3cc57b95b4b3c7c1'
             '3bb1cf422c64b4eea324b71048d0bdee04b5f9132136c6a4774e5205e45c46f1'
             '5c6c7778bc2d873657a885272956e232138b8b4935c3a3d6b11ef1619d344b20'
