@@ -1,100 +1,56 @@
-From 1f4c4df109be4d32a0132a4b5ea777c14ef9c140 Mon Sep 17 00:00:00 2001
+From 8760d00dc8c3cf351bdd24595254afbf46205784 Mon Sep 17 00:00:00 2001
 From: Scott B <arglebargle@arglebargle.dev>
-Date: Sun, 20 Feb 2022 16:54:12 -0800
-Subject: [PATCH] btrfs fix autodefrag on 5.16.11
+Date: Mon, 28 Feb 2022 21:48:59 -0800
+Subject: [PATCH] btrfs autodefrag fixup and safe perf from -next
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
 Squashed commit of the following:
 
-commit f70af2b739bf69422d1861afc915ead50b7a4a99
+commit 1a64afc8acd84c4c605048b7a5e29b0bb86cded7
 Author: Qu Wenruo <wqu@suse.com>
-Date:   Fri Feb 11 14:46:13 2022 +0800
+Date:   Thu Feb 24 20:28:41 2022 +0800
 
-    btrfs: defrag: don't use merged extent map for their generation check
+    btrfs: add trace events for defrag
 
-    For extent maps, if they are not compressed extents and are adjacent by
-    logical addresses and file offsets, they can be merged into one larger
-    extent map.
+    This patch will introduce the following trace events:
 
-    Such merged extent map will have the higher generation of all the
-    original ones.
+    - trace_defrag_add_target()
+    - trace_defrag_one_locked_range()
+    - trace_defrag_file_start()
+    - trace_defrag_file_end()
 
-    But this brings a problem for autodefrag, as it relies on accurate
-    extent_map::generation to determine if one extent should be defragged.
+    Under most cases, all of them are needed to debug policy related defrag
+    bugs.
 
-    For merged extent maps, their higher generation can mark some older
-    extents to be defragged while the original extent map doesn't meet the
-    minimal generation threshold.
+    The example output would look like this: (with TASK, CPU, TIMESTAMP and
+    UUID skipped)
 
-    Thus this will cause extra IO.
+     defrag_file_start: <UUID>: root=5 ino=257 start=0 len=131072 extent_thresh=262144 newer_than=7 flags=0x0 compress=0 max_sectors_to_defrag=1024
+     defrag_add_target: <UUID>: root=5 ino=257 target_start=0 target_len=4096 found em=0 len=4096 generation=7
+     defrag_add_target: <UUID>: root=5 ino=257 target_start=4096 target_len=4096 found em=4096 len=4096 generation=7
+    ...
+     defrag_add_target: <UUID>: root=5 ino=257 target_start=57344 target_len=4096 found em=57344 len=4096 generation=7
+     defrag_add_target: <UUID>: root=5 ino=257 target_start=61440 target_len=4096 found em=61440 len=4096 generation=7
+     defrag_add_target: <UUID>: root=5 ino=257 target_start=0 target_len=4096 found em=0 len=4096 generation=7
+     defrag_add_target: <UUID>: root=5 ino=257 target_start=4096 target_len=4096 found em=4096 len=4096 generation=7
+    ...
+     defrag_add_target: <UUID>: root=5 ino=257 target_start=57344 target_len=4096 found em=57344 len=4096 generation=7
+     defrag_add_target: <UUID>: root=5 ino=257 target_start=61440 target_len=4096 found em=61440 len=4096 generation=7
+     defrag_one_locked_range: <UUID>: root=5 ino=257 start=0 len=65536
+     defrag_file_end: <UUID>: root=5 ino=257 sectors_defragged=16 last_scanned=131072 ret=0
 
-    So solve the problem, here we introduce a new flag, EXTENT_FLAG_MERGED, to
-    indicate if the extent map is merged from one or more ems.
-
-    And for autodefrag, if we find a merged extent map, and its generation
-    meets the generation requirement, we just don't use this one, and go
-    back to defrag_get_extent() to read extent maps from subvolume trees.
-
-    This could cause more read IO, but should result less defrag data write,
-    so in the long run it should be a win for autodefrag.
+    Although the defrag_add_target() part is lengthy, it shows some details
+    of the extent map we get.
+    With the extra info from defrag_file_start(), we can check if the target
+    em is correct for our defrag policy.
 
     Signed-off-by: Qu Wenruo <wqu@suse.com>
 
-commit 5ba239302f390a93c21143be59e00bfbfaf8e0d8
+commit de9e302a9494369d693b3b0a25080c5fc3234d54
 Author: Qu Wenruo <wqu@suse.com>
-Date:   Fri Feb 11 14:46:12 2022 +0800
-
-    btrfs: defrag: bring back the old file extent search behavior
-
-    For defrag, we don't really want to use btrfs_get_extent() to iterate
-    all extent maps of an inode.
-
-    The reasons are:
-
-    - btrfs_get_extent() can merge extent maps
-      And the result em has the higher generation of the two, causing defrag
-      to mark unnecessary part of such merged large extent map.
-
-      This in fact can result extra IO for autodefrag in v5.16+ kernels.
-
-      However this patch is not going to completely solve the problem, as
-      one can still using read() to trigger extent map reading, and got
-      them merged.
-
-      The completely solution for the extent map merging generation problem
-      will come as an standalone fix.
-
-    - btrfs_get_extent() caches the extent map result
-      Normally it's fine, but for defrag the target range may not get
-      another read/write for a long long time.
-      Such cache would only increase the memory usage.
-
-    - btrfs_get_extent() doesn't skip older extent map
-      Unlike the old find_new_extent() which uses btrfs_search_forward() to
-      skip the older subtree, thus it will pick up unnecessary extent maps.
-
-    This patch will fix the regression by introducing defrag_get_extent() to
-    replace the btrfs_get_extent() call.
-
-    This helper will:
-
-    - Not cache the file extent we found
-      It will search the file extent and manually convert it to em.
-
-    - Use btrfs_search_foward() to skip entire ranges which is modified in
-      the past
-
-    This should reduce the IO for autodefrag.
-
-    Reported-by: Filipe Manana <fdmanana@suse.com>
-    Fixes: 7b508037d4ca ("btrfs: defrag: use defrag_one_cluster() to implement btrfs_defrag_file()")
-    Signed-off-by: Qu Wenruo <wqu@suse.com>
-
-commit b15e2f65ce657fb111a7631b99e1fc8a4f4bd15b
-Author: Qu Wenruo <wqu@suse.com>
-Date:   Fri Feb 11 14:41:43 2022 +0800
+Date:   Thu Feb 24 20:28:40 2022 +0800
 
     btrfs: defrag: make btrfs_defrag_file() to report accurate number of defragged sectors
 
@@ -114,9 +70,9 @@ Date:   Fri Feb 11 14:41:43 2022 +0800
     Signed-off-by: Qu Wenruo <wqu@suse.com>
     Reviewed-by: Filipe Manana <fdmanana@suse.com>
 
-commit 42bf00b4ac60cd0ac7858c7101cdda6674bdd1d0
+commit 26c119dcba9e87247fd73928125d1bc43f624659
 Author: Qu Wenruo <wqu@suse.com>
-Date:   Fri Feb 11 14:41:42 2022 +0800
+Date:   Thu Feb 24 20:28:39 2022 +0800
 
     btrfs: defrag: use btrfs_defrag_ctrl to replace btrfs_ioctl_defrag_range_args for btrfs_defrag_file()
 
@@ -135,9 +91,9 @@ Date:   Fri Feb 11 14:41:42 2022 +0800
 
     Signed-off-by: Qu Wenruo <wqu@suse.com>
 
-commit 19e91071d8df13aeef7543aca599ecdc2ba1abc4
+commit 9b7097b1e497372ad250abdf640333090f52684c
 Author: Qu Wenruo <wqu@suse.com>
-Date:   Fri Feb 11 14:41:41 2022 +0800
+Date:   Thu Feb 24 20:28:38 2022 +0800
 
     btrfs: defrag: introduce btrfs_defrag_ctrl structure for later usage
 
@@ -169,78 +125,9 @@ Date:   Fri Feb 11 14:41:41 2022 +0800
     Signed-off-by: Qu Wenruo <wqu@suse.com>
     Reviewed-by: Filipe Manana <fdmanana@suse.com>
 
-commit e5d21acaadac2a66c8ab789a7d58fc93cb96ab45
+commit 2fd7e7e39e790306104fa387b8e2d87dc90b6f79
 Author: Qu Wenruo <wqu@suse.com>
-Date:   Fri Feb 11 14:41:39 2022 +0800
-
-    btrfs: defrag: allow defrag_one_cluster() to skip large extent which is not a target
-
-    In the rework of btrfs_defrag_file(), we always call
-    defrag_one_cluster() and increase the offset by cluster size, which is
-    only 256K.
-
-    But there are cases where we have a large extent (e.g. 128M) which
-    doesn't need to be defragged at all.
-
-    Before the refactor, we can directly skip the range, but now we have to
-    scan that extent map again and again until the cluster moves after the
-    non-target extent.
-
-    Fix the problem by allow defrag_one_cluster() to increase
-    btrfs_defrag_ctrl::last_scanned to the end of an extent, if and only if
-    the last extent of the cluster is not a target.
-
-    The test script looks like this:
-
-    	mkfs.btrfs -f $dev > /dev/null
-
-    	mount $dev $mnt
-
-    	# As btrfs ioctl uses 32M as extent_threshold
-    	xfs_io -f -c "pwrite 0 64M" $mnt/file1
-    	sync
-    	# Some fragemented range to defrag
-    	xfs_io -s -c "pwrite 65548k 4k" \
-    		  -c "pwrite 65544k 4k" \
-    		  -c "pwrite 65540k 4k" \
-    		  -c "pwrite 65536k 4k" \
-    		  $mnt/file1
-    	sync
-
-    	echo "=== before ==="
-    	xfs_io -c "fiemap -v" $mnt/file1
-    	echo "=== after ==="
-    	btrfs fi defrag $mnt/file1
-    	sync
-    	xfs_io -c "fiemap -v" $mnt/file1
-    	umount $mnt
-
-    With extra ftrace put into defrag_one_cluster(), before the patch it
-    would result tons of loops:
-
-    (As defrag_one_cluster() is inlined, the function name is its caller)
-
-      btrfs-126062  [005] .....  4682.816026: btrfs_defrag_file: r/i=5/257 start=0 len=262144
-      btrfs-126062  [005] .....  4682.816027: btrfs_defrag_file: r/i=5/257 start=262144 len=262144
-      btrfs-126062  [005] .....  4682.816028: btrfs_defrag_file: r/i=5/257 start=524288 len=262144
-      btrfs-126062  [005] .....  4682.816028: btrfs_defrag_file: r/i=5/257 start=786432 len=262144
-      btrfs-126062  [005] .....  4682.816028: btrfs_defrag_file: r/i=5/257 start=1048576 len=262144
-      ...
-      btrfs-126062  [005] .....  4682.816043: btrfs_defrag_file: r/i=5/257 start=67108864 len=262144
-
-    But with this patch there will be just one loop, then directly to the
-    end of the extent:
-
-      btrfs-130471  [014] .....  5434.029558: defrag_one_cluster: r/i=5/257 start=0 len=262144
-      btrfs-130471  [014] .....  5434.029559: defrag_one_cluster: r/i=5/257 start=67108864 len=16384
-
-    Cc: stable@vger.kernel.org # 5.16
-    Signed-off-by: Qu Wenruo <wqu@suse.com>
-    Reviewed-by: Filipe Manana <fdmanana@suse.com>
-
-commit 5d746feb4d9b8cf0306c22d883b2615056dedeb4
-Author: Qu Wenruo <wqu@suse.com>
-Date:   Fri Feb 11 14:41:40 2022 +0800
+Date:   Thu Feb 24 20:28:37 2022 +0800
 
     btrfs: uapi: introduce BTRFS_DEFRAG_RANGE_MASK for later sanity check
 
@@ -250,180 +137,51 @@ Date:   Fri Feb 11 14:41:40 2022 +0800
     Signed-off-by: Qu Wenruo <wqu@suse.com>
     Reviewed-by: Filipe Manana <fdmanana@suse.com>
 
-commit 2b062b44b5b62e442fc3d6853ff610f88115928c
+commit 9de2393ea08f06d4518507f66a5a32b4be4ce2f5
 Author: Qu Wenruo <wqu@suse.com>
-Date:   Fri Jan 28 15:21:22 2022 +0800
+Date:   Thu Feb 24 20:28:36 2022 +0800
 
-    btrfs: defrag: remove an ambiguous condition for rejection
+    btrfs: refactor __btrfs_run_defrag_inode()
 
-    From the very beginning of btrfs defrag, there is a check to reject
-    extents which meet both conditions:
+    This refactor involves:
 
-    - Physically adjacent
+    - Use while () loop to replace open-coded loop
 
-      We may want to defrag physically adjacent extents to reduce the number
-      of extents or the size of subvolume tree.
+    - Add extra comments on btrfs_get_fs_root()/btrfs_iget() calls
 
-    - Larger than 128K
+    - Add extra comment on the meaning of range.start
 
-      This may be there for compressed extents, but unfortunately 128K is
-      exactly the max capacity for compressed extents.
-      And the check is > 128K, thus it never rejects compressed extents.
+    - Move @root, @inode and @range into the loop
 
-      Furthermore, the compressed extent capacity bug is fixed by previous
-      patch, there is no reason for that check anymore.
+    - Initial @range to 0 at its declaration
+      So we don't need to reset it to zero.
 
-    The original check has a very small ranges to reject (the target extent
-    size is > 128K, and default extent threshold is 256K), and for
-    compressed extent it doesn't work at all.
+    There is one behavior change:
 
-    So it's better just to remove the rejection, and allow us to defrag
-    physically adjacent extents.
+    - Now we check @cur against @isize from last iteration.
+      And the initial dummy @isize is set to (u64)-1 so we can always
+      initial the loop.
 
-    Reviewed-by: Filipe Manana <fdmanana@suse.com>
+      This slightly enlarge the race window where isize can be changed.
+
     Signed-off-by: Qu Wenruo <wqu@suse.com>
-    Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 3f94c7cf274445320cae9a3870e73e5959aa1e2f
+commit 31c1a4a027c6ecea31069c4719cced5e351b1c41
 Author: Qu Wenruo <wqu@suse.com>
-Date:   Fri Jan 28 15:21:21 2022 +0800
+Date:   Thu Feb 24 20:28:35 2022 +0800
 
-    btrfs: defrag: don't defrag extents which is already at its max capacity
+    btrfs: remove unused parameter for btrfs_add_inode_defrag()
 
-    [BUG]
-    For compressed extents, defrag ioctl will always try to defrag any
-    compressed extents, wasting not only IO but also CPU time to
-    compress/decompress:
+    Since commit 543eabd5e192 ("Btrfs: don't auto defrag a file when doing
+    directIO"), there is no more caller passing a transaction handler to
+    btrfs_add_inode_defrag().
 
-       mkfs.btrfs -f $DEV
-       mount -o compress $DEV $MNT
-       xfs_io -f -c "pwrite -S 0xab 0 128K" $MNT/foobar
-       sync
-       xfs_io -f -c "pwrite -S 0xcd 128K 128K" $MNT/foobar
-       sync
-       echo "=== before ==="
-       xfs_io -c "fiemap -v" $MNT/foobar
-       btrfs filesystem defrag $MNT/foobar
-       sync
-       echo "=== after ==="
-       xfs_io -c "fiemap -v" $MNT/foobar
+    So the @trans parameter of btrfs_add_inode_defrag() is unnecessary and
+    we can just remove it.
 
-    Then it shows the 2 128K extents just get CoW for no extra benefit, with
-    extra IO/CPU spent:
-
-        === before ===
-        /mnt/btrfs/file1:
-         EXT: FILE-OFFSET      BLOCK-RANGE      TOTAL FLAGS
-           0: [0..255]:        26624..26879       256   0x8
-           1: [256..511]:      26632..26887       256   0x9
-        === after ===
-        /mnt/btrfs/file1:
-         EXT: FILE-OFFSET      BLOCK-RANGE      TOTAL FLAGS
-           0: [0..255]:        26640..26895       256   0x8
-           1: [256..511]:      26648..26903       256   0x9
-
-    This affects not only v5.16 (after the defrag rework), but also v5.15
-    (before the defrag rework).
-
-    [CAUSE]
-    >From the very beginning, btrfs defrag never checks if one extent is
-    already at its max capacity (128K for compressed extents, 128M
-    otherwise).
-
-    And the default extent size threshold is 256K, which is already beyond
-    the compressed extent max size.
-
-    This means, by default btrfs defrag ioctl will mark all compressed
-    extent which is not adjacent to a hole/preallocated range for defrag.
-
-    [FIX]
-    Introduce a helper to grab the maximum extent size, and then in
-    defrag_collect_targets() and defrag_check_next_extent(), reject extents
-    which are already at their max capacity.
-
-    Reported-by: Filipe Manana <fdmanana@suse.com>
-    Reviewed-by: Filipe Manana <fdmanana@suse.com>
     Signed-off-by: Qu Wenruo <wqu@suse.com>
-    Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 1e9dd09fccd1fbf3b2c9a01f5591a8834746085c
-Author: Qu Wenruo <wqu@suse.com>
-Date:   Fri Jan 28 15:21:20 2022 +0800
-
-    btrfs: defrag: don't try to merge regular extents with preallocated extents
-
-    [BUG]
-    With older kernels (before v5.16), btrfs will defrag preallocated extents.
-    While with newer kernels (v5.16 and newer) btrfs will not defrag
-    preallocated extents, but it will defrag the extent just before the
-    preallocated extent, even it's just a single sector.
-
-    This can be exposed by the following small script:
-
-    	mkfs.btrfs -f $dev > /dev/null
-
-    	mount $dev $mnt
-    	xfs_io -f -c "pwrite 0 4k" -c sync -c "falloc 4k 16K" $mnt/file
-    	xfs_io -c "fiemap -v" $mnt/file
-    	btrfs fi defrag $mnt/file
-    	sync
-    	xfs_io -c "fiemap -v" $mnt/file
-
-    The output looks like this on older kernels:
-
-    /mnt/btrfs/file:
-     EXT: FILE-OFFSET      BLOCK-RANGE      TOTAL FLAGS
-       0: [0..7]:          26624..26631         8   0x0
-       1: [8..39]:         26632..26663        32 0x801
-    /mnt/btrfs/file:
-     EXT: FILE-OFFSET      BLOCK-RANGE      TOTAL FLAGS
-       0: [0..39]:         26664..26703        40   0x1
-
-    Which defrags the single sector along with the preallocated extent, and
-    replace them with an regular extent into a new location (caused by data
-    COW).
-    This wastes most of the data IO just for the preallocated range.
-
-    On the other hand, v5.16 is slightly better:
-
-    /mnt/btrfs/file:
-     EXT: FILE-OFFSET      BLOCK-RANGE      TOTAL FLAGS
-       0: [0..7]:          26624..26631         8   0x0
-       1: [8..39]:         26632..26663        32 0x801
-    /mnt/btrfs/file:
-     EXT: FILE-OFFSET      BLOCK-RANGE      TOTAL FLAGS
-       0: [0..7]:          26664..26671         8   0x0
-       1: [8..39]:         26632..26663        32 0x801
-
-    The preallocated range is not defragged, but the sector before it still
-    gets defragged, which has no need for it.
-
-    [CAUSE]
-    One of the function reused by the old and new behavior is
-    defrag_check_next_extent(), it will determine if we should defrag
-    current extent by checking the next one.
-
-    It only checks if the next extent is a hole or inlined, but it doesn't
-    check if it's preallocated.
-
-    On the other hand, out of the function, both old and new kernel will
-    reject preallocated extents.
-
-    Such inconsistent behavior causes above behavior.
-
-    [FIX]
-    - Also check if next extent is preallocated
-      If so, don't defrag current extent.
-
-    - Add comments for each branch why we reject the extent
-
-    This will reduce the IO caused by defrag ioctl and autodefrag.
-
-    Reviewed-by: Filipe Manana <fdmanana@suse.com>
-    Signed-off-by: Qu Wenruo <wqu@suse.com>
-    Signed-off-by: David Sterba <dsterba@suse.com>
-
-commit a081b23af054c6a46765a7dc3507c82fe2c7279d
+commit 3135ce6177fada88ab325ff984d5db11e719363c
 Author: Sidong Yang <realwakka@gmail.com>
 Date:   Sun Feb 6 12:52:48 2022 +0000
 
@@ -445,7 +203,7 @@ Date:   Sun Feb 6 12:52:48 2022 +0000
     [ add comments ]
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 62d3bceb5cce760003e9989a840a3bdc071bf00b
+commit 6435aa0695ea00d08351ee31e4e5e84d306eb179
 Author: Dāvis Mosāns <davispuh@gmail.com>
 Date:   Wed Feb 2 23:44:54 2022 +0200
 
@@ -457,60 +215,7 @@ Date:   Wed Feb 2 23:44:54 2022 +0200
     Reviewed-by: David Sterba <dsterba@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 8e085328afba8df0f10a3358a1dea796dafb2dd0
-Author: Dāvis Mosāns <davispuh@gmail.com>
-Date:   Wed Feb 2 23:44:55 2022 +0200
-
-    btrfs: prevent copying too big compressed lzo segment
-
-    Compressed length can be corrupted to be a lot larger than memory
-    we have allocated for buffer.
-    This will cause memcpy in copy_compressed_segment to write outside
-    of allocated memory.
-
-    This mostly results in stuck read syscall but sometimes when using
-    btrfs send can get #GP
-
-      kernel: general protection fault, probably for non-canonical address 0x841551d5c1000: 0000 [#1] PREEMPT SMP NOPTI
-      kernel: CPU: 17 PID: 264 Comm: kworker/u256:7 Tainted: P           OE     5.17.0-rc2-1 #12
-      kernel: Workqueue: btrfs-endio btrfs_work_helper [btrfs]
-      kernel: RIP: 0010:lzo_decompress_bio (./include/linux/fortify-string.h:225 fs/btrfs/lzo.c:322 fs/btrfs/lzo.c:394) btrfs
-      Code starting with the faulting instruction
-      ===========================================
-         0:*  48 8b 06                mov    (%rsi),%rax              <-- trapping instruction
-         3:   48 8d 79 08             lea    0x8(%rcx),%rdi
-         7:   48 83 e7 f8             and    $0xfffffffffffffff8,%rdi
-         b:   48 89 01                mov    %rax,(%rcx)
-         e:   44 89 f0                mov    %r14d,%eax
-        11:   48 8b 54 06 f8          mov    -0x8(%rsi,%rax,1),%rdx
-      kernel: RSP: 0018:ffffb110812efd50 EFLAGS: 00010212
-      kernel: RAX: 0000000000001000 RBX: 000000009ca264c8 RCX: ffff98996e6d8ff8
-      kernel: RDX: 0000000000000064 RSI: 000841551d5c1000 RDI: ffffffff9500435d
-      kernel: RBP: ffff989a3be856c0 R08: 0000000000000000 R09: 0000000000000000
-      kernel: R10: 0000000000000000 R11: 0000000000001000 R12: ffff98996e6d8000
-      kernel: R13: 0000000000000008 R14: 0000000000001000 R15: 000841551d5c1000
-      kernel: FS:  0000000000000000(0000) GS:ffff98a09d640000(0000) knlGS:0000000000000000
-      kernel: CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-      kernel: CR2: 00001e9f984d9ea8 CR3: 000000014971a000 CR4: 00000000003506e0
-      kernel: Call Trace:
-      kernel:  <TASK>
-      kernel: end_compressed_bio_read (fs/btrfs/compression.c:104 fs/btrfs/compression.c:1363 fs/btrfs/compression.c:323) btrfs
-      kernel: end_workqueue_fn (fs/btrfs/disk-io.c:1923) btrfs
-      kernel: btrfs_work_helper (fs/btrfs/async-thread.c:326) btrfs
-      kernel: process_one_work (./arch/x86/include/asm/jump_label.h:27 ./include/linux/jump_label.h:212 ./include/trace/events/workqueue.h:108 kernel/workqueue.c:2312)
-      kernel: worker_thread (./include/linux/list.h:292 kernel/workqueue.c:2455)
-      kernel: ? process_one_work (kernel/workqueue.c:2397)
-      kernel: kthread (kernel/kthread.c:377)
-      kernel: ? kthread_complete_and_exit (kernel/kthread.c:332)
-      kernel: ret_from_fork (arch/x86/entry/entry_64.S:301)
-      kernel:  </TASK>
-
-    CC: stable@vger.kernel.org # 4.9+
-    Signed-off-by: Dāvis Mosāns <davispuh@gmail.com>
-    Reviewed-by: David Sterba <dsterba@suse.com>
-    Signed-off-by: David Sterba <dsterba@suse.com>
-
-commit 158bdfcb4a2d0e529f7bcff9357012f9163ca1e8
+commit 1c25ef3f67251e4eaac788ffbb671612337fe90a
 Author: Filipe Manana <fdmanana@suse.com>
 Date:   Wed Feb 2 15:26:09 2022 +0000
 
@@ -755,7 +460,7 @@ Date:   Wed Feb 2 15:26:09 2022 +0000
     [ add more link reports ]
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 8e52a370b93f589cf1258c696b26b40c6c9e0bf9
+commit 5eff18683b6de5764b2a4aad05a6e85a9b9008ab
 Author: Qu Wenruo <wqu@suse.com>
 Date:   Tue Feb 8 13:31:19 2022 +0800
 
@@ -849,7 +554,7 @@ Date:   Tue Feb 8 13:31:19 2022 +0800
     Signed-off-by: Qu Wenruo <wqu@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 29c30598821b8fc66feb722705207f4d6cda06f3
+commit fe43a669cc7dbfd824d65e72577dc34085e05f1e
 Author: Filipe Manana <fdmanana@suse.com>
 Date:   Thu Feb 3 14:55:50 2022 +0000
 
@@ -949,7 +654,7 @@ Date:   Thu Feb 3 14:55:50 2022 +0000
     Signed-off-by: Filipe Manana <fdmanana@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 325dbdea07cdca5232b215e898e6a73ec0102950
+commit 0ad4269ed203b5e1f2b20ec1ed44c739bbe21316
 Author: Filipe Manana <fdmanana@suse.com>
 Date:   Thu Feb 3 14:55:49 2022 +0000
 
@@ -977,7 +682,7 @@ Date:   Thu Feb 3 14:55:49 2022 +0000
     Signed-off-by: Filipe Manana <fdmanana@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 846b997655e40b79dbc5be4c84040a2fd2c256f5
+commit ea52c95e4aa7a708da20ae77be57d7f9d3a6029a
 Author: Filipe Manana <fdmanana@suse.com>
 Date:   Thu Feb 3 14:55:48 2022 +0000
 
@@ -1021,7 +726,7 @@ Date:   Thu Feb 3 14:55:48 2022 +0000
     Signed-off-by: Filipe Manana <fdmanana@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 515f8813f251f422672d998008cd8931f1c985ca
+commit e32ad1ce3df71dd80e1e3d6c8929cd49ddc3f262
 Author: Filipe Manana <fdmanana@suse.com>
 Date:   Thu Feb 3 14:55:47 2022 +0000
 
@@ -1055,7 +760,7 @@ Date:   Thu Feb 3 14:55:47 2022 +0000
     Signed-off-by: Filipe Manana <fdmanana@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 838f1789cc59a7b304ec75895d728784380a013a
+commit 55fe1772041f0dfba0a2437bbcc482f85a649507
 Author: Filipe Manana <fdmanana@suse.com>
 Date:   Thu Feb 3 14:55:46 2022 +0000
 
@@ -1132,7 +837,7 @@ Date:   Thu Feb 3 14:55:46 2022 +0000
     Signed-off-by: Filipe Manana <fdmanana@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit ea41061f1b4a4a1be6e7aa819cf25abc733547a2
+commit ec176159fc8a4c5076f1475319f24b8bcf70bd5f
 Author: Filipe Manana <fdmanana@suse.com>
 Date:   Thu Feb 3 14:55:45 2022 +0000
 
@@ -1170,7 +875,7 @@ Date:   Thu Feb 3 14:55:45 2022 +0000
     Signed-off-by: Filipe Manana <fdmanana@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit e0d9aa6cd9948a397812ddc4625bf9caca66ad8e
+commit e607396a2dc99aa1b572dd43292e27029c5a23bb
 Author: David Sterba <dsterba@suse.com>
 Date:   Tue Feb 1 15:42:07 2022 +0100
 
@@ -1189,7 +894,7 @@ Date:   Tue Feb 1 15:42:07 2022 +0100
     Reviewed-by: Johannes Thumshirn <johannes.thumshirn@wdc.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit f24aaeb4095371b20e283565966c43df690ac3a2
+commit 6425f41f002db57ffb8011a0a0df23d06e5a60c0
 Author: Josef Bacik <josef@toxicpanda.com>
 Date:   Fri Nov 5 16:45:28 2021 -0400
 
@@ -1214,7 +919,7 @@ Date:   Fri Nov 5 16:45:28 2021 -0400
     Reviewed-by: David Sterba <dsterba@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 155d4601061befa81984f937abce9b119ef4ada8
+commit 6e60919f1520583fea670e5579d9d149dc875ed4
 Author: Nikolay Borisov <nborisov@suse.com>
 Date:   Tue Nov 23 09:23:42 2021 +0200
 
@@ -1227,7 +932,7 @@ Date:   Tue Nov 23 09:23:42 2021 +0200
     Signed-off-by: Nikolay Borisov <nborisov@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 8fcf868725280652370631d31431cfdbb7b5f5ee
+commit 0aaf493c13975435f9517b9f276e82388c845b09
 Author: Qu Wenruo <wqu@suse.com>
 Date:   Fri Nov 19 14:19:33 2021 +0800
 
@@ -1289,7 +994,7 @@ Date:   Fri Nov 19 14:19:33 2021 +0800
     Signed-off-by: Qu Wenruo <wqu@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 4d8e6b8ef9fc19c0925ea9843d003d867d4445b3
+commit 69a5708ab3e92256b5955efb620cebdffe0099ec
 Author: Nikolay Borisov <nborisov@suse.com>
 Date:   Mon Nov 22 17:16:46 2021 +0200
 
@@ -1304,7 +1009,7 @@ Date:   Mon Nov 22 17:16:46 2021 +0200
     Signed-off-by: Nikolay Borisov <nborisov@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit da97ec458d2aac88234b972119a58be4ba0f870f
+commit c28b18b26b1bb2096e83acd9809f16e55a215ded
 Author: Josef Bacik <josef@toxicpanda.com>
 Date:   Thu Nov 18 16:33:15 2021 -0500
 
@@ -1404,7 +1109,7 @@ Date:   Thu Nov 18 16:33:15 2021 -0500
     Signed-off-by: Josef Bacik <josef@toxicpanda.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 814a61c5659a7cfe81ac5df0dbe58d72a0bc5844
+commit 5df330adb3aa0f259ba7489146f3805ce1e2cde8
 Author: Josef Bacik <josef@toxicpanda.com>
 Date:   Thu Nov 18 16:33:14 2021 -0500
 
@@ -1426,7 +1131,7 @@ Date:   Thu Nov 18 16:33:14 2021 -0500
     Signed-off-by: Josef Bacik <josef@toxicpanda.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit e20c65307650e6a829397071018a005a9b7a5f3e
+commit b54e8cfc53575c4522c1492d34b23b2b41178c3b
 Author: Josef Bacik <josef@toxicpanda.com>
 Date:   Thu Oct 21 14:58:37 2021 -0400
 
@@ -1442,7 +1147,7 @@ Date:   Thu Oct 21 14:58:37 2021 -0400
     Reviewed-by: David Sterba <dsterba@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 43a53b248d12359e3440ed1e423012bfff28e382
+commit c667808702a8b01bd40cb13a0da26f692ab6bf90
 Author: Josef Bacik <josef@toxicpanda.com>
 Date:   Thu Oct 21 14:58:36 2021 -0400
 
@@ -1455,7 +1160,7 @@ Date:   Thu Oct 21 14:58:36 2021 -0400
     Reviewed-by: David Sterba <dsterba@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 6cdcb36516f5e6d36e34e9b8a877fbe4de258033
+commit f4e603689048210c2c2c50ce5b60ba3dc703b6a2
 Author: Josef Bacik <josef@toxicpanda.com>
 Date:   Thu Oct 21 14:58:35 2021 -0400
 
@@ -1470,7 +1175,7 @@ Date:   Thu Oct 21 14:58:35 2021 -0400
     Reviewed-by: David Sterba <dsterba@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 893bd29c4809ef21aa310148b359f30ec9c0dcd2
+commit 36e588ded52fa0a14b55539ad0f86eeb2ff43afb
 Author: Josef Bacik <josef@toxicpanda.com>
 Date:   Thu Oct 21 14:58:34 2021 -0400
 
@@ -1490,7 +1195,7 @@ Date:   Thu Oct 21 14:58:34 2021 -0400
     Reviewed-by: David Sterba <dsterba@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit b375c686e3fa0ce5fb0f7ec987fdef0f9c434375
+commit b3b5f576ec0e91e39ab97f777bce034eb9c9dff3
 Author: Josef Bacik <josef@toxicpanda.com>
 Date:   Thu Oct 21 14:58:33 2021 -0400
 
@@ -1504,7 +1209,7 @@ Date:   Thu Oct 21 14:58:33 2021 -0400
     Reviewed-by: David Sterba <dsterba@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 4176f4ce3fd863ead87ddfa47e920d5021c92700
+commit 33a87ceac82fe93f6dc1215fe04e932f25ea8da5
 Author: Josef Bacik <josef@toxicpanda.com>
 Date:   Thu Oct 21 14:58:32 2021 -0400
 
@@ -1525,7 +1230,7 @@ Date:   Thu Oct 21 14:58:32 2021 -0400
     Reviewed-by: David Sterba <dsterba@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit f87ceb2a3ca2919be08f0f3ba2063b81fb1f2882
+commit 6c8b5e7550a61df07a1d75cb76f5b3f7bc7b39cc
 Author: Josef Bacik <josef@toxicpanda.com>
 Date:   Thu Oct 21 14:58:31 2021 -0400
 
@@ -1548,7 +1253,7 @@ Date:   Thu Oct 21 14:58:31 2021 -0400
     Reviewed-by: David Sterba <dsterba@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit b7b4ee5a8e5c579cfdf75353c6debbc9b7e60067
+commit b67719a94090ad6b0e882c326193a0ec3920b6c3
 Author: Filipe Manana <fdmanana@suse.com>
 Date:   Mon Oct 25 17:31:54 2021 +0100
 
@@ -1566,7 +1271,7 @@ Date:   Mon Oct 25 17:31:54 2021 +0100
     Signed-off-by: Filipe Manana <fdmanana@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit c37c3650321e859a04a85bfdaf42700cd7f36fca
+commit 7f7d8490235815842628c87a70e2902000ea1ebd
 Author: Filipe Manana <fdmanana@suse.com>
 Date:   Mon Oct 25 17:31:53 2021 +0100
 
@@ -1716,7 +1421,7 @@ Date:   Mon Oct 25 17:31:53 2021 +0100
     Signed-off-by: Filipe Manana <fdmanana@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit f2851ae84203ed1070be25096fc43671d72e4bb6
+commit a28fdb8c7d53df609a984d9d7588139ec1b81b78
 Author: Nikolay Borisov <nborisov@suse.com>
 Date:   Thu Oct 14 10:03:11 2021 +0300
 
@@ -1731,7 +1436,7 @@ Date:   Thu Oct 14 10:03:11 2021 +0300
     Reviewed-by: David Sterba <dsterba@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
 
-commit 6a4ea54d0a5a66a6f68bb8a41c2abdaadc97da28
+commit 2f35d457933eae6a26a4e52bcf57b2073b9a9b09
 Author: Filipe Manana <fdmanana@suse.com>
 Date:   Thu Oct 28 16:03:41 2021 +0100
 
@@ -1824,13 +1529,101 @@ Date:   Thu Oct 28 16:03:41 2021 +0100
     Reviewed-by: Josef Bacik <josef@toxicpanda.com>
     Signed-off-by: Filipe Manana <fdmanana@suse.com>
     Signed-off-by: David Sterba <dsterba@suse.com>
+
+commit bc8bdda2772405d36200908ad4a28037efe96bb9
+Author: Qu Wenruo <wqu@suse.com>
+Date:   Fri Feb 11 14:46:13 2022 +0800
+
+    btrfs: defrag: don't use merged extent map for their generation check
+
+    For extent maps, if they are not compressed extents and are adjacent by
+    logical addresses and file offsets, they can be merged into one larger
+    extent map.
+
+    Such merged extent map will have the higher generation of all the
+    original ones.
+
+    But this brings a problem for autodefrag, as it relies on accurate
+    extent_map::generation to determine if one extent should be defragged.
+
+    For merged extent maps, their higher generation can mark some older
+    extents to be defragged while the original extent map doesn't meet the
+    minimal generation threshold.
+
+    Thus this will cause extra IO.
+
+    So solve the problem, here we introduce a new flag, EXTENT_FLAG_MERGED,
+    to indicate if the extent map is merged from one or more ems.
+
+    And for autodefrag, if we find a merged extent map, and its generation
+    meets the generation requirement, we just don't use this one, and go
+    back to defrag_get_extent() to read extent maps from subvolume trees.
+
+    This could cause more read IO, but should result less defrag data write,
+    so in the long run it should be a win for autodefrag.
+
+    Reviewed-by: Filipe Manana <fdmanana@suse.com>
+    Signed-off-by: Qu Wenruo <wqu@suse.com>
+    Signed-off-by: David Sterba <dsterba@suse.com>
+
+commit ea2bdb32536d6c841936ac8d4e8f8b84f23d0293
+Author: Qu Wenruo <wqu@suse.com>
+Date:   Fri Feb 11 14:46:12 2022 +0800
+
+    btrfs: defrag: bring back the old file extent search behavior
+
+    For defrag, we don't really want to use btrfs_get_extent() to iterate
+    all extent maps of an inode.
+
+    The reasons are:
+
+    - btrfs_get_extent() can merge extent maps
+      And the result em has the higher generation of the two, causing defrag
+      to mark unnecessary part of such merged large extent map.
+
+      This in fact can result extra IO for autodefrag in v5.16+ kernels.
+
+      However this patch is not going to completely solve the problem, as
+      one can still using read() to trigger extent map reading, and got
+      them merged.
+
+      The completely solution for the extent map merging generation problem
+      will come as an standalone fix.
+
+    - btrfs_get_extent() caches the extent map result
+      Normally it's fine, but for defrag the target range may not get
+      another read/write for a long long time.
+      Such cache would only increase the memory usage.
+
+    - btrfs_get_extent() doesn't skip older extent map
+      Unlike the old find_new_extent() which uses btrfs_search_forward() to
+      skip the older subtree, thus it will pick up unnecessary extent maps.
+
+    This patch will fix the regression by introducing defrag_get_extent() to
+    replace the btrfs_get_extent() call.
+
+    This helper will:
+
+    - Not cache the file extent we found
+      It will search the file extent and manually convert it to em.
+
+    - Use btrfs_search_forward() to skip entire ranges which is modified in
+      the past
+
+    This should reduce the IO for autodefrag.
+
+    Reported-by: Filipe Manana <fdmanana@suse.com>
+    Fixes: 7b508037d4ca ("btrfs: defrag: use defrag_one_cluster() to implement btrfs_defrag_file()")
+    Reviewed-by: Filipe Manana <fdmanana@suse.com>
+    Signed-off-by: Qu Wenruo <wqu@suse.com>
+    Signed-off-by: David Sterba <dsterba@suse.com>
 ---
  fs/btrfs/backref.c                   |  16 +-
  fs/btrfs/block-group.c               |   2 -
  fs/btrfs/btrfs_inode.h               |  18 +-
  fs/btrfs/compression.h               |   2 +
  fs/btrfs/ctree.c                     | 208 ++++-----
- fs/btrfs/ctree.h                     |  96 ++--
+ fs/btrfs/ctree.h                     |  99 ++--
  fs/btrfs/dev-replace.c               |   4 +-
  fs/btrfs/dir-item.c                  |  12 +-
  fs/btrfs/disk-io.c                   |   3 +-
@@ -1838,13 +1631,13 @@ Date:   Thu Oct 28 16:03:41 2021 +0100
  fs/btrfs/extent_map.c                |   2 +
  fs/btrfs/extent_map.h                |   8 +
  fs/btrfs/file-item.c                 |  25 +-
- fs/btrfs/file.c                      |  26 +-
+ fs/btrfs/file.c                      | 103 ++---
  fs/btrfs/free-space-cache.c          | 177 ++++++--
  fs/btrfs/free-space-cache.h          |   2 +
  fs/btrfs/inode-item.c                |  14 +-
- fs/btrfs/inode.c                     | 172 +++----
- fs/btrfs/ioctl.c                     | 427 ++++++++++++-----
- fs/btrfs/lzo.c                       |  20 +-
+ fs/btrfs/inode.c                     | 174 +++----
+ fs/btrfs/ioctl.c                     | 404 ++++++++++++-----
+ fs/btrfs/lzo.c                       |  11 +-
  fs/btrfs/print-tree.c                |   8 +-
  fs/btrfs/props.c                     |   2 +-
  fs/btrfs/qgroup.c                    |  41 +-
@@ -1864,9 +1657,10 @@ Date:   Thu Oct 28 16:03:41 2021 +0100
  fs/btrfs/verity.c                    |   2 +-
  fs/btrfs/volumes.c                   |  13 +-
  fs/btrfs/xattr.c                     |   8 +-
+ include/trace/events/btrfs.h         | 127 ++++++
  include/uapi/linux/btrfs.h           |   6 +-
  include/uapi/linux/btrfs_tree.h      |   4 +-
- 41 files changed, 1233 insertions(+), 956 deletions(-)
+ 42 files changed, 1353 insertions(+), 1013 deletions(-)
 
 diff --git a/fs/btrfs/backref.c b/fs/btrfs/backref.c
 index 8b090c40daf7..3b0c4bed242e 100644
@@ -2553,7 +2347,7 @@ index 35660791e084..5ca7a535d109 100644
  					ret = wret;
  			}
 diff --git a/fs/btrfs/ctree.h b/fs/btrfs/ctree.h
-index 5fe5eccb3c87..223e9d9e1b8b 100644
+index 269094176b8b..b1ef2af3614a 100644
 --- a/fs/btrfs/ctree.h
 +++ b/fs/btrfs/ctree.h
 @@ -601,6 +601,9 @@ enum {
@@ -2746,6 +2540,16 @@ index 5fe5eccb3c87..223e9d9e1b8b 100644
  void btrfs_get_block_group_info(struct list_head *groups_list,
  				struct btrfs_ioctl_space_info *space);
  void btrfs_update_ioctl_balance_args(struct btrfs_fs_info *fs_info,
+@@ -3314,8 +3346,7 @@ void btrfs_exclop_finish(struct btrfs_fs_info *fs_info);
+ /* file.c */
+ int __init btrfs_auto_defrag_init(void);
+ void __cold btrfs_auto_defrag_exit(void);
+-int btrfs_add_inode_defrag(struct btrfs_trans_handle *trans,
+-			   struct btrfs_inode *inode, u32 extent_thresh);
++int btrfs_add_inode_defrag(struct btrfs_inode *inode, u32 extent_thresh);
+ int btrfs_run_defrag_inodes(struct btrfs_fs_info *fs_info);
+ void btrfs_cleanup_defrag_inodes(struct btrfs_fs_info *fs_info);
+ int btrfs_sync_file(struct file *file, loff_t start, loff_t end, int datasync);
 diff --git a/fs/btrfs/dev-replace.c b/fs/btrfs/dev-replace.c
 index e0238dd5f2f2..66fa61cb3f23 100644
 --- a/fs/btrfs/dev-replace.c
@@ -3068,60 +2872,137 @@ index d1cbb64a78f3..107d6557ebc3 100644
  	    type == BTRFS_FILE_EXTENT_PREALLOC) {
  		em->start = extent_start;
 diff --git a/fs/btrfs/file.c b/fs/btrfs/file.c
-index 11204dbbe053..12e63be6a35b 100644
+index a0179cc62913..3e846a3271a9 100644
 --- a/fs/btrfs/file.c
 +++ b/fs/btrfs/file.c
-@@ -277,8 +277,7 @@ static int __btrfs_run_defrag_inode(struct btrfs_fs_info *fs_info,
+@@ -136,8 +136,7 @@ static inline int __need_auto_defrag(struct btrfs_fs_info *fs_info)
+  * insert a defrag record for this inode if auto defrag is
+  * enabled
+  */
+-int btrfs_add_inode_defrag(struct btrfs_trans_handle *trans,
+-			   struct btrfs_inode *inode, u32 extent_thresh)
++int btrfs_add_inode_defrag(struct btrfs_inode *inode, u32 extent_thresh)
  {
- 	struct btrfs_root *inode_root;
- 	struct inode *inode;
+ 	struct btrfs_root *root = inode->root;
+ 	struct btrfs_fs_info *fs_info = root->fs_info;
+@@ -151,10 +150,7 @@ int btrfs_add_inode_defrag(struct btrfs_trans_handle *trans,
+ 	if (test_bit(BTRFS_INODE_IN_DEFRAG, &inode->runtime_flags))
+ 		return 0;
+ 
+-	if (trans)
+-		transid = trans->transid;
+-	else
+-		transid = inode->root->last_trans;
++	transid = inode->root->last_trans;
+ 
+ 	defrag = kmem_cache_zalloc(btrfs_inode_defrag_cachep, GFP_NOFS);
+ 	if (!defrag)
+@@ -251,57 +247,61 @@ void btrfs_cleanup_defrag_inodes(struct btrfs_fs_info *fs_info)
+ static int __btrfs_run_defrag_inode(struct btrfs_fs_info *fs_info,
+ 				    struct inode_defrag *defrag)
+ {
+-	struct btrfs_root *inode_root;
+-	struct inode *inode;
 -	struct btrfs_ioctl_defrag_range_args range;
--	int num_defrag;
-+	struct btrfs_defrag_ctrl ctrl = {0};
- 	int ret;
+ 	int ret = 0;
++	/* Initially we don't have the inode, use -1 as dummy isize */
++	u64 isize = (u64)-1;
+ 	u64 cur = 0;
  
- 	/* get the inode */
-@@ -297,21 +296,23 @@ static int __btrfs_run_defrag_inode(struct btrfs_fs_info *fs_info,
+-again:
+-	if (test_bit(BTRFS_FS_STATE_REMOUNTING, &fs_info->fs_state))
+-		goto cleanup;
+-	if (!__need_auto_defrag(fs_info))
+-		goto cleanup;
++	while (cur < isize) {
++		struct btrfs_defrag_ctrl ctrl = {0};
++		struct btrfs_root *inode_root;
++		struct inode *inode;
  
- 	/* do a chunk of defrag */
- 	clear_bit(BTRFS_INODE_IN_DEFRAG, &BTRFS_I(inode)->runtime_flags);
--	memset(&range, 0, sizeof(range));
--	range.len = (u64)-1;
--	range.start = defrag->last_offset;
-+	ctrl.len = (u64)-1;
-+	ctrl.start = defrag->last_offset;
-+	ctrl.newer_than = defrag->transid;
-+	ctrl.max_sectors_to_defrag = BTRFS_DEFRAG_BATCH;
+-	/* get the inode */
+-	inode_root = btrfs_get_fs_root(fs_info, defrag->root, true);
+-	if (IS_ERR(inode_root)) {
+-		ret = PTR_ERR(inode_root);
+-		goto cleanup;
+-	}
++		if (test_bit(BTRFS_FS_STATE_REMOUNTING, &fs_info->fs_state))
++			break;
++		if (!__need_auto_defrag(fs_info))
++			break;
  
- 	sb_start_write(fs_info->sb);
--	num_defrag = btrfs_defrag_file(inode, NULL, &range, defrag->transid,
--				       BTRFS_DEFRAG_BATCH);
-+	ret = btrfs_defrag_file(inode, NULL, &ctrl);
- 	sb_end_write(fs_info->sb);
-+	if (ret < 0)
-+		goto out;
- 	/*
- 	 * if we filled the whole defrag batch, there
- 	 * must be more work to do.  Queue this defrag
- 	 * again
- 	 */
--	if (num_defrag == BTRFS_DEFRAG_BATCH) {
--		defrag->last_offset = range.start;
-+	if (ctrl.sectors_defragged == BTRFS_DEFRAG_BATCH) {
-+		defrag->last_offset = ctrl.last_scanned;
- 		btrfs_requeue_inode_defrag(BTRFS_I(inode), defrag);
- 	} else if (defrag->last_offset && !defrag->cycled) {
- 		/*
-@@ -325,7 +326,7 @@ static int __btrfs_run_defrag_inode(struct btrfs_fs_info *fs_info,
- 	} else {
- 		kmem_cache_free(btrfs_inode_defrag_cachep, defrag);
+-	inode = btrfs_iget(fs_info->sb, defrag->ino, inode_root);
+-	btrfs_put_root(inode_root);
+-	if (IS_ERR(inode)) {
+-		ret = PTR_ERR(inode);
+-		goto cleanup;
+-	}
++		/* Check if the root is still there and grab it */
++		inode_root = btrfs_get_fs_root(fs_info, defrag->root, true);
++		if (IS_ERR(inode_root)) {
++			ret = PTR_ERR(inode_root);
++			break;
++		}
+ 
+-	if (cur >= i_size_read(inode)) {
++		/* Check if the inode is still there and grab it */
++		inode = btrfs_iget(fs_info->sb, defrag->ino, inode_root);
++		btrfs_put_root(inode_root);
++		if (IS_ERR(inode)) {
++			ret = PTR_ERR(inode);
++			break;
++		}
++
++		isize = i_size_read(inode);
++
++		/* do a chunk of defrag */
++		clear_bit(BTRFS_INODE_IN_DEFRAG, &BTRFS_I(inode)->runtime_flags);
++		ctrl.len = (u64)-1;
++		ctrl.start = cur;
++		ctrl.newer_than = defrag->transid;
++		ctrl.extent_thresh = defrag->extent_thresh;
++		ctrl.max_sectors_to_defrag = BTRFS_DEFRAG_BATCH;
++
++		sb_start_write(fs_info->sb);
++		ret = btrfs_defrag_file(inode, NULL, &ctrl);
++		sb_end_write(fs_info->sb);
+ 		iput(inode);
+-		goto cleanup;
++
++		if (ret < 0)
++			break;
++
++		/*
++		 * And just in case the last scanned bytenr doesn't get
++		 * increased at all, at least start from the next sector
++		 * of current bytenr.
++		 */
++		cur = max(cur + fs_info->sectorsize, ctrl.last_scanned);
  	}
 -
-+out:
- 	iput(inode);
- 	return 0;
- cleanup:
-@@ -718,7 +719,6 @@ int btrfs_drop_extents(struct btrfs_trans_handle *trans,
+-	/* do a chunk of defrag */
+-	clear_bit(BTRFS_INODE_IN_DEFRAG, &BTRFS_I(inode)->runtime_flags);
+-	memset(&range, 0, sizeof(range));
+-	range.len = (u64)-1;
+-	range.start = cur;
+-	range.extent_thresh = defrag->extent_thresh;
+-
+-	sb_start_write(fs_info->sb);
+-	ret = btrfs_defrag_file(inode, NULL, &range, defrag->transid,
+-				       BTRFS_DEFRAG_BATCH);
+-	sb_end_write(fs_info->sb);
+-	iput(inode);
+-
+-	if (ret < 0)
+-		goto cleanup;
+-
+-	cur = max(cur + fs_info->sectorsize, range.start);
+-	goto again;
+-
+-cleanup:
+ 	kmem_cache_free(btrfs_inode_defrag_cachep, defrag);
+ 	return ret;
+ }
+@@ -691,7 +691,6 @@ int btrfs_drop_extents(struct btrfs_trans_handle *trans,
  	int modify_tree = -1;
  	int update_refs;
  	int found = 0;
@@ -3129,7 +3010,7 @@ index 11204dbbe053..12e63be6a35b 100644
  	struct btrfs_path *path = args->path;
  
  	args->bytes_found = 0;
-@@ -756,7 +756,6 @@ int btrfs_drop_extents(struct btrfs_trans_handle *trans,
+@@ -729,7 +728,6 @@ int btrfs_drop_extents(struct btrfs_trans_handle *trans,
  				path->slots[0]--;
  		}
  		ret = 0;
@@ -3137,7 +3018,7 @@ index 11204dbbe053..12e63be6a35b 100644
  next_slot:
  		leaf = path->nodes[0];
  		if (path->slots[0] >= btrfs_header_nritems(leaf)) {
-@@ -768,7 +767,6 @@ int btrfs_drop_extents(struct btrfs_trans_handle *trans,
+@@ -741,7 +739,6 @@ int btrfs_drop_extents(struct btrfs_trans_handle *trans,
  				ret = 0;
  				break;
  			}
@@ -3145,7 +3026,7 @@ index 11204dbbe053..12e63be6a35b 100644
  			leaf = path->nodes[0];
  			recow = 1;
  		}
-@@ -1014,7 +1012,7 @@ int btrfs_drop_extents(struct btrfs_trans_handle *trans,
+@@ -987,7 +984,7 @@ int btrfs_drop_extents(struct btrfs_trans_handle *trans,
  	 * which case it unlocked our path, so check path->locks[0] matches a
  	 * write lock.
  	 */
@@ -3599,7 +3480,7 @@ index 37f36ffdaf6b..56755ce9a907 100644
  		ref = btrfs_item_ptr(path->nodes[0], path->slots[0],
  				     struct btrfs_inode_ref);
 diff --git a/fs/btrfs/inode.c b/fs/btrfs/inode.c
-index 39a674543461..0ed8cc6afa37 100644
+index 3be5735372ee..e5ce0bf6b10b 100644
 --- a/fs/btrfs/inode.c
 +++ b/fs/btrfs/inode.c
 @@ -61,8 +61,6 @@ struct btrfs_iget_args {
@@ -3611,6 +3492,15 @@ index 39a674543461..0ed8cc6afa37 100644
  	ssize_t submitted;
  	struct extent_changeset *data_reserved;
  };
+@@ -566,7 +564,7 @@ static inline void inode_should_defrag(struct btrfs_inode *inode,
+ 	/* If this is a small write inside eof, kick off a defrag */
+ 	if (num_bytes < small_write &&
+ 	    (start > 0 || end + 1 < inode->disk_i_size))
+-		btrfs_add_inode_defrag(NULL, inode, small_write);
++		btrfs_add_inode_defrag(inode, small_write);
+ }
+ 
+ /*
 @@ -625,7 +623,6 @@ static noinline int compress_file_range(struct async_chunk *async_chunk)
  again:
  	will_compress = 0;
@@ -3861,10 +3751,10 @@ index 39a674543461..0ed8cc6afa37 100644
  	kfree(dio_data);
  	iomap->private = NULL;
 diff --git a/fs/btrfs/ioctl.c b/fs/btrfs/ioctl.c
-index cec7163bc873..773d44681484 100644
+index 541a4fbfd79e..6461cdf98882 100644
 --- a/fs/btrfs/ioctl.c
 +++ b/fs/btrfs/ioctl.c
-@@ -986,8 +986,154 @@ static noinline int btrfs_mksnapshot(const struct path *parent,
+@@ -986,8 +986,155 @@ static noinline int btrfs_mksnapshot(const struct path *parent,
  	return ret;
  }
  
@@ -3872,6 +3762,7 @@ index cec7163bc873..773d44681484 100644
 + * Defrag specific helper to get an extent map.
 + *
 + * Differences between this and btrfs_get_extent() are:
++ *
 + * - No extent_map will be added to inode->extent_tree
 + *   To reduce memory usage in the long run.
 + *
@@ -3891,7 +3782,7 @@ index cec7163bc873..773d44681484 100644
 +{
 +	struct btrfs_root *root = inode->root;
 +	struct btrfs_file_extent_item *fi;
-+	struct btrfs_path path = {};
++	struct btrfs_path path = { 0 };
 +	struct extent_map *em;
 +	struct btrfs_key key;
 +	u64 ino = btrfs_ino(inode);
@@ -3985,7 +3876,7 @@ index cec7163bc873..773d44681484 100644
 +		 *	|<- file extent ->|	|
 +		 *				\- start
 +		 *
-+		 * We haven't reach start, search next slot.
++		 * We haven't reached start, search next slot.
 +		 */
 +		if (extent_end <= start)
 +			goto next;
@@ -4020,7 +3911,7 @@ index cec7163bc873..773d44681484 100644
  {
  	struct extent_map_tree *em_tree = &BTRFS_I(inode)->extent_tree;
  	struct extent_io_tree *io_tree = &BTRFS_I(inode)->io_tree;
-@@ -1002,6 +1148,20 @@ static struct extent_map *defrag_lookup_extent(struct inode *inode, u64 start,
+@@ -1002,6 +1149,20 @@ static struct extent_map *defrag_lookup_extent(struct inode *inode, u64 start,
  	em = lookup_extent_mapping(em_tree, start, sectorsize);
  	read_unlock(&em_tree->lock);
  
@@ -4029,7 +3920,7 @@ index cec7163bc873..773d44681484 100644
 +	 * tree to get the original em for defrag.
 +	 *
 +	 * If @newer_than is 0 or em::generation < newer_than, we can trust
-+	 * this em, as either we don't care about the generation , or the
++	 * this em, as either we don't care about the generation, or the
 +	 * merged extent map will be rejected anyway.
 +	 */
 +	if (em && test_bit(EXTENT_FLAG_MERGED, &em->flags) &&
@@ -4041,7 +3932,7 @@ index cec7163bc873..773d44681484 100644
  	if (!em) {
  		struct extent_state *cached = NULL;
  		u64 end = start + sectorsize - 1;
-@@ -1009,7 +1169,7 @@ static struct extent_map *defrag_lookup_extent(struct inode *inode, u64 start,
+@@ -1009,7 +1170,7 @@ static struct extent_map *defrag_lookup_extent(struct inode *inode, u64 start,
  		/* get the big lock and read metadata off disk */
  		if (!locked)
  			lock_extent_bits(io_tree, start, end, &cached);
@@ -4050,28 +3941,9 @@ index cec7163bc873..773d44681484 100644
  		if (!locked)
  			unlock_extent_cached(io_tree, start, end, &cached);
  
-@@ -1020,23 +1180,42 @@ static struct extent_map *defrag_lookup_extent(struct inode *inode, u64 start,
- 	return em;
- }
- 
-+static u32 get_extent_max_capacity(const struct extent_map *em)
-+{
-+	if (test_bit(EXTENT_FLAG_COMPRESSED, &em->flags))
-+		return BTRFS_MAX_COMPRESSED;
-+	return BTRFS_MAX_EXTENT_SIZE;
-+}
-+
- static bool defrag_check_next_extent(struct inode *inode, struct extent_map *em,
- 				     bool locked)
- {
- 	struct extent_map *next;
--	bool ret = true;
-+	bool ret = false;
- 
- 	/* this is the last extent */
+@@ -1037,7 +1198,12 @@ static bool defrag_check_next_extent(struct inode *inode, struct extent_map *em,
  	if (em->start + em->len >= i_size_read(inode))
--		return false;
-+		return ret;
+ 		return false;
  
 -	next = defrag_lookup_extent(inode, em->start + em->len, locked);
 +	/*
@@ -4080,28 +3952,10 @@ index cec7163bc873..773d44681484 100644
 +	 * a minimum generation of 0 to defrag_lookup_extent().
 +	 */
 +	next = defrag_lookup_extent(inode, em->start + em->len, 0, locked);
-+	/* No more em or hole */
+ 	/* No more em or hole */
  	if (!next || next->block_start >= EXTENT_MAP_LAST_BYTE)
--		ret = false;
--	else if ((em->block_start + em->block_len == next->block_start) &&
--		 (em->block_len > SZ_128K && next->block_len > SZ_128K))
--		ret = false;
--
-+		goto out;
-+	if (test_bit(EXTENT_FLAG_PREALLOC, &next->flags))
-+		goto out;
-+	/*
-+	 * If the next extent is at its max capcity, defragging current extent
-+	 * makes no sense, as the total number of extents won't change.
-+	 */
-+	if (next->len >= get_extent_max_capacity(em))
-+		goto out;
-+	ret = true;
-+out:
- 	free_extent_map(next);
- 	return ret;
- }
-@@ -1146,22 +1325,21 @@ struct defrag_target_range {
+ 		goto out;
+@@ -1160,23 +1326,20 @@ struct defrag_target_range {
  /*
   * Collect all valid target extents.
   *
@@ -4122,28 +3976,27 @@ index cec7163bc873..773d44681484 100644
  static int defrag_collect_targets(struct btrfs_inode *inode,
 -				  u64 start, u64 len, u32 extent_thresh,
 -				  u64 newer_than, bool do_compress,
--				  bool locked, struct list_head *target_list)
+-				  bool locked, struct list_head *target_list,
+-				  u64 *last_scanned_ret)
 +				  struct btrfs_defrag_ctrl *ctrl,
 +				  u64 start, u32 len, bool locked,
 +				  struct list_head *target_list)
  {
 +	bool do_compress = ctrl->flags & BTRFS_DEFRAG_RANGE_COMPRESS;
-+	bool last_is_target = false;
+ 	bool last_is_target = false;
  	u64 cur = start;
  	int ret = 0;
- 
-@@ -1171,7 +1349,9 @@ static int defrag_collect_targets(struct btrfs_inode *inode,
- 		bool next_mergeable = true;
+@@ -1188,7 +1351,8 @@ static int defrag_collect_targets(struct btrfs_inode *inode,
  		u64 range_len;
  
+ 		last_is_target = false;
 -		em = defrag_lookup_extent(&inode->vfs_inode, cur, locked);
-+		last_is_target = false;
 +		em = defrag_lookup_extent(&inode->vfs_inode, cur,
 +					  ctrl->newer_than, locked);
  		if (!em)
  			break;
  
-@@ -1181,7 +1361,7 @@ static int defrag_collect_targets(struct btrfs_inode *inode,
+@@ -1198,7 +1362,7 @@ static int defrag_collect_targets(struct btrfs_inode *inode,
  			goto next;
  
  		/* Skip older extent */
@@ -4152,50 +4005,41 @@ index cec7163bc873..773d44681484 100644
  			goto next;
  
  		/* This em is under writeback, no need to defrag */
-@@ -1225,7 +1405,14 @@ static int defrag_collect_targets(struct btrfs_inode *inode,
+@@ -1242,7 +1406,7 @@ static int defrag_collect_targets(struct btrfs_inode *inode,
  			goto add;
  
  		/* Skip too large extent */
 -		if (range_len >= extent_thresh)
 +		if (range_len >= ctrl->extent_thresh)
-+			goto next;
-+
-+		/*
-+		 * Skip extents already at its max capacity, this is mostly for
-+		 * compressed extents, which max cap is only 128K.
-+		 */
-+		if (em->len >= get_extent_max_capacity(em))
  			goto next;
  
- 		next_mergeable = defrag_check_next_extent(&inode->vfs_inode, em,
-@@ -1246,6 +1433,7 @@ static int defrag_collect_targets(struct btrfs_inode *inode,
- 		}
- 
+ 		/*
+@@ -1272,6 +1436,7 @@ static int defrag_collect_targets(struct btrfs_inode *inode,
  add:
-+		last_is_target = true;
+ 		last_is_target = true;
  		range_len = min(extent_map_end(em), start + len) - cur;
++		trace_defrag_add_target(inode, em, cur, range_len);
  		/*
  		 * This one is a good target, check if it can be merged into
-@@ -1289,10 +1477,27 @@ static int defrag_collect_targets(struct btrfs_inode *inode,
+ 		 * last range of the target list.
+@@ -1314,21 +1479,22 @@ static int defrag_collect_targets(struct btrfs_inode *inode,
  			kfree(entry);
  		}
  	}
+-	if (!ret && last_scanned_ret) {
 +	if (!ret) {
-+		/*
-+		 * If the last extent is not a target, the caller can skip to
-+		 * the end of that extent.
-+		 * Otherwise, we can only go the end of the spcified range.
-+		 *
-+		 * And we may got a range smaller than current
-+		 * ctrl->last_scanned (e.g. executed in the defrag_one_range
-+		 * call), so we have to ensure we didn't decrease
-+		 * ctrl->last_scanned.
-+		 */
-+		if (!last_is_target)
+ 		/*
+ 		 * If the last extent is not a target, the caller can skip to
+ 		 * the end of that extent.
+ 		 * Otherwise, we can only go the end of the specified range.
+ 		 */
+ 		if (!last_is_target)
+-			*last_scanned_ret = max(cur, *last_scanned_ret);
 +			ctrl->last_scanned = max(cur, ctrl->last_scanned);
-+		else
+ 		else
+-			*last_scanned_ret = max(start + len, *last_scanned_ret);
 +			ctrl->last_scanned = max(start + len, ctrl->last_scanned);
-+	}
+ 	}
  	return ret;
  }
  
@@ -4204,28 +4048,39 @@ index cec7163bc873..773d44681484 100644
  
  /*
   * Defrag one contiguous target range.
-@@ -1346,8 +1551,8 @@ static int defrag_one_locked_target(struct btrfs_inode *inode,
+@@ -1366,6 +1532,7 @@ static int defrag_one_locked_target(struct btrfs_inode *inode,
+ 	ret = btrfs_delalloc_reserve_space(inode, &data_reserved, start, len);
+ 	if (ret < 0)
+ 		return ret;
++	trace_defrag_one_locked_range(inode, start, (u32)len);
+ 	clear_extent_bit(&inode->io_tree, start, start + len - 1,
+ 			 EXTENT_DELALLOC | EXTENT_DO_ACCOUNTING |
+ 			 EXTENT_DEFRAG, 0, 0, cached_state);
+@@ -1382,9 +1549,8 @@ static int defrag_one_locked_target(struct btrfs_inode *inode,
  	return ret;
  }
  
 -static int defrag_one_range(struct btrfs_inode *inode, u64 start, u32 len,
--			    u32 extent_thresh, u64 newer_than, bool do_compress)
+-			    u32 extent_thresh, u64 newer_than, bool do_compress,
+-			    u64 *last_scanned_ret)
 +static int defrag_one_range(struct btrfs_inode *inode,
 +			    struct btrfs_defrag_ctrl *ctrl, u64 start, u32 len)
  {
  	struct extent_state *cached_state = NULL;
  	struct defrag_target_range *entry;
-@@ -1391,8 +1596,7 @@ static int defrag_one_range(struct btrfs_inode *inode, u64 start, u32 len,
+@@ -1428,9 +1594,8 @@ static int defrag_one_range(struct btrfs_inode *inode, u64 start, u32 len,
  	 * And this time we have extent locked already, pass @locked = true
  	 * so that we won't relock the extent range and cause deadlock.
  	 */
 -	ret = defrag_collect_targets(inode, start, len, extent_thresh,
 -				     newer_than, do_compress, true,
+-				     &target_list, last_scanned_ret);
 +	ret = defrag_collect_targets(inode, ctrl, start, len, true,
- 				     &target_list);
++				     &target_list);
  	if (ret < 0)
  		goto unlock_extent;
-@@ -1402,6 +1606,8 @@ static int defrag_one_range(struct btrfs_inode *inode, u64 start, u32 len,
+ 
+@@ -1439,6 +1604,8 @@ static int defrag_one_range(struct btrfs_inode *inode, u64 start, u32 len,
  					       &cached_state);
  		if (ret < 0)
  			break;
@@ -4234,7 +4089,7 @@ index cec7163bc873..773d44681484 100644
  	}
  
  	list_for_each_entry_safe(entry, tmp, &target_list, list) {
-@@ -1423,12 +1629,17 @@ static int defrag_one_range(struct btrfs_inode *inode, u64 start, u32 len,
+@@ -1460,13 +1627,17 @@ static int defrag_one_range(struct btrfs_inode *inode, u64 start, u32 len,
  	return ret;
  }
  
@@ -4250,24 +4105,27 @@ index cec7163bc873..773d44681484 100644
 -			      u64 start, u32 len, u32 extent_thresh,
 -			      u64 newer_than, bool do_compress,
 -			      unsigned long *sectors_defragged,
--			      unsigned long max_sectors)
+-			      unsigned long max_sectors,
+-			      u64 *last_scanned_ret)
 +			      struct btrfs_defrag_ctrl *ctrl,
 +			      u64 start, u32 len)
  {
  	const u32 sectorsize = inode->root->fs_info->sectorsize;
  	struct defrag_target_range *entry;
-@@ -1436,9 +1647,7 @@ static int defrag_one_cluster(struct btrfs_inode *inode,
+@@ -1474,10 +1645,8 @@ static int defrag_one_cluster(struct btrfs_inode *inode,
  	LIST_HEAD(target_list);
  	int ret;
  
 -	BUILD_BUG_ON(!IS_ALIGNED(CLUSTER_SIZE, PAGE_SIZE));
 -	ret = defrag_collect_targets(inode, start, len, extent_thresh,
 -				     newer_than, do_compress, false,
+-				     &target_list, NULL);
 +	ret = defrag_collect_targets(inode, ctrl, start, len, false,
- 				     &target_list);
++				     &target_list);
  	if (ret < 0)
  		goto out;
-@@ -1447,32 +1656,25 @@ static int defrag_one_cluster(struct btrfs_inode *inode,
+ 
+@@ -1485,112 +1654,123 @@ static int defrag_one_cluster(struct btrfs_inode *inode,
  		u32 range_len = entry->len;
  
  		/* Reached or beyond the limit */
@@ -4282,6 +4140,15 @@ index cec7163bc873..773d44681484 100644
 +		if (ctrl->max_sectors_to_defrag)
  			range_len = min_t(u32, range_len,
 -				(max_sectors - *sectors_defragged) * sectorsize);
+-
+-		/*
+-		 * If defrag_one_range() has updated last_scanned_ret,
+-		 * our range may already be invalid (e.g. hole punched).
+-		 * Skip if our range is before last_scanned_ret, as there is
+-		 * no need to defrag the range anymore.
+-		 */
+-		if (entry->start + range_len <= *last_scanned_ret)
+-			continue;
 +				(ctrl->max_sectors_to_defrag -
 +				 ctrl->sectors_defragged) * sectorsize);
  
@@ -4297,7 +4164,8 @@ index cec7163bc873..773d44681484 100644
 -		 * accounting.
 -		 */
 -		ret = defrag_one_range(inode, entry->start, range_len,
--				       extent_thresh, newer_than, do_compress);
+-				       extent_thresh, newer_than, do_compress,
+-				       last_scanned_ret);
 +		ret = defrag_one_range(inode, ctrl, entry->start, range_len);
  		if (ret < 0)
  			break;
@@ -4306,7 +4174,11 @@ index cec7163bc873..773d44681484 100644
  	}
  out:
  	list_for_each_entry_safe(entry, tmp, &target_list, list) {
-@@ -1482,64 +1684,93 @@ static int defrag_one_cluster(struct btrfs_inode *inode,
+ 		list_del_init(&entry->list);
+ 		kfree(entry);
+ 	}
+-	if (ret >= 0)
+-		*last_scanned_ret = max(*last_scanned_ret, start + len);
  	return ret;
  }
  
@@ -4424,13 +4296,16 @@ index cec7163bc873..773d44681484 100644
 +	cur = round_down(ctrl->start, fs_info->sectorsize);
 +	ctrl->last_scanned = cur;
  	last_byte = round_up(last_byte, fs_info->sectorsize) - 1;
++	trace_defrag_file_start(BTRFS_I(inode), ctrl, cur, last_byte + 1 - cur);
  
  	/*
-@@ -1563,12 +1794,9 @@ int btrfs_defrag_file(struct inode *inode, struct file_ra_state *ra,
+ 	 * If we were not given a ra, allocate a readahead context. As
+@@ -1613,13 +1793,9 @@ int btrfs_defrag_file(struct inode *inode, struct file_ra_state *ra,
  		inode->i_mapping->writeback_index = start_index;
  
  	while (cur < last_byte) {
 -		const unsigned long prev_sectors_defragged = sectors_defragged;
+-		u64 last_scanned = cur;
 +		const unsigned long prev_sectors_defragged = ctrl->sectors_defragged;
  		u64 cluster_end;
  
@@ -4440,15 +4315,15 @@ index cec7163bc873..773d44681484 100644
  		if (btrfs_defrag_cancelled(fs_info)) {
  			ret = -EAGAIN;
  			break;
-@@ -1590,19 +1818,17 @@ int btrfs_defrag_file(struct inode *inode, struct file_ra_state *ra,
+@@ -1641,19 +1817,17 @@ int btrfs_defrag_file(struct inode *inode, struct file_ra_state *ra,
  			break;
  		}
  		if (do_compress)
 -			BTRFS_I(inode)->defrag_compress = compress_type;
 -		ret = defrag_one_cluster(BTRFS_I(inode), ra, cur,
 -				cluster_end + 1 - cur, extent_thresh,
--				newer_than, do_compress,
--				&sectors_defragged, max_to_defrag);
+-				newer_than, do_compress, &sectors_defragged,
+-				max_to_defrag, &last_scanned);
 +			BTRFS_I(inode)->defrag_compress = ctrl->compress;
 +		ret = defrag_one_cluster(BTRFS_I(inode), ra, ctrl, cur,
 +				cluster_end + 1 - cur);
@@ -4460,12 +4335,12 @@ index cec7163bc873..773d44681484 100644
  		btrfs_inode_unlock(inode, 0);
  		if (ret < 0)
  			break;
--		cur = cluster_end + 1;
+-		cur = max(cluster_end + 1, last_scanned);
 +		cur = max(cluster_end + 1, ctrl->last_scanned);
  		if (ret > 0) {
  			ret = 0;
  			break;
-@@ -1612,27 +1838,21 @@ int btrfs_defrag_file(struct inode *inode, struct file_ra_state *ra,
+@@ -1663,33 +1837,28 @@ int btrfs_defrag_file(struct inode *inode, struct file_ra_state *ra,
  
  	if (ra_allocated)
  		kfree(ra);
@@ -4497,7 +4372,14 @@ index cec7163bc873..773d44681484 100644
  	}
  	if (do_compress) {
  		btrfs_inode_lock(inode, 0);
-@@ -2152,7 +2372,7 @@ static noinline int copy_to_sk(struct btrfs_path *path,
+ 		BTRFS_I(inode)->defrag_compress = BTRFS_COMPRESS_NONE;
+ 		btrfs_inode_unlock(inode, 0);
+ 	}
++	trace_defrag_file_end(BTRFS_I(inode), ctrl, ret);
+ 	return ret;
+ }
+ 
+@@ -2203,7 +2372,7 @@ static noinline int copy_to_sk(struct btrfs_path *path,
  
  	for (i = slot; i < nritems; i++) {
  		item_off = btrfs_item_ptr_offset(leaf, i);
@@ -4506,7 +4388,7 @@ index cec7163bc873..773d44681484 100644
  
  		btrfs_item_key_to_cpu(leaf, key, i);
  		if (!key_in_sk(key, sk))
-@@ -2606,7 +2826,7 @@ static int btrfs_search_path_in_tree_user(struct user_namespace *mnt_userns,
+@@ -2657,7 +2826,7 @@ static int btrfs_search_path_in_tree_user(struct user_namespace *mnt_userns,
  	btrfs_item_key_to_cpu(leaf, &key, slot);
  
  	item_off = btrfs_item_ptr_offset(leaf, slot);
@@ -4515,7 +4397,7 @@ index cec7163bc873..773d44681484 100644
  	/* Check if dirid in ROOT_REF corresponds to passed dirid */
  	rref = btrfs_item_ptr(leaf, slot, struct btrfs_root_ref);
  	if (args->dirid != btrfs_root_ref_dirid(leaf, rref)) {
-@@ -2808,7 +3028,7 @@ static int btrfs_ioctl_get_subvol_info(struct file *file, void __user *argp)
+@@ -2859,7 +3028,7 @@ static int btrfs_ioctl_get_subvol_info(struct file *file, void __user *argp)
  
  			item_off = btrfs_item_ptr_offset(leaf, slot)
  					+ sizeof(struct btrfs_root_ref);
@@ -4524,7 +4406,7 @@ index cec7163bc873..773d44681484 100644
  					- sizeof(struct btrfs_root_ref);
  			read_extent_buffer(leaf, subvol_info->name,
  					   item_off, item_len);
-@@ -3153,6 +3373,7 @@ static int btrfs_ioctl_defrag(struct file *file, void __user *argp)
+@@ -3204,6 +3373,7 @@ static int btrfs_ioctl_defrag(struct file *file, void __user *argp)
  	struct inode *inode = file_inode(file);
  	struct btrfs_root *root = BTRFS_I(inode)->root;
  	struct btrfs_ioctl_defrag_range_args range = {0};
@@ -4532,7 +4414,7 @@ index cec7163bc873..773d44681484 100644
  	int ret;
  
  	ret = mnt_want_write_file(file);
-@@ -3198,8 +3419,11 @@ static int btrfs_ioctl_defrag(struct file *file, void __user *argp)
+@@ -3249,8 +3419,11 @@ static int btrfs_ioctl_defrag(struct file *file, void __user *argp)
  			/* the rest are all set to zero by kzalloc */
  			range.len = (u64)-1;
  		}
@@ -4546,7 +4428,7 @@ index cec7163bc873..773d44681484 100644
  		if (ret > 0)
  			ret = 0;
  		break;
-@@ -3688,7 +3912,6 @@ static noinline long btrfs_ioctl_start_sync(struct btrfs_root *root,
+@@ -3739,7 +3912,6 @@ static noinline long btrfs_ioctl_start_sync(struct btrfs_root *root,
  {
  	struct btrfs_trans_handle *trans;
  	u64 transid;
@@ -4554,7 +4436,7 @@ index cec7163bc873..773d44681484 100644
  
  	trans = btrfs_attach_transaction_barrier(root);
  	if (IS_ERR(trans)) {
-@@ -3700,11 +3923,7 @@ static noinline long btrfs_ioctl_start_sync(struct btrfs_root *root,
+@@ -3751,11 +3923,7 @@ static noinline long btrfs_ioctl_start_sync(struct btrfs_root *root,
  		goto out;
  	}
  	transid = trans->transid;
@@ -4568,7 +4450,7 @@ index cec7163bc873..773d44681484 100644
  	if (argp)
  		if (copy_to_user(argp, &transid, sizeof(transid)))
 diff --git a/fs/btrfs/lzo.c b/fs/btrfs/lzo.c
-index 0fb90cbe7669..430ad36b8b08 100644
+index e6e28a9c7987..430ad36b8b08 100644
 --- a/fs/btrfs/lzo.c
 +++ b/fs/btrfs/lzo.c
 @@ -55,6 +55,9 @@
@@ -4592,25 +4474,16 @@ index 0fb90cbe7669..430ad36b8b08 100644
  	if (!workspace->mem || !workspace->buf || !workspace->cbuf)
  		goto fail;
  
-@@ -380,6 +383,17 @@ int lzo_decompress_bio(struct list_head *ws, struct compressed_bio *cb)
+@@ -380,7 +383,7 @@ int lzo_decompress_bio(struct list_head *ws, struct compressed_bio *cb)
  		kunmap(cur_page);
  		cur_in += LZO_LEN;
  
+-		if (seg_len > lzo1x_worst_compress(PAGE_SIZE)) {
 +		if (seg_len > WORKSPACE_CBUF_LENGTH) {
-+			/*
-+			 * seg_len shouldn't be larger than we have allocated
-+			 * for workspace->cbuf
-+			 */
-+			btrfs_err(fs_info, "unexpectedly large lzo segment len %u",
-+					seg_len);
-+			ret = -EIO;
-+			goto out;
-+		}
-+
- 		/* Copy the compressed segment payload into workspace */
- 		copy_compressed_segment(cb, workspace->cbuf, seg_len, &cur_in);
- 
-@@ -422,7 +436,7 @@ int lzo_decompress(struct list_head *ws, unsigned char *data_in,
+ 			/*
+ 			 * seg_len shouldn't be larger than we have allocated
+ 			 * for workspace->cbuf
+@@ -433,7 +436,7 @@ int lzo_decompress(struct list_head *ws, unsigned char *data_in,
  	struct workspace *workspace = list_entry(ws, struct workspace, list);
  	size_t in_len;
  	size_t out_len;
@@ -5138,7 +5011,7 @@ index eba07b8119bb..d0705485f5c8 100644
  bool btrfs_should_end_transaction(struct btrfs_trans_handle *trans);
  void btrfs_throttle(struct btrfs_fs_info *fs_info);
 diff --git a/fs/btrfs/tree-checker.c b/fs/btrfs/tree-checker.c
-index 7733e8ac0a69..72e1c942197d 100644
+index 51382d2be3d4..cfb7a8148ea6 100644
 --- a/fs/btrfs/tree-checker.c
 +++ b/fs/btrfs/tree-checker.c
 @@ -202,7 +202,7 @@ static int check_extent_data_item(struct extent_buffer *leaf,
@@ -5215,7 +5088,7 @@ index 7733e8ac0a69..72e1c942197d 100644
  			btrfs_chunk_item_size(num_stripes));
  		return -EUCLEAN;
  	}
-@@ -1095,12 +1095,12 @@ static int check_root_item(struct extent_buffer *leaf, struct btrfs_key *key,
+@@ -1110,12 +1110,12 @@ static int check_root_item(struct extent_buffer *leaf, struct btrfs_key *key,
  	if (unlikely(ret < 0))
  		return ret;
  
@@ -5231,7 +5104,7 @@ index 7733e8ac0a69..72e1c942197d 100644
  			    btrfs_legacy_root_item_size());
  		return -EUCLEAN;
  	}
-@@ -1111,7 +1111,7 @@ static int check_root_item(struct extent_buffer *leaf, struct btrfs_key *key,
+@@ -1126,7 +1126,7 @@ static int check_root_item(struct extent_buffer *leaf, struct btrfs_key *key,
  	 * And since we allow geneartion_v2 as 0, it will still pass the check.
  	 */
  	read_extent_buffer(leaf, &ri, btrfs_item_ptr_offset(leaf, slot),
@@ -5240,7 +5113,7 @@ index 7733e8ac0a69..72e1c942197d 100644
  
  	/* Generation related */
  	if (unlikely(btrfs_root_generation(&ri) >
-@@ -1208,7 +1208,7 @@ static int check_extent_item(struct extent_buffer *leaf,
+@@ -1223,7 +1223,7 @@ static int check_extent_item(struct extent_buffer *leaf,
  	bool is_tree_block = false;
  	unsigned long ptr;	/* Current pointer inside inline refs */
  	unsigned long end;	/* Extent item end */
@@ -5249,7 +5122,7 @@ index 7733e8ac0a69..72e1c942197d 100644
  	u64 flags;
  	u64 generation;
  	u64 total_refs;		/* Total refs in btrfs_extent_item */
-@@ -1432,10 +1432,10 @@ static int check_simple_keyed_refs(struct extent_buffer *leaf,
+@@ -1447,10 +1447,10 @@ static int check_simple_keyed_refs(struct extent_buffer *leaf,
  	if (key->type == BTRFS_SHARED_DATA_REF_KEY)
  		expect_item_size = sizeof(struct btrfs_shared_data_ref);
  
@@ -5262,7 +5135,7 @@ index 7733e8ac0a69..72e1c942197d 100644
  			    expect_item_size, key->type);
  		return -EUCLEAN;
  	}
-@@ -1460,12 +1460,12 @@ static int check_extent_data_ref(struct extent_buffer *leaf,
+@@ -1475,12 +1475,12 @@ static int check_extent_data_ref(struct extent_buffer *leaf,
  {
  	struct btrfs_extent_data_ref *dref;
  	unsigned long ptr = btrfs_item_ptr_offset(leaf, slot);
@@ -5278,7 +5151,7 @@ index 7733e8ac0a69..72e1c942197d 100644
  			    sizeof(*dref), key->type);
  		return -EUCLEAN;
  	}
-@@ -1507,16 +1507,16 @@ static int check_inode_ref(struct extent_buffer *leaf,
+@@ -1522,16 +1522,16 @@ static int check_inode_ref(struct extent_buffer *leaf,
  	if (unlikely(!check_prev_ino(leaf, key, slot, prev_key)))
  		return -EUCLEAN;
  	/* namelen can't be 0, so item_size == sizeof() is also invalid */
@@ -5298,7 +5171,7 @@ index 7733e8ac0a69..72e1c942197d 100644
  	while (ptr < end) {
  		u16 namelen;
  
-@@ -1689,12 +1689,12 @@ static int check_leaf(struct extent_buffer *leaf, bool check_item_data)
+@@ -1704,12 +1704,12 @@ static int check_leaf(struct extent_buffer *leaf, bool check_item_data)
  		if (slot == 0)
  			item_end_expected = BTRFS_LEAF_DATA_SIZE(fs_info);
  		else
@@ -5314,7 +5187,7 @@ index 7733e8ac0a69..72e1c942197d 100644
  				item_end_expected);
  			return -EUCLEAN;
  		}
-@@ -1704,11 +1704,11 @@ static int check_leaf(struct extent_buffer *leaf, bool check_item_data)
+@@ -1719,11 +1719,11 @@ static int check_leaf(struct extent_buffer *leaf, bool check_item_data)
  		 * just in case all the items are consistent to each other, but
  		 * all point outside of the leaf.
  		 */
@@ -6625,6 +6498,151 @@ index 2837b4c8424d..99abf41b89b9 100644
  		cur = 0;
  		while (cur < item_size) {
  			u16 name_len = btrfs_dir_name_len(leaf, di);
+diff --git a/include/trace/events/btrfs.h b/include/trace/events/btrfs.h
+index 8f58fd95efc7..b6b6ed06159f 100644
+--- a/include/trace/events/btrfs.h
++++ b/include/trace/events/btrfs.h
+@@ -30,6 +30,7 @@ struct btrfs_qgroup;
+ struct extent_io_tree;
+ struct prelim_ref;
+ struct btrfs_space_info;
++struct btrfs_defrag_ctrl;
+ 
+ #define show_ref_type(type)						\
+ 	__print_symbolic(type,						\
+@@ -2263,6 +2264,132 @@ DEFINE_EVENT(btrfs__space_info_update, update_bytes_pinned,
+ 	TP_ARGS(fs_info, sinfo, old, diff)
+ );
+ 
++TRACE_EVENT(defrag_one_locked_range,
++
++	TP_PROTO(const struct btrfs_inode *inode, u64 start, u32 len),
++
++	TP_ARGS(inode, start, len),
++
++	TP_STRUCT__entry_btrfs(
++		__field(	u64,	root		)
++		__field(	u64,	ino		)
++		__field(	u64,	start		)
++		__field(	u32,	len		)
++	),
++
++	TP_fast_assign_btrfs(inode->root->fs_info,
++		__entry->root	= inode->root->root_key.objectid;
++		__entry->ino	= btrfs_ino(inode);
++		__entry->start	= start;
++		__entry->len	= len;
++	),
++
++	TP_printk_btrfs("root=%llu ino=%llu start=%llu len=%u",
++		__entry->root, __entry->ino, __entry->start, __entry->len)
++);
++
++TRACE_EVENT(defrag_add_target,
++
++	TP_PROTO(const struct btrfs_inode *inode, const struct extent_map *em,
++		 u64 start, u32 len),
++
++	TP_ARGS(inode, em, start, len),
++
++	TP_STRUCT__entry_btrfs(
++		__field(	u64,	root		)
++		__field(	u64,	ino		)
++		__field(	u64,	target_start	)
++		__field(	u32,	target_len	)
++		__field(	u64,	em_generation	)
++		__field(	u64,	em_start	)
++		__field(	u64,	em_len		)
++	),
++
++	TP_fast_assign_btrfs(inode->root->fs_info,
++		__entry->root		= inode->root->root_key.objectid;
++		__entry->ino		= btrfs_ino(inode);
++		__entry->target_start	= start;
++		__entry->target_len	= len;
++		__entry->em_generation	= em->generation;
++		__entry->em_start	= em->start;
++		__entry->em_len		= em->len;
++	),
++
++	TP_printk_btrfs("root=%llu ino=%llu target_start=%llu target_len=%u "
++		"found em=%llu len=%llu generation=%llu",
++		__entry->root, __entry->ino, __entry->target_start,
++		__entry->target_len, __entry->em_start, __entry->em_len,
++		__entry->em_generation)
++);
++
++TRACE_EVENT(defrag_file_start,
++
++	TP_PROTO(const struct btrfs_inode *inode,
++		 const struct btrfs_defrag_ctrl *ctrl, u64 start, u64 len),
++
++	TP_ARGS(inode, ctrl, start, len),
++
++	TP_STRUCT__entry_btrfs(
++		__field(	u64,	root			)
++		__field(	u64,	ino			)
++		__field(	u64,	start			)
++		__field(	u64,	len			)
++		__field(	u64,	newer_than		)
++		__field(	u64,	max_sectors_to_defrag	)
++		__field(	u32,	extent_thresh		)
++		__field(	u8,	flags			)
++		__field(	u8,	compress		)
++	),
++
++	TP_fast_assign_btrfs(inode->root->fs_info,
++		__entry->root		= inode->root->root_key.objectid;
++		__entry->ino		= btrfs_ino(inode);
++		__entry->start		= start;
++		__entry->len		= len;
++		__entry->extent_thresh	= ctrl->extent_thresh;
++		__entry->newer_than	= ctrl->newer_than;
++		__entry->max_sectors_to_defrag = ctrl->max_sectors_to_defrag;
++		__entry->flags		= ctrl->flags;
++		__entry->compress	= ctrl->compress;
++	),
++
++	TP_printk_btrfs("root=%llu ino=%llu start=%llu len=%llu "
++		"extent_thresh=%u newer_than=%llu flags=0x%x compress=%u "
++		"max_sectors_to_defrag=%llu",
++		__entry->root, __entry->ino, __entry->start, __entry->len,
++		__entry->extent_thresh, __entry->newer_than, __entry->flags,
++		__entry->compress, __entry->max_sectors_to_defrag)
++);
++
++TRACE_EVENT(defrag_file_end,
++
++	TP_PROTO(const struct btrfs_inode *inode,
++		 const struct btrfs_defrag_ctrl *ctrl, int ret),
++
++	TP_ARGS(inode, ctrl, ret),
++
++	TP_STRUCT__entry_btrfs(
++		__field(	u64,	root			)
++		__field(	u64,	ino			)
++		__field(	u64,	sectors_defragged	)
++		__field(	u64,	last_scanned		)
++		__field(	int,	ret			)
++	),
++
++	TP_fast_assign_btrfs(inode->root->fs_info,
++		__entry->root		= inode->root->root_key.objectid;
++		__entry->ino		= btrfs_ino(inode);
++		__entry->sectors_defragged = ctrl->sectors_defragged;
++		__entry->last_scanned	= ctrl->last_scanned;
++		__entry->ret		= ret;
++	),
++
++	TP_printk_btrfs("root=%llu ino=%llu sectors_defragged=%llu "
++		"last_scanned=%llu ret=%d",
++		__entry->root, __entry->ino, __entry->sectors_defragged,
++		__entry->last_scanned, __entry->ret)
++);
++
+ #endif /* _TRACE_BTRFS_H */
+ 
+ /* This part must be outside protection */
 diff --git a/include/uapi/linux/btrfs.h b/include/uapi/linux/btrfs.h
 index 738619994e26..012a71ab5d8e 100644
 --- a/include/uapi/linux/btrfs.h

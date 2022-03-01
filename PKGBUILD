@@ -114,7 +114,8 @@ source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar
         "Revert-NFSv4.1-query-for-fs_location-attr-on-a-new-file.patch"
 
         # hotfix: address btrfs autodefrag excessive utilization
-        "btrfs-fix-autodefrag-on-5.16.9.patch"
+        "btrfs-autodefrag-fixup-and-safe-perf-from-next.patch"
+        "fixup-fs-btrfs-build-on-5.16.12.patch"
 
         # Revert Xanmod scheduler power efficiency removal
         "Revert-XANMOD-fair-Remove-all-energy-efficiency-functions.patch"
@@ -189,7 +190,8 @@ sha256sums=('027d7e8988bb69ac12ee92406c3be1fe13f990b1ca2249e226225cd1573308bb'
             'a9647897e59b04cb883dcf649b3108e9397d5a6c672bc545ea0c6bb7bb30d5a9'
             '24d975b9a9226ce7ade93e70d61ed1cc69d35fd09ebc30b9826339d0b27a0274'
             'efd9bd12ef07da8e9c6144097a22c27026a372d4ef5c51b85d363df68f4102c8'
-            'd8ba1c49cc16eaf9ed9f18ba414cff2d5f96f8070690d42e3cc57b95b4b3c7c1'
+            '47d6b2d44ad79aff8e3b5b703c1776765c79eeb751396ede22030a54a3665067'
+            'f2ff4fb97ab4ee1558e4c52c54d808488877efea32fe7fc6b0c3eafe325cd4df'
             '3bb1cf422c64b4eea324b71048d0bdee04b5f9132136c6a4774e5205e45c46f1'
             '5c6c7778bc2d873657a885272956e232138b8b4935c3a3d6b11ef1619d344b20'
             '56f8f93a38ed7236c2504c79645a33123ee7bdf3c0cbb97dfd90600df06be7dd'

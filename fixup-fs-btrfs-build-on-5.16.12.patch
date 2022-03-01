@@ -1,0 +1,37 @@
+From fd1172956960b12732f2feee24002252955870ce Mon Sep 17 00:00:00 2001
+From: Scott B <arglebargle@arglebargle.dev>
+Date: Mon, 28 Feb 2022 22:42:57 -0800
+Subject: [PATCH] fixup fs/btrfs build on 5.16.12
+
+fixup build after 5.16.12 and -next 'btrfs: drop the _nr from the item helpers'
+
+Signed-off-by: Scott B <arglebargle@arglebargle.dev>
+---
+ fs/btrfs/tree-checker.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/fs/btrfs/tree-checker.c b/fs/btrfs/tree-checker.c
+index cfb7a8148ea6..9fd145f1c4bc 100644
+--- a/fs/btrfs/tree-checker.c
++++ b/fs/btrfs/tree-checker.c
+@@ -965,7 +965,7 @@ static int check_dev_item(struct extent_buffer *leaf,
+ 			  struct btrfs_key *key, int slot)
+ {
+ 	struct btrfs_dev_item *ditem;
+-	const u32 item_size = btrfs_item_size_nr(leaf, slot);
++	const u32 item_size = btrfs_item_size(leaf, slot);
+ 
+ 	if (unlikely(key->objectid != BTRFS_DEV_ITEMS_OBJECTID)) {
+ 		dev_item_err(leaf, slot,
+@@ -1015,7 +1015,7 @@ static int check_inode_item(struct extent_buffer *leaf,
+ 	struct btrfs_inode_item *iitem;
+ 	u64 super_gen = btrfs_super_generation(fs_info->super_copy);
+ 	u32 valid_mask = (S_IFMT | S_ISUID | S_ISGID | S_ISVTX | 0777);
+-	const u32 item_size = btrfs_item_size_nr(leaf, slot);
++	const u32 item_size = btrfs_item_size(leaf, slot);
+ 	u32 mode;
+ 	int ret;
+ 	u32 flags;
+-- 
+2.35.1
+
